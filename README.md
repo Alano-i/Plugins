@@ -1,2 +1,2 @@
 # wecom-notification
-企业问题通知
+企业微信通知
