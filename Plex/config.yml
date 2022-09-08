@@ -1,5 +1,6 @@
 #企业微信应用通知参数配置
 #下方填入企业微信应用以及plex相关的参数,xxxxx就是需要自己填的，appcode按需修改
+#企业微信应用消息官方文档可参考：https://developer.work.weixin.qq.com/document/path/90854#%E5%9B%BE%E6%96%87%E6%B6%88%E6%81%AF
 wxapp:
   corpid: xxxxxx   #企业ID 
   secret: xxxxxx   #企业应用的密钥
