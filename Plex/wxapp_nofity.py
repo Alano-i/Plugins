@@ -33,16 +33,16 @@ import os
 from urllib import request
 from urllib import parse
 from urllib.error import URLError, HTTPError
-#import ssl
+import ssl
 import re
-#import smtplib
+import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.header import Header
-#import time
-#import hmac
-#import hashlib
-#import base64
+import time
+import hmac
+import hashlib
+import base64
 import getopt
 import requests
 
@@ -237,11 +237,18 @@ class WxApp():
             bitrate = content[3]
             bitrate = ('%.1f' %(float(bitrate)/1000))
             # 观看时间
-            watch_time = content[4]
-            timelist = watch_time.split(':')
-            watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟 ' + timelist[2] + '秒'
-            watch_time = watch_time.replace('00小时 ', '')
-            watch_time = watch_time.replace('00分钟 ', '')
+            try:
+                watch_time = content[4]
+                timelist = watch_time.split(':')
+                if len(timelist)==2:
+                    watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟'
+                else :
+                    watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟 ' + timelist[2] + '秒'
+                watch_time = watch_time.replace('00小时 00分钟', '0分钟')
+                watch_time = watch_time.replace('00小时 ', '')
+                watch_time = watch_time.replace('00分钟 ', '')
+            except Exception as e :
+                print(e)
             # 进度条
             progress = content[5]
             progress_all_num = 21
