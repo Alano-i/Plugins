@@ -1,9 +1,9 @@
 #企业微信应用通知参数配置
 #下方填入企业微信应用以及plex相关的参数,xxxxx就是需要自己填的，appcode按需修改
 wxapp:
-  corpid: xxxxxx   #企业ID 通常是 1000008 这样的格式
+  corpid: xxxxxx   #企业ID 
   secret: xxxxxx   #企业应用的密钥
-  agentid: xxxxxx  #应用ID
+  agentid: xxxxxx  #应用ID 通常是 1000008 这样的格式
   touser: xxxxxx   #接收通知的账号: 进入企微后台-应用管理-点用于发通知的应用-鼠标悬停在管理员的小卡片-弹出小弹窗中的账号就是需要填这里的，特殊情况填@all,所有人都可收到通知。
   type: news       #可选消息类型 news(图文消息) textcard(卡片消息，不展示影片海报图) text(纯文本)
   plex_server_url: https://xxxxxx.com:32400     #外网 plex 服务器地址，能外网访问的域名地址，非443端口记得加。若填内网地址，推送图片只在内网才能查看到，外网时图片无法显示
