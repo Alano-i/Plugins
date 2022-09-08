@@ -1,7 +1,7 @@
 # Plex 企业微信通知
 plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 tautulli 可正常使用。
 
-可通过微信接收 Plex 服务器的`影片入库` `播放` `报错` 等通知
+可通过微信接收 Plex 服务器的`影片入库` `播放` `报错` 等通知，展示当前播放方式，谁在播放，播放进度等以及一些影片的基本信息。
 
 ## 效果预览
 <div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/plex%E9%80%9A%E7%9F%A5%E9%A2%84%E8%A7%88.png" width="800" /></div>
