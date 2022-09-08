@@ -336,7 +336,7 @@ class WxApp():
         body = body.replace('周6', '周六')
         body = body.replace('周7', '周日')
         body = body.replace('MacBook-Pro.local', 'MBP')
-        body = body.replace('· 0.0Mbps', '')
+        body = body.replace(' · 0.0Mbps', '')
         if appcode:
             where = self.get_ip_info(ip_address, appcode)
             where = where.replace('中国·', '')
