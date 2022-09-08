@@ -242,7 +242,8 @@ class WxApp():
                 timelist = watch_time.split(':')
                 if len(timelist)==2:
                     watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟'
-                    watch_time = watch_time.replace('00小时 00分钟', '0分钟')
+                    watch_time = watch_time.replace('00小时 ', '')
+                    watch_time = watch_time.replace('00分钟', '0分钟')
                 else :
                     watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟 ' + timelist[2] + '秒'
                     watch_time = watch_time.replace('00小时 ', '')
