@@ -2,7 +2,7 @@
 plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 tautulli 可正常使用。
 
 ## 效果预览
-<div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/plex%E9%80%9A%E7%9F%A5%E9%A2%84%E8%A7%88.png" width="800" /></div>
+<div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/plex%E9%80%9A%E7%9F%A5%E9%A2%84%E8%A7%88.png" width="800" /></div>
 
 ## 使用方法
 - 将`wxapp_nofity.py` 和`config.yml`文件放入 tautulli 的/config/script/目录下，`wxapp_nofity.py`不需要改动，在`config.yml`中填入自己的配置
