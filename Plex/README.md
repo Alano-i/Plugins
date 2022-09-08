@@ -16,7 +16,7 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 
 ### 需要填入 Tautulli 中的通知代码
 
-播放通知
+**播放通知**
 ```
 <movie>
 {art} {themoviedb_url} ▶️{title}" @"{user}{"  "⭐️<rating>} {bitrate} 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {播放时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
@@ -26,7 +26,7 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 </episode>
 ```
 
-继续播放通知
+**继续播放通知**
 ```
 <movie>
 {art} {themoviedb_url} ▶️{title}" @"{user}{"  "⭐️<rating>} {bitrate} 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {继续时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>}"  "{video_codec!u}" ⤷ "{stream_video_codec!u} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
@@ -36,7 +36,7 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 </episode>
 ```
 
-停止播放通知
+**停止播放通知**
 ```
 <movie>
 {art} {themoviedb_url} ⏹{title}" @"{user}{"  "⭐️<rating>} {bitrate} {stream_time} {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {停止时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看时长：watchtime! 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
@@ -46,7 +46,8 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 </episode>
 ```
 
-影片入库通知
+**影片入库通知**  
+关于剧集入库`<show>` 多季入库  `<season>` 多集入库  `<episode>` 单集入库
 ```
 <movie>
 {art} {themoviedb_url} 🍿入库：{title}{"  "⭐️<rating>} {bitrate} 0:0:0 0 "10.0.0.1" {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} "··········································" {入库时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {文件大小：<file_size>} {首映日期：<air_date>} {主要演员：<actors:[:2]>} {剧情简介：<summary>}
@@ -62,7 +63,7 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 </episode>
 ```
 
-播放错误通知
+**播放错误通知**
 ```
 <movie>
 {art} {themoviedb_url} ⚠️{title}" 播放错误‼️ @"{user} {bitrate} 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {播放时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
@@ -72,23 +73,23 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 </episode>
 ```
 
-plex 有更新通知
+**Plex 有更新通知**
 ```
 "picurl_plex_update!" {update_url} 🆕PLEX" "服务器更新可用🚀 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前平台：<server_platform>} {当前版本：<server_version>} {最新版本：<update_version>} {发布时间：<update_release_date>} {新增日志：<update_changelog_added>} {修复日志：<update_changelog_fixed>}
 ```
 
 
-plex 无法连接通知
+**Plex 无法连接通知**
 ```
 "picurl_plex_update!" {update_url} ⚠️PLEX" "服务器无法连接‼️ 0 0:0:0 0 "10.0.0.1" {触发时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp}
 ```
 
-tautulli 数据库损坏通知
+**Tautulli 数据库损坏通知**
 ```
 "picurl_plex_update!" {update_url} ⚠️PLEX" "服务器无法连接‼️ 0 0:0:0 0 "10.0.0.1" {触发时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp}
 ```
 
-tautulli 有更新通知
+**Tautulli 有更新通知**
 ```
 "picurl_tautulli_update!" {tautulli_update_release_url} 🆕Tautulli" "更新可用🚀 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前版本：<tautulli_version>} {最新版本：<tautulli_update_version>} {更新日志：<tautulli_update_changelog>}
 ```
