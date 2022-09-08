@@ -1,5 +1,6 @@
 #企业微信应用通知参数配置
-wxapp:    #optional
+#下方填入企业微信应用以及plex相关的参数,xxxxx就是需要自己填的，appcode按需修改
+wxapp:
   corpid: xxxxxx
   secret: xxxxxx
   agentid: xxxxxx
