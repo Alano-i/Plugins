@@ -8,7 +8,7 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 
 ## 使用方法
 - 将`wxapp_nofity.py` 和`config.yml`文件放入 tautulli 的/config/script/目录下，`wxapp_nofity.py`不需要改动，在`config.yml`中填入自己的配置
-- Tautulli 需要添加 yaml 支持(进入tautulli命令行，执行 `pip3 install pyyaml`)
+- Tautulli 需要添加 yaml 支持（进入tautulli命令行，执行 `pip3 install pyyaml`）
 - Tautulli 新建通知-类型选-script
 - 选择 `wxapp_nofity.py`
 - 填入下方通知代码
