@@ -1,6 +1,13 @@
 # Plex 企业微信通知
 plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 tautulli 可正常使用。
 
+## 使用方法
+- 将`wxapp_nofity.py` 和`config.yml`文件放入 tautulli 的/config/script/目录下，`wxapp_nofity.py`不需要改动，在`config.yml`中填入自己的配置
+- tautulli 新建通知-类型选-script
+- 选择 `wxapp_nofity.py`
+- 填入下方通知代码
+- 保存即可
+
 ## 需要填入 tautulli 中的通知代码
 
 播放通知
