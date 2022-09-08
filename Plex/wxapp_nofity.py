@@ -182,7 +182,7 @@ class WxApp():
             if response.json()['code'] == 200:
                 i = response.json()['data']
                 country = i['country']  #国家
-                area = i['area']        #区域
+                #area = i['area']        #区域
                 region = i['region']    #地区/省
                 city = i['city']        #城市/市
                 isp = i['isp']          #运营商
