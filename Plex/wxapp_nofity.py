@@ -33,16 +33,16 @@ import os
 from urllib import request
 from urllib import parse
 from urllib.error import URLError, HTTPError
-import ssl
+# import ssl
 import re
-import smtplib
+# import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.header import Header
-import time
-import hmac
-import hashlib
-import base64
+# import time
+# import hmac
+# import hashlib
+# import base64
 import getopt
 import requests
 
