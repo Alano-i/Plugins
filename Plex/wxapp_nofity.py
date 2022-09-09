@@ -164,7 +164,7 @@ class WxApp():
     #查询IP所在的地理位置
     def get_ip_info(self, ip_address, appcode):
         url = 'https://ipaddquery.market.alicloudapi.com/ip/address-query'
-        # 配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
+        # 配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析试用 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
         appcode = appcode
         # ip_address = '10.0.0.1'
         params = {
