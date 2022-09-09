@@ -10,4 +10,4 @@ wxapp:
   plex_server_url: https://xxxxxx.com:32400     #外网 plex 服务器地址，能外网访问的域名地址，非443端口记得加端口号。若填内网地址，推送图片只在内网才可查看到，外网时图片无法显示
   picurl_default: https://xxxxxx.a.png   #通知缺省背景图，当没有获取到背景封面时调用此图
   plex_token: xxxxxx     #plex身份认证，否则无法获取封面背景图，获取方式：在plex中随意点开一部影片封面右下角3个点，然后选择获取信息，再点弹窗左下角的查看xml会跳转链接,查看浏览器地址栏有X-Plex-Token字样
-  appcode: ''            #配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
+  appcode: ''            #配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析试用 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
