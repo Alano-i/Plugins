@@ -18,6 +18,7 @@ Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tau
 <div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/pic/guide-wecom.png" width="1000" /></div>
 
 ## 需要填入 Tautulli 中的通知代码
+需要哪种场景的通知就将下面对应的代码全部复制到 Tautulli
 
 **播放通知**
 ```
