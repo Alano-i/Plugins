@@ -15,7 +15,7 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 - 保存即可
 
 ## 企业微信几个参数配置方法
-<div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/pic/guide-1.png" width="1000" /></div>
+<div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/pic/guide-wecom.png" width="1000" /></div>
 
 ## 需要填入 Tautulli 中的通知代码
 
