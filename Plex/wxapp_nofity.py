@@ -164,7 +164,7 @@ class WxApp():
     #查询IP所在的地理位置
     def get_ip_info(self, ip_address, appcode):
         url = 'https://ipaddquery.market.alicloudapi.com/ip/address-query'
-        # 配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场购买的1元含2万5千次请求，或者试用用免费的 https://reurl.cc/W103r5 进入管理控制台，在已购买的服务中可以找到AppCode
+        # 配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
         appcode = appcode
         # ip_address = '10.0.0.1'
         params = {
@@ -242,8 +242,7 @@ class WxApp():
                 timelist = watch_time.split(':')
                 if len(timelist)==2:
                     watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟'
-                    watch_time = watch_time.replace('00小时 ', '')
-                    watch_time = watch_time.replace('00分钟', '0分钟')
+                    watch_time = watch_time.replace('00小时 00分钟', '0分钟')
                 else :
                     watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟 ' + timelist[2] + '秒'
                     watch_time = watch_time.replace('00小时 ', '')
@@ -327,6 +326,7 @@ class WxApp():
                 body = body + v + self.delimiter
             if (len(body)>5000):  #bark has limitation of 5000 characters in body
                 body = body[0:5000]
+        body = body.replace(' · 0.0Mbps', '')
         body = body.replace(' 100%', '100%')
         body = body.replace('周1', '周一')
         body = body.replace('周2', '周二')
@@ -336,7 +336,6 @@ class WxApp():
         body = body.replace('周6', '周六')
         body = body.replace('周7', '周日')
         body = body.replace('MacBook-Pro.local', 'MBP')
-        body = body.replace(' · 0.0Mbps', '')
         if appcode:
             where = self.get_ip_info(ip_address, appcode)
             where = where.replace('中国·', '')
