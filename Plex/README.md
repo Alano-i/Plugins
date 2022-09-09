@@ -4,7 +4,7 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 可通过微信接收 Plex 服务器的`影片入库` `播放` `报错` 等通知，展示当前播放方式，谁在播放，播放进度等以及一些影片的基本信息。
 
 ## 效果预览
-<div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/plex%E9%80%9A%E7%9F%A5%E9%A2%84%E8%A7%88.png" width="800" /></div>
+<div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/pic/plex%E9%80%9A%E7%9F%A5%E9%A2%84%E8%A7%88.png" width="800" /></div>
 
 ## 使用方法
 - 将`wxapp_nofity.py` 和`config.yml`文件放入 tautulli 的/config/script/目录下，`wxapp_nofity.py`不需要改动，在`config.yml`中填入自己的配置
@@ -14,7 +14,10 @@ plex企业微信通知，基于 tautulli 通知规则编写 ，需要配合 taut
 - 填入下方通知代码
 - 保存即可
 
-### 需要填入 Tautulli 中的通知代码
+## 企业微信几个参数配置方法
+<div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/pic/guide-1.png" width="800" /></div>
+
+## 需要填入 Tautulli 中的通知代码
 
 **播放通知**
 ```
