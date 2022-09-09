@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Author: Alano
+# Author: Alano 此脚本是站在巨人肩膀上编写的，感谢 @vincent806
 # Date: 2022/09/08
 # plex企业微信通知，基于tautulli通知规则编写 ，需要配合 tautulli 可正常使用。
 # pip3 install pyyaml
