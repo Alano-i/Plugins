@@ -164,7 +164,7 @@ class WxApp():
     #查询IP所在的地理位置
     def get_ip_info(self, ip_address, appcode):
         url = 'https://ipaddquery.market.alicloudapi.com/ip/address-query'
-        # 配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析试用 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
+        # 配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
         appcode = appcode
         # ip_address = '10.0.0.1'
         params = {
@@ -182,11 +182,24 @@ class WxApp():
             if response.json()['code'] == 200:
                 i = response.json()['data']
                 country = i['country']  #国家
-                #area = i['area']        #区域
+              # area = i['area']        #区域
                 region = i['region']    #地区/省
                 city = i['city']        #城市/市
                 isp = i['isp']          #运营商
-                where = country + "·" + region + "·" + city + "·" + isp
+                # 中国·广东·深圳·电信
+                if country == "中国":
+                    country = ""
+                if region:
+                    if country == "":
+                        region = region
+                    else:
+                        region = "·" + region
+                if city:
+                    city = "·" + city
+                if isp:
+                    isp = "·" + isp                
+                where = country + region + city + isp
+                # where = country + "·" + region + "·" + city + "·" + isp
                 return where
             elif response.json()['code'] == 702:
                 where = '内网IP'
@@ -268,6 +281,8 @@ class WxApp():
             # ip地址转归属地
             ip_address = content[6]
             # ip_address = '10.0.0.1'
+            # ip_address = '103.149.249.30'
+            # ip_address = '178.173.224.106'
 
             body = ""
             for i in range(7,len(content)):
@@ -339,8 +354,11 @@ class WxApp():
         body = body.replace('MacBook-Pro.local', 'MBP')
         if appcode:
             where = self.get_ip_info(ip_address, appcode)
-            where = where.replace('中国·', '')
+            # where = where.replace('中国·', '')
             body = body.replace('whereareyou!', " (" + where + ")")
+            body = body.replace('··', '·')
+            body = body.replace('(·', '(')
+            body = body.replace('·)', ')')
         else:
             body = body.replace('whereareyou!', '')
         # 只保留一个换行
