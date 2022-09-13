@@ -356,7 +356,6 @@ class WxApp():
             where = self.get_ip_info(ip_address, appcode)
             # where = where.replace('中国·', '')
             body = body.replace('whereareyou!', " (" + where + ")")
-            body = body.replace('··', '·')
             body = body.replace('(·', '(')
             body = body.replace('·)', ')')
         else:
