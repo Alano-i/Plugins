@@ -189,11 +189,8 @@ class WxApp():
                 # 中国·广东·深圳·电信
                 if country == "中国":
                     country = ""
-                if region:
-                    if country == "":
-                        region = region
-                    else:
-                        region = "·" + region
+                if region and country:
+                    region = "·" + region
                 if city:
                     city = "·" + city
                 if isp:
