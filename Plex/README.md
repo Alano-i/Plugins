@@ -1,3 +1,4 @@
+
 # Plex 企业微信通知
 Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tautulli 可正常使用。
 
@@ -9,6 +10,7 @@ Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tau
 ## 使用方法
 - 将`wxapp_nofity.py` 和`config.yml`文件放入 tautulli 的/config/script/目录下，`wxapp_nofity.py`不需要改动，在`config.yml`中填入自己的配置
 - Tautulli 需要添加 yaml 支持（进入tautulli命令行，执行 `pip3 install pyyaml`）,最新版已不需要手动添加，会自动安装依赖。
+- Tautulli  Settings-General-Time Format 设置为 `HH:mm:ss`
 - Tautulli 中新建通知-类型选-script
 - 选择 `wxapp_nofity.py`
 - 填入下方通知代码
@@ -98,12 +100,3 @@ Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tau
 ```console
 "picurl_tautulli_update!" {tautulli_update_release_url} 🆕Tautulli" "更新可用🚀 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前版本：<tautulli_version>} {最新版本：<tautulli_update_version>} {更新日志：<tautulli_update_changelog>}
 ```
-
-
-
-
-
-
-
-
-
