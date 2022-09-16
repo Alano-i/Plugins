@@ -340,7 +340,7 @@ class WxApp():
             if (len(body)>5000):  #bark has limitation of 5000 characters in body
                 body = body[0:5000]
         body = body.replace(' · 0.0Mbps', '')
-        body = body.replace(' 100%', '100%')
+        body = body.replace(' 100%', ' 完')
         body = body.replace('周1', '周一')
         body = body.replace('周2', '周二')
         body = body.replace('周3', '周三')
