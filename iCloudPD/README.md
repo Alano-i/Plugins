@@ -1,6 +1,7 @@
 # iCloudPD 通知设置
 依托的 docker镜像为：[boredazfcuk/icloudpd](https://hub.docker.com/r/boredazfcuk/icloudpd)   
-对 iCloud 图库同步状态监控通知，以及简要同步日志提示。
+对 iCloud 图库同步状态监控通知，以及简要同步日志提示。  
+media_id_images文件夹内的4个GIF图片需要传到企业微信素材库，详见 [media_id获取方法](https://note.youdao.com/ynoteshare/index.html?id=351e08a72378206f9dd64d2281e9b83b&type=note&_time=1663295003299)
 # 效果预览
 空了补充
 # 变量设置
