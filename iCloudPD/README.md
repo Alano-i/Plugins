@@ -3,7 +3,12 @@
 对 iCloud 图库同步状态监控通知，以及简要同步日志提示。  
 `media_id_images`文件夹内的4个GIF图片（ _不要改后缀_ ）需要传到企业微信素材库，详见 [media_id获取方法](https://note.youdao.com/ynoteshare/index.html?id=351e08a72378206f9dd64d2281e9b83b&type=note&_time=1663295003299) ,看图片ID获取部分就行，其他的不用关注。
 # 效果预览
-空了补充
+同步状态通知
+<div align=center><img src="https://user-images.githubusercontent.com/68833595/192474058-81361c43-449f-44ab-b89a-47a50ef1031c.png" width="1000" /></div>
+
+简要日志  
+<div align=center><img src="https://user-images.githubusercontent.com/68833595/192473151-5e64a648-c650-44ad-b7ad-bc3c2b9c268f.png" width="334" /></div>
+
 # 环境变量配置
 `notification_type` 通知类型设置为 `WeCom`
 
