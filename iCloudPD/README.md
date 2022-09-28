@@ -6,7 +6,7 @@
 详见 [media_id获取方法](https://note.youdao.com/ynoteshare/index.html?id=351e08a72378206f9dd64d2281e9b83b&type=note&_time=1663295003299) ,看图片ID获取部分就行，其他部分可略过。
 # 效果预览
 同步状态通知
-<div align=center><img src="https://user-images.githubusercontent.com/68833595/192768793-91423226-5e30-488c-92bd-bc36063b83b7.png" width="1000" /></div>
+<div align=center><img src="https://user-images.githubusercontent.com/68833595/192769304-c433d861-2bca-4873-b075-3176e71f3108.png" width="1000" /></div>
 
 简要日志  
 <div align=center><img src="https://user-images.githubusercontent.com/68833595/192768687-d5ad10fc-3382-4a0d-86ff-77f820804fc5.png" width="334" /></div>
