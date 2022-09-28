@@ -9,11 +9,13 @@ import os
 from importlib import import_module
 import sys
 import_list=[
-    'yaml',
+    'pyyaml',
+    'requests',
 ]
 # 判断依赖库是否安装,未安装则安装对应依赖库
 sourcestr = "https://pypi.tuna.tsinghua.edu.cn/simple/"  # 镜像源
 def GetPackage(PackageName):
+    # comand = "apt-get install pip3"
     comand = "pip install " + PackageName +" -i "+sourcestr
     # 正在安装
     print("------------------正在安装" + str(PackageName) + " ----------------------")
@@ -233,6 +235,8 @@ class WxApp():
         plex_token = config.get('plex_token')
         appcode = config.get('appcode')
 
+        # content = ['picurl_tautulli_update!', '', '⚠️PLEX 服务器无法连接‼️', '0', '0:0:0', '0', '10.0.0.1', '触发时间：2022-09-28 周3 08:23:15']
+
         #处理消息内容
         if(len(content)<0):
             title = "参数个数不对!"
@@ -365,10 +369,12 @@ class WxApp():
         if (len(art)<18):    #如果没有获取到本地背景封面就使用下方图片作为缺省图，正常art=/library/metadata/xxxx/xxxxxxx 长度大概30多，取 “/library/metadata/” 为临界长度，也可判断为空
             picurl = picurl_default
             tmdb_url = ""
+        elif art == "picurl_plex_update!":
+            picurl = picurl_default
+        elif art == "picurl_tautulli_update!":
+            picurl = picurl_default
         else:
             picurl = plex_server_url + art + '?X-Plex-Token=' + plex_token
-            picurl = picurl.replace('picurl_plex_update!', picurl_default)
-            picurl = picurl.replace('picurl_tautulli_update!', picurl_default)
 
         #initialize header and endpoint
         header = {
