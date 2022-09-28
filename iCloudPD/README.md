@@ -12,6 +12,8 @@
 <div align=center><img src="https://user-images.githubusercontent.com/68833595/192768687-d5ad10fc-3382-4a0d-86ff-77f820804fc5.png" width="334" /></div>
 
 # 环境变量配置
+>iCloudPD 其他环境变量设置此处省略，只列出通知环境变量。
+
 `notification_type` 通知类型设置为 `WeCom`
 
 `wecom_id` 企业微信通知，企业微信通知，企业ID 
