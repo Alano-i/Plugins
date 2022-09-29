@@ -83,21 +83,21 @@ Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tau
 
 **Plex 有更新通知**
 ```console
-"picurl_plex_update!" {update_url} 🆕PLEX" "服务器更新可用🚀 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前平台：<server_platform>} {当前版本：<server_version>} {最新版本：<update_version>} {发布时间：<update_release_date>} {新增日志：<update_changelog_added>} {修复日志：<update_changelog_fixed>}
+"picurl_plex_update!" {update_url} 🆕PLEX" "服务器更新可用🚀 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前平台：<server_platform>} {当前版本：<server_version>} {最新版本：<update_version>} {发布时间：<update_release_date>} {●" "<update_changelog_added>} {●" "<update_changelog_fixed>}
 ```
 
 
 **Plex 无法连接通知**
 ```console
-"picurl_plex_update!" {update_url} ⚠️PLEX" "服务器无法连接‼️ 0 0:0:0 0 "10.0.0.1" {触发时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp}
+"picurl_plex_server_down!" {update_url} ⚠️PLEX" "服务器无法连接‼️ 0 0:0:0 0 "10.0.0.1" {触发时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp}
 ```
 
 **Tautulli 数据库损坏通知**
 ```console
-"picurl_plex_update!" {update_url} ⚠️PLEX" "服务器无法连接‼️ 0 0:0:0 0 "10.0.0.1" {触发时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp}
+"picurl_tautulli_database_corruption!" {update_url} ⚠️Tautulli" "数据库损坏‼️ 0 0:0:0 0 "10.0.0.1" {触发时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp}
 ```
 
 **Tautulli 有更新通知**
 ```console
-"picurl_tautulli_update!" {tautulli_update_release_url} 🆕Tautulli" "更新可用🚀 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前版本：<tautulli_version>} {最新版本：<tautulli_update_version>} {更新日志：<tautulli_update_changelog>}
+"picurl_tautulli_update!" {tautulli_update_release_url} 🆕Tautulli" "更新可用🚀 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前版本：<tautulli_version>} {最新版本：<tautulli_update_version>} {●" "<tautulli_update_changelog>}
 ```
