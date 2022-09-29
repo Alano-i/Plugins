@@ -9,7 +9,7 @@ import os
 from importlib import import_module
 import sys
 import_list=[
-    'pyyaml',
+    'yaml',
     'requests',
 ]
 # 判断依赖库是否安装,未安装则安装对应依赖库
@@ -261,7 +261,7 @@ class WxApp():
         # content = ['picurl_plex_server_down!', '', '⚠️PLEX 服务器无法连接‼️', '0', '0:0:0', '0', '10.0.0.1', '触发时间：2022-09-28 周3 08:23:15']
         # content = ['picurl_plex_update!', 'https://github.com/Alano-i/wecom-notification', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-28 周三 18:08:56', '当前平台：Mac', '当前版本：v3.6587474', '最新版本：v4.023544', '发布时间：2022-09-29', '12新增日志：修复bug', '13修复日志：修复bug,完善体验']
         # content = ['picurl_plex_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕PLEX服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-29 周4 08:25:00', '当前平台：Linux', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', '发布时间：2022-09-23', '● (Windows) Add 64-bit x86 Windows builds\n(Windows) Support zero-copy hardware transcoding with Nvidia GPUs on 64-bit Windows', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maintenance (#13802)\n(Music) Locking the date field for albums wouldn't lock the year value (#13786)\n(Scanner) Improve scanner performance (#13804)"]
-        # content = ['picurl_tautulli_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕Tautulli 更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-29 周4 08:25:00', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maintenance (#13802)\n(Music) Locking the date field for albums wouldn't lock the year value (#13786)\n(Scanner) Improve scanner performance (#13804)"]
+        # content = ['picurl_tautulli_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕Tautulli 更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-29 周4 08:25:00', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maint"]
 
         #处理消息内容
         if(len(content)<0):
@@ -315,11 +315,16 @@ class WxApp():
             if art == "picurl_plex_update!":
                 changelog_add = content[12]
                 changelog_fix = content[13]
-                changelog_add = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<small>" + changelog_add + "</small>"
-                changelog_fix = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<small>" + changelog_fix + "</small>"
-                changelog_add = changelog_add.replace('\n', '<br/>● ')
-                changelog_fix = changelog_fix.replace('\n', '<br/>● ')
-                content_detail = changelog_add + '<br/>' + changelog_fix
+                if changelog_add:
+                    changelog_add = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<small>" + changelog_add + "</small>"
+                    changelog_add = changelog_add.replace('\n', '<br/>● ')
+                    changelog_add = changelog_add + '<br/>'
+                if changelog_fix:
+                    changelog_fix = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<small>" + changelog_fix + '</small>'
+                    changelog_fix = changelog_fix.replace('\n', '<br/>● ')
+                content_detail = changelog_add + changelog_fix
+                if not content_detail:
+                    content_detail = "暂无更新日志"
                 content = content[0:12]
                 # 切换为 mpnews 通知模式
                 if thumb_media_id:
@@ -335,9 +340,12 @@ class WxApp():
             # tautulli 有更新
             elif art == "picurl_tautulli_update!":
                 changelog = content[10]
-                changelog = "<small>" + changelog + "</small>"
-                changelog = changelog.replace('\n', '<br/>● ')
-                content_detail = changelog
+                if changelog:
+                    changelog = "<small>" + changelog + "</small>"
+                    changelog = changelog.replace('\n', '<br/>● ')
+                    content_detail = changelog
+                else:
+                    content_detail = "暂无更新日志"
                 content = content[0:10]
                 # 切换为 mpnews 通知模式
                 if thumb_media_id:
