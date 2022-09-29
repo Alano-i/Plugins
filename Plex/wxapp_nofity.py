@@ -104,7 +104,7 @@ class WxApp():
         self.delimiter = '\n'
         self.endpoint = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token='
 
-    def formatMessage(self, touser, agentid, title, body, messagetype, tmdb_url, picurl):
+    def formatMessage(self, touser, agentid, title, body, messagetype, tmdb_url, picurl,content_detail,thumb_media_id):
         json_news = {
             "touser": touser,
             "msgtype": "news",
@@ -118,6 +118,26 @@ class WxApp():
                         "picurl" : picurl, 
                         #"appid": "wx123123123123123",
                         #"pagepath": "pages/index?userid=zhangsan&orderid=123123123",
+                    }
+                ]
+            },
+            "enable_id_trans": 0,
+            "enable_duplicate_check": 0,
+            "duplicate_check_interval": 1800
+        }
+        json_mpnews = {
+            "touser": touser,
+            "msgtype": "mpnews",
+            "agentid": agentid,
+            "mpnews": {
+                "articles" : [
+                    {
+                        "title" : title,
+                        "thumb_media_id" : thumb_media_id,   # 卡片头部图片链接，此图片存储在企业微信中
+                        "author" : "更新日志",                   # 点击卡片进入下级页面后，时间日期的旁边的作者
+                        "content_source_url" : tmdb_url,     # 阅读原文链接
+                        "digest" : body,                     # 图文消息的描述
+                        "content" : content_detail,          # 点击卡片进入下级页面后展示的消息内容
                     }
                 ]
             },
@@ -153,6 +173,8 @@ class WxApp():
         }
         if messagetype == "news":
             return json_news
+        elif messagetype == "mpnews":
+            return json_mpnews
         elif messagetype == "textcard":
             return json_textcard
         else:
@@ -234,9 +256,12 @@ class WxApp():
         picurl_default = config.get('picurl_default')
         plex_token = config.get('plex_token')
         appcode = config.get('appcode')
+        thumb_media_id = config.get('thumb_media_id')
 
-        # content = ['picurl_tautulli_update!', '', '⚠️PLEX 服务器无法连接‼️', '0', '0:0:0', '0', '10.0.0.1', '触发时间：2022-09-28 周3 08:23:15']
-        # content = ['picurl_plex_update!', 'https://github.com/Alano-i/wecom-notification', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-28 周三 18:08:56', '当前平台：Mac', '当前版本：v3.6587474', '最新版本：v4.023544', '发布时间：2022-09-29', '新增日志：修复bug', '修复日志：修复bug,完善体验']
+        # content = ['picurl_plex_server_down!', '', '⚠️PLEX 服务器无法连接‼️', '0', '0:0:0', '0', '10.0.0.1', '触发时间：2022-09-28 周3 08:23:15']
+        # content = ['picurl_plex_update!', 'https://github.com/Alano-i/wecom-notification', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-28 周三 18:08:56', '当前平台：Mac', '当前版本：v3.6587474', '最新版本：v4.023544', '发布时间：2022-09-29', '12新增日志：修复bug', '13修复日志：修复bug,完善体验']
+        # content = ['picurl_plex_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕PLEX服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-29 周4 08:25:00', '当前平台：Linux', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', '发布时间：2022-09-23', '● (Windows) Add 64-bit x86 Windows builds\n(Windows) Support zero-copy hardware transcoding with Nvidia GPUs on 64-bit Windows', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maintenance (#13802)\n(Music) Locking the date field for albums wouldn't lock the year value (#13786)\n(Scanner) Improve scanner performance (#13804)"]
+        # content = ['picurl_tautulli_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕Tautulli 更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-29 周4 08:25:00', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maintenance (#13802)\n(Music) Locking the date field for albums wouldn't lock the year value (#13786)\n(Scanner) Improve scanner performance (#13804)"]
 
         #处理消息内容
         if(len(content)<0):
@@ -286,64 +311,107 @@ class WxApp():
             # ip_address = '103.149.249.30'
             # ip_address = '178.173.224.106'
 
-            body = ""
-            for i in range(7,len(content)):
-                v = content[i]
-                v = v.replace('Direct Play', '直接播放')
-                v = v.replace('Direct Stream', '直接串流')
-                v = v.replace('Transcode', '转码播放')
-                v = v.replace('0.2 Mbps 160p', '160P · 0.2Mbps')
-                v = v.replace('0.3 Mbps 240p', '240P · 0.3Mbps')
-                v = v.replace('0.7 Mbps 328p', '328P · 0.7Mbps')
-                v = v.replace('1.5 Mbps 480p', '480P · 1.5Mbps')
-                v = v.replace('2 Mbps 720p', '720P · 2.0Mbps')
-                v = v.replace('3 Mbps 720p', '720P · 3.0Mbps')
-                v = v.replace('4 Mbps 720p', '720P · 4.0Mbps')
-                v = v.replace('8 Mbps 1080p', '1080P · 8.0Mbps')
-                v = v.replace('10 Mbps 1080p', '1080P · 10Mbps')
-                v = v.replace('12 Mbps 1080p', '1080p · 12Mbps')
-                v = v.replace('20 Mbps 1080p', '1080P · 20Mbps')
-                v = v.replace('Original · HDR10', '原始质量')
-                v = v.replace('Original · SDR', '原始质量')
-                v = v.replace('Original · HDR', '原始质量')
-                v = v.replace('Original · Dolby Vision', '原始质量')
-                v = v.replace('HDR10 HDR10', 'HDR10')
-                v = v.replace('HDR10 HDR', 'HDR10')
-                v = v.replace('HDR10 SDR', 'HDR10')
-                v = v.replace('SDR SDR', 'SDR')
-                v = v.replace('HDR HDR', 'HDR')
-                v = v.replace('HDR SDR', 'HDR')
-                v = v.replace('bitrate!', bitrate + 'Mbps')
-                v = v.replace('watchtime!', watch_time)
-                v = v.replace('Dolby Vision ·', '杜比视界 ·')
-                v = v.replace('4k ·', '4K ·')
-                v = v.replace('2160 ·', '2160P ·')
-                v = v.replace('1080 ·', '1080P ·')
-                v = v.replace('720 ·', '720P ·')
-                v = v.replace('progress!',progress )
-                # 所有空格全部替换为特殊字符串replace!，后面可通过操作这个字符串来控制空格数量（大于2个空格的替换为2个空格，一个空格的则不变）
-                v = v.replace(' ', 'replace!')
-                # 去掉换行主要用于去掉剧情简介的换行
-                v = v.replace('\n', '')
-                # 去掉中文空格，主要用于去掉剧情简介的缩进
-                v = v.replace('　', '')
-                # 剧情简介有缩进的另一种情况，可能是通过英文空格来缩进的，全部去掉
-                v = v.replace('replace!replace!replace!replace!replace!replace!replace!replace!replace!replace!', '')
-                v = v.replace('replace!replace!replace!replace!replace!replace!replace!replace!replace!', '')
-                v = v.replace('replace!replace!replace!replace!replace!replace!replace!replace!', '')
-                v = v.replace('replace!replace!replace!replace!replace!replace!replace!', '')
-                # 大于等于2个空格的替换为2个空格，一个空格的则不变
-                v = v.replace('replace!replace!replace!replace!replace!replace!', '  ')
-                v = v.replace('replace!replace!replace!replace!replace!', '  ')
-                v = v.replace('replace!replace!replace!replace!', '  ')
-                v = v.replace('replace!replace!replace!', '  ')
-                v = v.replace('replace!replace!', '  ')
-                v = v.replace('replace!', ' ')
-                v = MessageFormatter().convertBytes(v)
-                v = MessageFormatter().getHostLocation(v)
-                body = body + v + self.delimiter
-            if (len(body)>5000):  #bark has limitation of 5000 characters in body
-                body = body[0:5000]
+            # plex 服务器有更新
+            if art == "picurl_plex_update!":
+                changelog_add = content[12]
+                changelog_fix = content[13]
+                changelog_add = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<small>" + changelog_add + "</small>"
+                changelog_fix = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<small>" + changelog_fix + "</small>"
+                changelog_add = changelog_add.replace('\n', '<br/>● ')
+                changelog_fix = changelog_fix.replace('\n', '<br/>● ')
+                content_detail = changelog_add + '<br/>' + changelog_fix
+                content = content[0:12]
+                # 切换为 mpnews 通知模式
+                if thumb_media_id:
+                    messagetype = "mpnews"
+                else:
+                    messagetype = "textcard"
+                body = ""
+                for i in range(7,len(content)):
+                    v = content[i]
+                    v = MessageFormatter().convertBytes(v)
+                    v = MessageFormatter().getHostLocation(v)
+                    body = body + v + self.delimiter
+            # tautulli 有更新
+            elif art == "picurl_tautulli_update!":
+                changelog = content[10]
+                changelog = "<small>" + changelog + "</small>"
+                changelog = changelog.replace('\n', '<br/>● ')
+                content_detail = changelog
+                content = content[0:10]
+                # 切换为 mpnews 通知模式
+                if thumb_media_id:
+                    messagetype = "mpnews"
+                else:
+                    messagetype = "textcard"
+                body = ""
+                for i in range(7,len(content)):
+                    v = content[i]
+                    v = MessageFormatter().convertBytes(v)
+                    v = MessageFormatter().getHostLocation(v)
+                    body = body + v + self.delimiter
+            # 播放 暂停 停止通知
+            else:
+                content_detail = ""
+                body = ""
+                for i in range(7,len(content)):
+                    v = content[i]
+                    v = v.replace('Direct Play', '直接播放')
+                    v = v.replace('Direct Stream', '直接串流')
+                    v = v.replace('Transcode', '转码播放')
+                    v = v.replace('0.2 Mbps 160p', '160P · 0.2Mbps')
+                    v = v.replace('0.3 Mbps 240p', '240P · 0.3Mbps')
+                    v = v.replace('0.7 Mbps 328p', '328P · 0.7Mbps')
+                    v = v.replace('1.5 Mbps 480p', '480P · 1.5Mbps')
+                    v = v.replace('2 Mbps 720p', '720P · 2.0Mbps')
+                    v = v.replace('3 Mbps 720p', '720P · 3.0Mbps')
+                    v = v.replace('4 Mbps 720p', '720P · 4.0Mbps')
+                    v = v.replace('8 Mbps 1080p', '1080P · 8.0Mbps')
+                    v = v.replace('10 Mbps 1080p', '1080P · 10Mbps')
+                    v = v.replace('12 Mbps 1080p', '1080p · 12Mbps')
+                    v = v.replace('20 Mbps 1080p', '1080P · 20Mbps')
+                    v = v.replace('Original · HDR10', '原始质量')
+                    v = v.replace('Original · SDR', '原始质量')
+                    v = v.replace('Original · HDR', '原始质量')
+                    v = v.replace('Original · Dolby Vision', '原始质量')
+                    v = v.replace('HDR10 HDR10', 'HDR10')
+                    v = v.replace('HDR10 HDR', 'HDR10')
+                    v = v.replace('HDR10 SDR', 'HDR10')
+                    v = v.replace('SDR SDR', 'SDR')
+                    v = v.replace('HDR HDR', 'HDR')
+                    v = v.replace('HDR SDR', 'HDR')
+                    v = v.replace('bitrate!', bitrate + 'Mbps')
+                    v = v.replace('watchtime!', watch_time)
+                    v = v.replace('Dolby Vision ·', '杜比视界 ·')
+                    v = v.replace('4k ·', '4K ·')
+                    v = v.replace('2160 ·', '2160P ·')
+                    v = v.replace('1080 ·', '1080P ·')
+                    v = v.replace('720 ·', '720P ·')
+                    v = v.replace('progress!',progress )
+                    # 所有空格全部替换为特殊字符串replace!，后面可通过操作这个字符串来控制空格数量（大于2个空格的替换为2个空格，一个空格的则不变）
+                    v = v.replace(' ', 'replace!')
+                    # 去掉换行主要用于去掉剧情简介的换行
+                    v = v.replace('\n', '')
+                    # 去掉中文空格，主要用于去掉剧情简介的缩进
+                    v = v.replace('　', '')
+                    # 剧情简介有缩进的另一种情况，可能是通过英文空格来缩进的，全部去掉
+                    v = v.replace('replace!replace!replace!replace!replace!replace!replace!replace!replace!replace!', '')
+                    v = v.replace('replace!replace!replace!replace!replace!replace!replace!replace!replace!', '')
+                    v = v.replace('replace!replace!replace!replace!replace!replace!replace!replace!', '')
+                    v = v.replace('replace!replace!replace!replace!replace!replace!replace!', '')
+                    # 大于等于2个空格的替换为2个空格，一个空格的则不变
+                    v = v.replace('replace!replace!replace!replace!replace!replace!', '  ')
+                    v = v.replace('replace!replace!replace!replace!replace!', '  ')
+                    v = v.replace('replace!replace!replace!replace!', '  ')
+                    v = v.replace('replace!replace!replace!', '  ')
+                    v = v.replace('replace!replace!', '  ')
+                    v = v.replace('replace!', ' ')
+                    v = MessageFormatter().convertBytes(v)
+                    v = MessageFormatter().getHostLocation(v)
+                    body = body + v + self.delimiter
+                if (len(body)>5000):  #bark has limitation of 5000 characters in body
+                    body = body[0:5000]
+
         body = body.replace(' · 0.0Mbps', '')
         body = body.replace(' 100%', ' 完')
         body = body.replace('周1', '周一')
@@ -366,13 +434,12 @@ class WxApp():
         body = re.sub('\n+','\n',body)
         # 删除字符串末尾所有换行符
         body = body.strip('\n')
-        # body = body + " (" + where + ")"
         if (len(art)<18):    #如果没有获取到本地背景封面就使用下方图片作为缺省图，正常art=/library/metadata/xxxx/xxxxxxx 长度大概30多，取 “/library/metadata/” 为临界长度，也可判断为空
             picurl = picurl_default
             tmdb_url = ""
-        elif art == "picurl_plex_update!":
+        elif art == "picurl_plex_server_down!":
             picurl = picurl_default
-        elif art == "picurl_tautulli_update!":
+        elif art == "picurl_tautulli_database_corruption!":
             picurl = picurl_default
         else:
             picurl = plex_server_url + art + '?X-Plex-Token=' + plex_token
@@ -386,7 +453,7 @@ class WxApp():
         endpoint = self.endpoint + token
 
         #format posting data
-        message = self.formatMessage(touser, agentid, title, body, messagetype, tmdb_url, picurl)
+        message = self.formatMessage(touser, agentid, title, body, messagetype, tmdb_url, picurl,content_detail,thumb_media_id)
 
         #send data to wxapp
         try:
