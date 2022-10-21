@@ -8,30 +8,8 @@
 import os
 from importlib import import_module
 import sys
-import_list=[
-    'yaml',
-    'requests',
-]
-# 判断依赖库是否安装,未安装则安装对应依赖库
-sourcestr = "https://pypi.tuna.tsinghua.edu.cn/simple/"  # 镜像源
-def GetPackage(PackageName):
-    # comand = "apt-get install pip3"
-    comand = "pip install " + PackageName +" -i "+sourcestr
-    # 正在安装
-    print("------------------正在安装" + str(PackageName) + " ----------------------")
-    print(comand + "\n")
-    os.system(comand)
-for v in import_list:
-    try:
-        import_module(v)
-    except ImportError:
-        print("Not find "+v+" now install")
-        GetPackage(v)
-##############################################################
-
 import yaml
 import json, sys
-import os
 from urllib import request
 from urllib import parse
 from urllib.error import URLError, HTTPError
@@ -41,10 +19,8 @@ import re
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.header import Header
-# import time
-# import hmac
-# import hashlib
-# import base64
+# 翻译
+from googletrans import Translator
 import getopt
 import requests
 
@@ -104,7 +80,7 @@ class WxApp():
         self.delimiter = '\n'
         self.endpoint = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token='
 
-    def formatMessage(self, touser, agentid, title, body, messagetype, tmdb_url, picurl,content_detail,thumb_media_id):
+    def formatMessage(self, touser, agentid, title, body, msgtype, tmdb_url, picurl,content_detail,thumb_media_id):
         json_news = {
             "touser": touser,
             "msgtype": "news",
@@ -134,7 +110,7 @@ class WxApp():
                     {
                         "title" : title,
                         "thumb_media_id" : thumb_media_id,   # 卡片头部图片链接，此图片存储在企业微信中
-                        "author" : "更新日志",                   # 点击卡片进入下级页面后，时间日期的旁边的作者
+                        "author" : "检测到更新",                   # 点击卡片进入下级页面后，时间日期的旁边的作者
                         "content_source_url" : tmdb_url,     # 阅读原文链接
                         "digest" : body,                     # 图文消息的描述
                         "content" : content_detail,          # 点击卡片进入下级页面后展示的消息内容
@@ -171,11 +147,11 @@ class WxApp():
            "enable_duplicate_check": 0,
            "duplicate_check_interval": 1800
         }
-        if messagetype == "news":
+        if msgtype == "news":
             return json_news
-        elif messagetype == "mpnews":
+        elif msgtype == "mpnews":
             return json_mpnews
-        elif messagetype == "textcard":
+        elif msgtype == "textcard":
             return json_textcard
         else:
             return json_text
@@ -244,17 +220,29 @@ class WxApp():
             else:
                 where = response.json()['msg']
                 return where
-            
+    # 翻译
+    def translate(self, translate_text):
+        # 设置Google翻译服务地址
+        translator = Translator(service_urls=[
+            'translate.google.com'
+            ])
+        translate_text=translator.translate(translate_text, src='en', dest='zh-cn')
+        # translate_text=translator.translate(translate_text, src='auto', dest='zh-cn')
+        # print(translate_text.origin)  # 原文
+        # print(translate_text.text)   # 译文
+        translate_text_done = translate_text.text
+        return translate_text_done
+
     def push(self,config,content):
         #config.yml中导入配置参数
         corpid = config.get('corpid')
         secret = config.get('secret')
         agentid = config.get('agentid')
         touser = config.get('touser')
-        messagetype = config.get('type')
+        msgtype = config.get('msgtype')
         plex_server_url = config.get('plex_server_url')
         picurl_default = config.get('picurl_default')
-        plex_token = config.get('plex_token')
+        PLEX_TOKEN = config.get('PLEX_TOKEN')
         appcode = config.get('appcode')
         thumb_media_id = config.get('thumb_media_id')
 
@@ -293,8 +281,13 @@ class WxApp():
             # 进度条
             progress = content[5]
             progress_all_num = 21
+            # 黑白进度条
             progress_do_text = "■"
             progress_undo_text = "□"
+            # 彩色进度条
+            # progress_do_text = "🟩"
+            # progress_undo_text = "⬜"
+
             progress_do_num = round(0.5 + ((progress_all_num * int(progress)) / 100))
             # 处理96%-100%进度时进度条展示，正常计算时，进度大于等于96%就已是满条，需单独处理
             if 95 < int(progress) < 100:
@@ -316,21 +309,34 @@ class WxApp():
                 changelog_add = content[12]
                 changelog_fix = content[13]
                 if changelog_add:
-                    changelog_add = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<small>" + changelog_add + "</small>"
-                    changelog_add = changelog_add.replace('\n', '<br/>● ')
-                    changelog_add = changelog_add + '<br/>'
+                    changelog_add_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_add + "</small></small><br/></font></p>"
+                    changelog_add_origin = changelog_add_origin.replace('\n', '<br/>● ')
+                    # changelog_add_origin = changelog_add_origin + '<br/>'
+                    changelog_add_translate = self.translate(changelog_add)
+                    changelog_add_translate = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_add_translate + "</small></p>"
+                    changelog_add_translate = changelog_add_translate.replace('\n', '<br/>●')
+                    changelog_add_translate = changelog_add_translate.replace('（', ' (')
+                    changelog_add_translate = changelog_add_translate.replace('）', ') ')
+                    changelog_add_translate = changelog_add_translate
                 if changelog_fix:
-                    changelog_fix = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<small>" + changelog_fix + '</small>'
-                    changelog_fix = changelog_fix.replace('\n', '<br/>● ')
-                content_detail = changelog_add + changelog_fix
+                    changelog_fix_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_fix + "</small></small><br/></font></p>"
+                    changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>● ')
+                    # changelog_fix_origin = changelog_fix_origin + '<br/>'
+                    changelog_fix_translate = self.translate(changelog_fix)
+                    changelog_fix_translate = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_fix_translate + '</small></p>'
+                    changelog_fix_translate = changelog_fix_translate.replace('\n', '<br/>●')
+                    changelog_fix_translate = changelog_fix_translate.replace('（', ' (')
+                    changelog_fix_translate = changelog_fix_translate.replace('）', ') ')
+                    # changelog_fix_translate = changelog_fix_translate + '<br/>'
+                content_detail = changelog_add_translate + changelog_add_origin + changelog_fix_translate  + changelog_fix_origin
                 if not content_detail:
                     content_detail = "暂无更新日志"
                 content = content[0:12]
                 # 切换为 mpnews 通知模式
                 if thumb_media_id:
-                    messagetype = "mpnews"
+                    msgtype = "mpnews"
                 else:
-                    messagetype = "textcard"
+                    msgtype = "textcard"
                 body = ""
                 for i in range(7,len(content)):
                     v = content[i]
@@ -349,9 +355,9 @@ class WxApp():
                 content = content[0:10]
                 # 切换为 mpnews 通知模式
                 if thumb_media_id:
-                    messagetype = "mpnews"
+                    msgtype = "mpnews"
                 else:
-                    messagetype = "textcard"
+                    msgtype = "textcard"
                 body = ""
                 for i in range(7,len(content)):
                     v = content[i]
@@ -450,7 +456,7 @@ class WxApp():
         elif art == "picurl_tautulli_database_corruption!":
             picurl = picurl_default
         else:
-            picurl = plex_server_url + art + '?X-Plex-Token=' + plex_token
+            picurl = plex_server_url + art + '?X-Plex-Token=' + PLEX_TOKEN
 
         #initialize header and endpoint
         header = {
@@ -461,7 +467,7 @@ class WxApp():
         endpoint = self.endpoint + token
 
         #format posting data
-        message = self.formatMessage(touser, agentid, title, body, messagetype, tmdb_url, picurl,content_detail,thumb_media_id)
+        message = self.formatMessage(touser, agentid, title, body, msgtype, tmdb_url, picurl,content_detail,thumb_media_id)
 
         #send data to wxapp
         try:
