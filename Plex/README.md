@@ -92,7 +92,7 @@ pip3 install googletrans==4.0.0-rc1
 
 **Plex 有更新通知**
 ```console
-"picurl_plex_update!" {update_url} PLEX" "服务器更新啦 💬 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前平台：<server_platform>} {当前版本：<server_version>} {最新版本：<update_version>} {发布时间：<update_release_date>} {●" "<update_changelog_added>} {●" "<update_changelog_fixed>}
+"picurl_plex_update!" {update_url} PLEX" "服务器更新啦" "💬 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前平台：<server_platform>} {当前版本：<server_version>} {最新版本：<update_version>} {发布时间：<update_release_date>} {●" "<update_changelog_added>} {●" "<update_changelog_fixed>}
 ```
 
 
@@ -108,5 +108,5 @@ pip3 install googletrans==4.0.0-rc1
 
 **Tautulli 有更新通知**
 ```console
-"picurl_tautulli_update!" {tautulli_update_release_url} Tautulli" "更新啦 💬 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前版本：<tautulli_version>} {最新版本：<tautulli_update_version>} {●" "<tautulli_update_changelog>}
+"picurl_tautulli_update!" {tautulli_update_release_url} Tautulli" "更新啦" "💬 0 0:0:0 0 "10.0.0.1" {检测时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} {当前版本：<tautulli_version>} {最新版本：<tautulli_update_version>} {●" "<tautulli_update_changelog>}
 ```
