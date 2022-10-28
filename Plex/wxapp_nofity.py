@@ -259,13 +259,13 @@ class WxApp():
                 print("\n————————————————————————————————————————————————\n")
             else:
                 print("————————————————————————————————————————————————\n原始消息为空，可能是未配置、配置错误或未接收到，请检查并重试！\n————————————————————————————————————————————————\n")
-            print("参数传递错误,请检查 Tautulli 中通知参数设置，可能是未配置、配置错误或未接收到 Tautulli 传递的参数，请检查并重试！,每条消息至少需要配置8个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex\n")
+            print("通知参数配置错误,请检查 Tautulli 中通知参数设置，可能是未配置、配置错误或未接收到 Tautulli 传递的参数，请检查并重试！,每条消息至少需要配置8个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex\n")
             # title = "参数个数不对!"
-            title = "⚠️通知参数传递错误‼️"
+            title = "⚠️通知参数配置错误‼️"
             art = ""
             content_detail = ""
             ip_address = ""
-            body = "请检查 Tautulli 中通知参数设置，每条消息至少需要配置8个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex 中的消息模板！\n👉点击查看"
+            body = "请检查 Tautulli 中通知参数设置，可能是未配置、配置错误或未接收到 Tautulli 传递的参数，请检查并重试！每条消息至少需要配置8个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex 中的消息模板！\n👉点击查看"
         else:
             print('Tautulli 传递过来的原始消息如下:')
             print("————————————————————————————————————————————————\n")
