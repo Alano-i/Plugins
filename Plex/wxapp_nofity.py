@@ -495,7 +495,7 @@ class WxApp():
             postdata = json.dumps(message)
             postdata = postdata.encode("utf-8")
             handler = request.Request(url=endpoint, data=postdata, headers=header) 
-            print('消息处理完毕，开始过企业微信推送通知！\n')
+            print('消息处理完毕，开始请求企业微信接口推送通知！\n')
             resp = request.urlopen(handler) 
             return(resp.read().decode())
         except HTTPError as e:
