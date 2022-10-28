@@ -248,14 +248,20 @@ class WxApp():
 
         # content = ['picurl_plex_server_down!', '', '⚠️PLEX 服务器无法连接‼️', '0', '0:0:0', '0', '10.0.0.1', '触发时间：2022-09-28 周3 08:23:15']
         # content = ['picurl_plex_update!', 'https://github.com/Alano-i/wecom-notification', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-28 周三 18:08:56', '当前平台：Mac', '当前版本：v3.6587474', '最新版本：v4.023544', '发布时间：2022-09-29', '12新增日志：修复bug', '13修复日志：修复bug,完善体验']
-        # content = ['picurl_plex_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕PLEX服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-29 周4 08:25:00', '当前平台：Linux', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', '发布时间：2022-09-23', '● (Windows) Add 64-bit x86 Windows builds\n(Windows) Support zero-copy hardware transcoding with Nvidia GPUs on 64-bit Windows', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maintenance (#13802)\n(Music) Locking the date field for albums wouldn't lock the year value (#13786)\n(Scanner) Improve scanner performance (#13804)"]
-        # content = ['picurl_tautulli_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕Tautulli 更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-29 周4 08:25:00', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maint"]
+        # content = ['picurl_plex_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.1.6316-f4cdfea9c/debian/plexmediaserver_1.29.1.6316-f4cdfea9c_amd64.deb', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-10-21 周5 17:08:52', '当前平台：Linux', '当前版本：1.29.0.6244-819d3678c', '最新版本：1.29.1.6316-f4cdfea9c', '发布时间：2022-10-19', '● (HTTP) Added additional startup state notifications (#13777)\n(Linux) External user-mode graphics drivers no longer need to be installed to use hardware tone mapping on Intel systems (#13788)\n(macOS) Plex Media Server now requires macOS 10.11 or newer to run (#13841)', '● (Auto Update) Old update files are now cleaned up upon server start. (#12693)\n(DVR) EPG data might be lost for new recordings (#13694)\n(DVR) Plex Tuner Service might become unresponsive in certain complex scenarios (#12988)\n(DVR) Sport events recording by team might not be shown in DVR schedule (#13481)\n(Downloads) Corrected a case where played downloaded media was not marked as played on server (#13839)\n(Maintenance) Plex Media Server could quit unexpectedly when asked to clean bundles under certain conditions (#13855)\n(Photos) Photos could get reprocessed for geolocation unnecessarily (#13853)\n(Playback) Corrected playback decisions where metadata contained multiple medias and only some could be direct played or downloaded (#13843)\n(Scanner) Improvements to episode matching logic (#13792)\n(Database) Removed potential SQL syntax error (#13855)']
+        # content = ['picurl_tautulli_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕Tautulli 更新可用🚀', '0', '0:0:0', '0', '', '检测时间：2022-09-29 周4 08:25:00', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maint"]
 
         #处理消息内容
-        if(len(content)<0):
-            title = "参数个数不对!"
-            body = "null"
+        if(len(content)<10):
+            print("参数传递错误,请检查 Tautulli 中通知参数设置,至少需要配置10个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex\n")
+            # title = "参数个数不对!"
+            title = "⚠️通知参数传递错误‼️"
+            art = ""
+            content_detail = ""
+            ip_address = ""
+            body = "请检查 Tautulli 中通知参数设置，至少需要配置10个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex \n👉点击查看"
         else:
+            print('参数传递数量正确，开始处理通知数据！\n')
             art = content[0]
             tmdb_url = content[1]
             title = content[2]
@@ -306,9 +312,11 @@ class WxApp():
 
             # plex 服务器有更新
             if art == "picurl_plex_update!":
+                print('Plex 服务器有更新，开始处理更新日志\n')
                 changelog_add = content[12]
                 changelog_fix = content[13]
                 if changelog_add:
+                    print('开始通过谷歌机翻新增功能日志\n')
                     changelog_add_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_add + "</small></small><br/></font></p>"
                     changelog_add_origin = changelog_add_origin.replace('\n', '<br/>● ')
                     # changelog_add_origin = changelog_add_origin + '<br/>'
@@ -319,6 +327,7 @@ class WxApp():
                     changelog_add_translate = changelog_add_translate.replace('）', ') ')
                     changelog_add_translate = changelog_add_translate
                 if changelog_fix:
+                    print('开始通过谷歌机翻修复功能日志\n')
                     changelog_fix_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_fix + "</small></small><br/></font></p>"
                     changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>● ')
                     # changelog_fix_origin = changelog_fix_origin + '<br/>'
@@ -330,6 +339,7 @@ class WxApp():
                     # changelog_fix_translate = changelog_fix_translate + '<br/>'
                 content_detail = changelog_add_translate + changelog_add_origin + changelog_fix_translate  + changelog_fix_origin
                 if not content_detail:
+                    print('暂无更新日志\n')
                     content_detail = "暂无更新日志"
                 content = content[0:12]
                 # 切换为 mpnews 通知模式
@@ -345,12 +355,14 @@ class WxApp():
                     body = body + v + self.delimiter
             # tautulli 有更新
             elif art == "picurl_tautulli_update!":
+                print('Tautulli 服务器有更新，开始处理更新日志\n')
                 changelog = content[10]
                 if changelog:
                     changelog = "<small>" + changelog + "</small>"
                     changelog = changelog.replace('\n', '<br/>● ')
                     content_detail = changelog
                 else:
+                    print('暂无更新日志\n')
                     content_detail = "暂无更新日志"
                 content = content[0:10]
                 # 切换为 mpnews 通知模式
@@ -436,21 +448,24 @@ class WxApp():
         body = body.replace('周6', '周六')
         body = body.replace('周7', '周日')
         body = body.replace('MacBook-Pro.local', 'MBP')
-        if appcode:
-            where = self.get_ip_info(ip_address, appcode)
-            # where = where.replace('中国·', '')
-            body = body.replace('whereareyou!', " (" + where + ")")
-            body = body.replace('(·', '(')
-            body = body.replace('·)', ')')
-        else:
-            body = body.replace('whereareyou!', '')
+        if ip_address:
+            if appcode:
+                print('已配置 appcode，处理IP归属地\n')
+                where = self.get_ip_info(ip_address, appcode)
+                # where = where.replace('中国·', '')
+                body = body.replace('whereareyou!', " (" + where + ")")
+                body = body.replace('(·', '(')
+                body = body.replace('·)', ')')
+            else:
+                print('未配置 appcode，按默认类型处理IP归属地\n')
+                body = body.replace('whereareyou!', '')
         # 只保留一个换行
         body = re.sub('\n+','\n',body)
         # 删除字符串末尾所有换行符
         body = body.strip('\n')
         if (len(art)<18):    #如果没有获取到本地背景封面就使用下方图片作为缺省图，正常art=/library/metadata/xxxx/xxxxxxx 长度大概30多，取 “/library/metadata/” 为临界长度，也可判断为空
             picurl = picurl_default
-            tmdb_url = ""
+            tmdb_url = "https://github.com/Alano-i/wecom-notification/tree/main/Plex"
         elif art == "picurl_plex_server_down!":
             picurl = picurl_default
         elif art == "picurl_tautulli_database_corruption!":
@@ -474,6 +489,7 @@ class WxApp():
             postdata = json.dumps(message)
             postdata = postdata.encode("utf-8")
             handler = request.Request(url=endpoint, data=postdata, headers=header) 
+            print('消息处理完毕，开始过企业微信推送通知！\n')
             resp = request.urlopen(handler) 
             return(resp.read().decode())
         except HTTPError as e:
@@ -498,6 +514,8 @@ if __name__ == '__main__':
     config = ConfigLoader().loadConfig(configpath)
     for service in config:
         if service == 'wxapp':
+            print("\n启用企业微信发送通知，下面开始处理\n")
             handler = WxApp()
             resp = handler.push(config[service], args)
             print(service + ': ' + str(resp))
+            print("\n企业微信通知推送处理完毕！\n")
