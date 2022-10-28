@@ -253,6 +253,9 @@ class WxApp():
 
         #处理消息内容
         if(len(content)<10):
+            print('Tautulli 传递过来的原始消息如下:')
+            print(content)
+            print('\n')
             print("参数传递错误,请检查 Tautulli 中通知参数设置,至少需要配置10个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex\n")
             # title = "参数个数不对!"
             title = "⚠️通知参数传递错误‼️"
@@ -261,6 +264,9 @@ class WxApp():
             ip_address = ""
             body = "请检查 Tautulli 中通知参数设置，至少需要配置10个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex \n👉点击查看"
         else:
+            print('Tautulli 传递过来的原始消息如下:')
+            print(content)
+            print('\n')
             print('参数传递数量正确，开始处理通知数据！\n')
             art = content[0]
             tmdb_url = content[1]
