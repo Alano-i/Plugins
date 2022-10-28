@@ -318,11 +318,11 @@ class WxApp():
 
             # plex 服务器有更新
             if art == "picurl_plex_update!":
-                print('Plex 服务器有更新，开始处理更新日志\n')
+                print('Plex 服务器有更新，开始处理更新日志！\n')
                 changelog_add = content[12]
                 changelog_fix = content[13]
                 if changelog_add:
-                    print('开始通过谷歌机翻新增功能日志\n')
+                    print('开始通过谷歌翻译【新增功能】日志！\n')
                     changelog_add_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_add + "</small></small><br/></font></p>"
                     changelog_add_origin = changelog_add_origin.replace('\n', '<br/>● ')
                     # changelog_add_origin = changelog_add_origin + '<br/>'
@@ -333,7 +333,7 @@ class WxApp():
                     changelog_add_translate = changelog_add_translate.replace('）', ') ')
                     changelog_add_translate = changelog_add_translate
                 if changelog_fix:
-                    print('开始通过谷歌机翻修复功能日志\n')
+                    print('开始通过谷歌翻译【修复功能】日志！\n')
                     changelog_fix_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_fix + "</small></small><br/></font></p>"
                     changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>● ')
                     # changelog_fix_origin = changelog_fix_origin + '<br/>'
@@ -345,7 +345,7 @@ class WxApp():
                     # changelog_fix_translate = changelog_fix_translate + '<br/>'
                 content_detail = changelog_add_translate + changelog_add_origin + changelog_fix_translate  + changelog_fix_origin
                 if not content_detail:
-                    print('暂无更新日志\n')
+                    print('暂无更新日志！\n')
                     content_detail = "暂无更新日志"
                 content = content[0:12]
                 # 切换为 mpnews 通知模式
@@ -361,14 +361,14 @@ class WxApp():
                     body = body + v + self.delimiter
             # tautulli 有更新
             elif art == "picurl_tautulli_update!":
-                print('Tautulli 服务器有更新，开始处理更新日志\n')
+                print('Tautulli 服务器有更新，开始处理更新日志！\n')
                 changelog = content[10]
                 if changelog:
                     changelog = "<small>" + changelog + "</small>"
                     changelog = changelog.replace('\n', '<br/>● ')
                     content_detail = changelog
                 else:
-                    print('暂无更新日志\n')
+                    print('暂无更新日志！\n')
                     content_detail = "暂无更新日志"
                 content = content[0:10]
                 # 切换为 mpnews 通知模式
