@@ -491,7 +491,9 @@ class WxApp():
 
         #format posting data
         message = self.formatMessage(touser, agentid, title, body, msgtype, tmdb_url, picurl,content_detail,thumb_media_id)
-
+        print('处理后，将要推送到微信的消息内容如下：')
+        print("标题：" + title)
+        print("内容：" + body + "\n")
         #send data to wxapp
         try:
             postdata = json.dumps(message)
