@@ -523,5 +523,5 @@ if __name__ == '__main__':
             print("\n启用企业微信发送通知，下面开始处理\n")
             handler = WxApp()
             resp = handler.push(config[service], args)
-            print(service + ': ' + str(resp))
+            print('推送返回结果：' +service + ': ' + str(resp))
             print("\n企业微信通知推送处理完毕！\n")
