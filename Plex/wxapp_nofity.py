@@ -245,6 +245,7 @@ class WxApp():
         PLEX_TOKEN = config.get('PLEX_TOKEN')
         appcode = config.get('appcode')
         thumb_media_id = config.get('thumb_media_id')
+        translate_switch = config.get('translate_switch')
 
         # content = ['picurl_plex_update!', 'https://github.com/Alano-i/wecom-notification', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-28 周三 18:08:56', '当前平台：Mac', '当前版本：v3.6587474', '最新版本：v4.023544', '发布时间：2022-09-29', '12新增日志：修复bug', '13修复日志：修复bug,完善体验']
         # content = ['picurl_plex_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.1.6316-f4cdfea9c/debian/plexmediaserver_1.29.1.6316-f4cdfea9c_amd64.deb', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-10-21 周5 17:08:52', '当前平台：Linux', '当前版本：1.29.0.6244-819d3678c', '最新版本：1.29.1.6316-f4cdfea9c', '发布时间：2022-10-19', '● (HTTP) Added additional startup state notifications (#13777)\n(Linux) External user-mode graphics drivers no longer need to be installed to use hardware tone mapping on Intel systems (#13788)\n(macOS) Plex Media Server now requires macOS 10.11 or newer to run (#13841)', '● (Auto Update) Old update files are now cleaned up upon server start. (#12693)\n(DVR) EPG data might be lost for new recordings (#13694)\n(DVR) Plex Tuner Service might become unresponsive in certain complex scenarios (#12988)\n(DVR) Sport events recording by team might not be shown in DVR schedule (#13481)\n(Downloads) Corrected a case where played downloaded media was not marked as played on server (#13839)\n(Maintenance) Plex Media Server could quit unexpectedly when asked to clean bundles under certain conditions (#13855)\n(Photos) Photos could get reprocessed for geolocation unnecessarily (#13853)\n(Playback) Corrected playback decisions where metadata contained multiple medias and only some could be direct played or downloaded (#13843)\n(Scanner) Improvements to episode matching logic (#13792)\n(Database) Removed potential SQL syntax error (#13855)']
@@ -325,28 +326,41 @@ class WxApp():
                 print('Plex 服务器有更新，开始处理更新日志！\n')
                 changelog_add = content[12]
                 changelog_fix = content[13]
+                # changelog_add_translate = ""
+                # changelog_fix_translate = ""
+                # changelog_add_origin = changelog_add
+                # changelog_fix_origin = changelog_fix
                 if changelog_add:
-                    print('开始通过谷歌翻译【新增功能】日志！\n')
-                    changelog_add_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_add + "</small></small><br/></font></p>"
-                    changelog_add_origin = changelog_add_origin.replace('\n', '<br/>● ')
-                    # changelog_add_origin = changelog_add_origin + '<br/>'
-                    changelog_add_translate = self.translate(changelog_add)
-                    changelog_add_translate = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_add_translate + "</small></p>"
-                    changelog_add_translate = changelog_add_translate.replace('\n', '<br/>●')
-                    changelog_add_translate = changelog_add_translate.replace('（', ' (')
-                    changelog_add_translate = changelog_add_translate.replace('）', ') ')
-                    changelog_add_translate = changelog_add_translate
+                    if translate_switch== "on":
+                        changelog_add_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_add + "</small></small><br/></font></p>"
+                        changelog_add_origin = changelog_add_origin.replace('\n', '<br/>● ')
+                        print('开始通过谷歌翻译【新增功能】日志！\n')
+                        changelog_add_translate = self.translate(changelog_add)
+                        changelog_add_translate = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_add_translate + "</small></p>"
+                        changelog_add_translate = changelog_add_translate.replace('\n', '<br/>●')
+                        changelog_add_translate = changelog_add_translate.replace('（', ' (')
+                        changelog_add_translate = changelog_add_translate.replace('）', ') ')
+                        changelog_add_translate = changelog_add_translate
+                    else:
+                        print('未开启日志翻译，【新增功能】日志将展示为英文！\n')
+                        changelog_add_origin = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_add + "</small></p>"
+                        changelog_add_origin = changelog_add_origin.replace('\n', '<br/>●')
+                        changelog_add_translate = ""
                 if changelog_fix:
-                    print('开始通过谷歌翻译【修复功能】日志！\n')
-                    changelog_fix_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_fix + "</small></small><br/></font></p>"
-                    changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>● ')
-                    # changelog_fix_origin = changelog_fix_origin + '<br/>'
-                    changelog_fix_translate = self.translate(changelog_fix)
-                    changelog_fix_translate = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_fix_translate + '</small></p>'
-                    changelog_fix_translate = changelog_fix_translate.replace('\n', '<br/>●')
-                    changelog_fix_translate = changelog_fix_translate.replace('（', ' (')
-                    changelog_fix_translate = changelog_fix_translate.replace('）', ') ')
-                    # changelog_fix_translate = changelog_fix_translate + '<br/>'
+                    if translate_switch== "on":
+                        changelog_fix_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_fix + "</small></small><br/></font></p>"
+                        changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>● ')
+                        print('开始通过谷歌翻译【修复功能】日志！\n')
+                        changelog_fix_translate = self.translate(changelog_fix)
+                        changelog_fix_translate = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_fix_translate + '</small></p>'
+                        changelog_fix_translate = changelog_fix_translate.replace('\n', '<br/>●')
+                        changelog_fix_translate = changelog_fix_translate.replace('（', ' (')
+                        changelog_fix_translate = changelog_fix_translate.replace('）', ') ')
+                    else:
+                        print('未开启日志翻译，【修复功能】日志将展示为英文！\n')
+                        changelog_fix_origin = "··························· <b><small><big>修复日志</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_fix + "</small></p>"
+                        changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>●')
+                        changelog_fix_translate = ""
                 content_detail = changelog_add_translate + changelog_add_origin + changelog_fix_translate  + changelog_fix_origin
                 if not content_detail:
                     print('暂无更新日志！\n')
