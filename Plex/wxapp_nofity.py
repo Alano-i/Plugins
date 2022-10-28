@@ -246,23 +246,25 @@ class WxApp():
         appcode = config.get('appcode')
         thumb_media_id = config.get('thumb_media_id')
 
-        # content = ['picurl_plex_server_down!', '', '⚠️PLEX 服务器无法连接‼️', '0', '0:0:0', '0', '10.0.0.1', '触发时间：2022-09-28 周3 08:23:15']
         # content = ['picurl_plex_update!', 'https://github.com/Alano-i/wecom-notification', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-28 周三 18:08:56', '当前平台：Mac', '当前版本：v3.6587474', '最新版本：v4.023544', '发布时间：2022-09-29', '12新增日志：修复bug', '13修复日志：修复bug,完善体验']
         # content = ['picurl_plex_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.1.6316-f4cdfea9c/debian/plexmediaserver_1.29.1.6316-f4cdfea9c_amd64.deb', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-10-21 周5 17:08:52', '当前平台：Linux', '当前版本：1.29.0.6244-819d3678c', '最新版本：1.29.1.6316-f4cdfea9c', '发布时间：2022-10-19', '● (HTTP) Added additional startup state notifications (#13777)\n(Linux) External user-mode graphics drivers no longer need to be installed to use hardware tone mapping on Intel systems (#13788)\n(macOS) Plex Media Server now requires macOS 10.11 or newer to run (#13841)', '● (Auto Update) Old update files are now cleaned up upon server start. (#12693)\n(DVR) EPG data might be lost for new recordings (#13694)\n(DVR) Plex Tuner Service might become unresponsive in certain complex scenarios (#12988)\n(DVR) Sport events recording by team might not be shown in DVR schedule (#13481)\n(Downloads) Corrected a case where played downloaded media was not marked as played on server (#13839)\n(Maintenance) Plex Media Server could quit unexpectedly when asked to clean bundles under certain conditions (#13855)\n(Photos) Photos could get reprocessed for geolocation unnecessarily (#13853)\n(Playback) Corrected playback decisions where metadata contained multiple medias and only some could be direct played or downloaded (#13843)\n(Scanner) Improvements to episode matching logic (#13792)\n(Database) Removed potential SQL syntax error (#13855)']
         # content = ['picurl_tautulli_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.0.6244-819d3678c/debian/plexmediaserver_1.29.0.6244-819d3678c_amd64.deb', '🆕Tautulli 更新可用🚀', '0', '0:0:0', '0', '', '检测时间：2022-09-29 周4 08:25:00', '当前版本：1.28.2.6151-914ddd2b3', '最新版本：1.29.0.6244-819d3678c', "● (Butler) The server could become unresponsive during database optimization (#13820)\n(HTTP) Certain client apps could quit unexpectedly when connecting to a server during startup maint"]
 
         #处理消息内容
-        if(len(content)<10):
+        if(len(content)<8):
             print('Tautulli 传递过来的原始消息如下:')
-            print(content)
+            if content:
+                print(content)
+            else:
+                print("原始消息为空，可能是未配置、配置错误或未接收到，请检查并重试！")
             print('\n')
-            print("参数传递错误,请检查 Tautulli 中通知参数设置,至少需要配置10个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex\n")
+            print("参数传递错误,请检查 Tautulli 中通知参数设置，可能是未配置、配置错误或未接收到 Tautulli 传递的参数，请检查并重试！,每条消息至少需要配置8个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex\n")
             # title = "参数个数不对!"
             title = "⚠️通知参数传递错误‼️"
             art = ""
             content_detail = ""
             ip_address = ""
-            body = "请检查 Tautulli 中通知参数设置，至少需要配置10个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex \n👉点击查看"
+            body = "请检查 Tautulli 中通知参数设置，每条消息至少需要配置8个参数，参考 https://github.com/Alano-i/wecom-notification/tree/main/Plex 中的消息模板！\n👉点击查看"
         else:
             print('Tautulli 传递过来的原始消息如下:')
             print(content)
@@ -456,14 +458,14 @@ class WxApp():
         body = body.replace('MacBook-Pro.local', 'MBP')
         if ip_address:
             if appcode:
-                print('已配置 appcode，处理IP归属地\n')
+                print('已配置 appcode，处理IP归属地！\n')
                 where = self.get_ip_info(ip_address, appcode)
                 # where = where.replace('中国·', '')
                 body = body.replace('whereareyou!', " (" + where + ")")
                 body = body.replace('(·', '(')
                 body = body.replace('·)', ')')
             else:
-                print('未配置 appcode，按默认类型处理IP归属地\n')
+                print('未配置 appcode，按默认类型处理IP归属地！\n')
                 body = body.replace('whereareyou!', '')
         # 只保留一个换行
         body = re.sub('\n+','\n',body)
