@@ -2,7 +2,9 @@
 # Author: Alano 此脚本是站在巨人肩膀上编写的，感谢 @vincent806 @WadeChenn
 # Date: 2022/09/08
 # plex企业微信通知，基于tautulli通知规则编写 ，需要配合 tautulli 可正常使用。
+# 下面两个依赖需要安装，命令如下
 # pip3 install pyyaml
+# pip3 install googletrans==4.0.0-rc1
 #########################依赖库初始化###########################
 # 依赖库列表
 import os
@@ -507,7 +509,7 @@ class WxApp():
 
         #format posting data
         message = self.formatMessage(touser, agentid, title, body, msgtype, tmdb_url, picurl,content_detail,thumb_media_id)
-        print('处理后，将要推送到微信的消息内容如下：')
+        print('消息处理完毕，先来预览看看将要推送到微信的消息是什么样的：')
         print("————————————————————————————————————————————————\n标题：" + title)
         print("内容：\n" + body + "\n————————————————————————————————————————————————\n")
         #send data to wxapp
@@ -515,7 +517,7 @@ class WxApp():
             postdata = json.dumps(message)
             postdata = postdata.encode("utf-8")
             handler = request.Request(url=endpoint, data=postdata, headers=header) 
-            print('消息处理完毕，开始请求企业微信接口推送通知！\n')
+            print('好了，预览也预览了，准备干活，开始请求企业微信接口推送通知！\n')
             resp = request.urlopen(handler) 
             return(resp.read().decode())
         except HTTPError as e:
