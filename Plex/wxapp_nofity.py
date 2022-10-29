@@ -473,7 +473,7 @@ class WxApp():
         body = body.replace('周5', '周五')
         body = body.replace('周6', '周六')
         body = body.replace('周7', '周日')
-        body = body.replace('MacBook-Pro.local', 'MBP')
+        body = body.replace('.local', '')
         if ip_address:
             if appcode:
                 print('已配置 appcode，处理IP归属地！\n')
