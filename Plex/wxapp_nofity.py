@@ -333,7 +333,7 @@ class WxApp():
                 # changelog_add_origin = changelog_add
                 # changelog_fix_origin = changelog_fix
                 if changelog_add:
-                    if translate_switch== "on":
+                    if translate_switch == "on":
                         changelog_add_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_add + "</small></small><br/></font></p>"
                         changelog_add_origin = changelog_add_origin.replace('\n', '<br/>● ')
                         print('开始通过谷歌翻译【新增功能】日志！\n')
@@ -349,7 +349,7 @@ class WxApp():
                         changelog_add_origin = changelog_add_origin.replace('\n', '<br/>●')
                         changelog_add_translate = ""
                 if changelog_fix:
-                    if translate_switch== "on":
+                    if translate_switch == "on":
                         changelog_fix_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_fix + "</small></small><br/></font></p>"
                         changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>● ')
                         print('开始通过谷歌翻译【修复功能】日志！\n')
