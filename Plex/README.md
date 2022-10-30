@@ -9,7 +9,7 @@ Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tau
 <div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/pic/preview.png" width="1000" /></div>
 
 ## 使用方法
-- 将`wxapp_nofity.py` 和`config.yml`文件放入 tautulli 的/config/script/目录下，`wxapp_nofity.py`不需要改动，在`config.yml`中填入自己的配置
+- 将`wxapp_notify.py` 和`config.yml`文件放入 tautulli 的/config/script/目录下，`wxapp_notify.py`不需要改动，在`config.yml`中填入自己的配置
 - 如果想收到服务器有更新时带图片的通知，在 Tautulli 设置中`开启服务器更新监控`（参见下方图片有说明），并将本项目 `pic` 文件夹下 update_bg.gif（不要改后缀，保持gif，你也可以传你自己喜欢的图） 需要传到企业微信素材库从而获取 `thumb_media_id` 填入config中，[thumb_media_id获取方法](https://alanoo.notion.site/thumb_media_id-c706dcc66a6048d8bcfd4af27a5f79dc)
 - Tautulli 需要添加 `yaml` `googletrans` 支持（进入tautulli命令行，执行以下命令，或在 tautulli 的 `start.sh` 中加入自动安装的模块）（翻译调用谷歌翻译，需要网络环境支持,如果网络环境不支持或不想翻译，将 `translate_switch` 设置为 `off`,默认为`on`，如果网络环境不支持还设置为 `on`，将会报错 ）
 ```console
@@ -21,7 +21,7 @@ pip3 install googletrans==4.0.0-rc1
 
 - Tautulli  Settings-General-Time Format 设置为 `HH:mm:ss`
 - Tautulli 中新建通知-类型选-script
-- 选择 `wxapp_nofity.py`
+- 选择 `wxapp_notify.py`
 - 填入下方通知代码
 - 保存即可
 
