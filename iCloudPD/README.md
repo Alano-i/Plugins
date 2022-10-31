@@ -3,7 +3,7 @@
 对 iCloud 图库定时同步到本地各状态监控通知，以及简要同步日志提醒（点击通知卡片查看）。  
 
 `media_id_images`文件夹内的4个GIF图片（ _不要改后缀_ ）需要传到企业微信素材库，  
-详见 [media_id获取方法](https://alanoo.notion.site/thumb_media_id-c706dcc66a6048d8bcfd4af27a5f79dc) 
+详见 [media_id获取方法](https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb) 
 # 效果预览
 同步状态通知
 <div align=center><img src="https://user-images.githubusercontent.com/68833595/192769304-c433d861-2bca-4873-b075-3176e71f3108.png" width="1000" /></div>
