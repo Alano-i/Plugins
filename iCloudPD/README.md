@@ -15,6 +15,7 @@
 >iCloudPD 其他环境变量设置此处省略，只列出通知环境变量。
 
 `notification_type` 通知类型设置为 `WeCom`
+
 `wecom_proxy` 微信白名单域名设置，格式：https://abc.com
 
 `wecom_id` 企业微信通知，企业微信通知，企业ID 
