@@ -80,7 +80,8 @@ class MessageFormatter():
 class WxApp():
     def __init__(self):
         self.delimiter = '\n'
-        self.endpoint = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token='
+        # print('设置了微信白名单代理，地址是：' +  wecom_proxy_url)
+        self.endpoint = wecom_api_url + '/cgi-bin/message/send?access_token='
 
     def formatMessage(self, touser, agentid, title, body, msgtype, tmdb_url, picurl,content_detail,thumb_media_id):
         json_news = {
@@ -159,7 +160,7 @@ class WxApp():
             return json_text
 
     def getToken(self, corpid, secret):
-        resp = request.urlopen("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + secret)
+        resp = request.urlopen(wecom_api_url + "/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + secret)
         json_resp = json.loads(resp.read().decode())
         token = json_resp["access_token"]
         return token
@@ -538,9 +539,17 @@ if __name__ == '__main__':
             configpath = optvalue # config from -c or --config parameter
             break
     config = ConfigLoader().loadConfig(configpath)
+  
     for service in config:
         if service == 'wxapp':
             print("\n启用企业微信发送通知，下面开始处理\n")
+            wecom_proxy_url = config[service].get('wecom_proxy_url')
+            if wecom_proxy_url:
+                print('设置了微信白名单代理，地址是：' +  wecom_proxy_url + '\n')
+                wecom_api_url = wecom_proxy_url
+            else:
+                print('未设置微信白名单代理，使用官方 api 地址\n')
+                wecom_api_url = 'https://qyapi.weixin.qq.com'            
             handler = WxApp()
             resp = handler.push(config[service], args)
             print('推送返回结果：' +service + ': ' + str(resp))
