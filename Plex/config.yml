@@ -14,4 +14,4 @@ wxapp:
   thumb_media_id: ""  # 服务器有更新时调用的图片，此图片存储在企业微信素材库的，获取方法可参考 https://alanoo.notion.site/thumb_media_id-c706dcc66a6048d8bcfd4af27a5f79dc
   # 注意：thumb_media_id 如果不知道怎么设置就保持默认为空（收到的消息没有图片），不要随便设置，随便设置收不到通知
   translate_switch: "on"  # 是否开启更新日志谷歌翻译，如果网络环境不支持或不想翻译设置为：off ，否则设置为：on，如果网络环境不支持还设置为 on，将会报错
-  wecom_proxy_url: ""     # 企业微信的IP白名单设置，不明白什么意思不要随意设置，保持默认为空，格式为：https://abc.com，关于怎么自建企业微信代理我也不会。
+  wecom_proxy_url: ""     # 企业微信的IP白名单代理域名设置，不明白什么意思不要随意设置，保持默认为空，格式为：https://abc.com，关于怎么自建企业微信代理我也不会。
