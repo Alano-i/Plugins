@@ -14,10 +14,10 @@ Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tau
 - Tautulli 需要添加 `yaml` `googletrans` 支持（进入tautulli命令行，执行以下命令，或在 tautulli 的 `start.sh` 中加入自动安装的模块）（翻译调用谷歌翻译，需要网络环境支持,如果网络环境不支持或不想翻译，将 `translate_switch` 设置为 `off`,默认为`on`，如果网络环境不支持还设置为 `on`，将会报错 ）
 - 增加白名单IP代理域名设置，在config.yml中设置
 ```console
-pip3 install pyyaml
+pip3 install pyyaml -i http://pypi.douban.com/simple/  --trusted-host pypi.douban.com
 ```
 ```console
-pip3 install googletrans==4.0.0-rc1
+pip3 install googletrans==4.0.0-rc1 -i http://pypi.douban.com/simple/  --trusted-host pypi.douban.com
 ```
 
 - Tautulli  Settings-General-Time Format 设置为 `HH:mm:ss`
