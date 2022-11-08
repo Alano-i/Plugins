@@ -41,6 +41,9 @@ pip3 install googletrans==4.0.0-rc1
 <episode>
 {art} {themoviedb_url} ▶️{show_name}" "S{season_num00}·E{episode_num00}" @"{user}{"  "⭐️<rating>} {bitrate} 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {播放时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {单集标题：<episode_name>} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
 </episode>
+<track>
+{art} {themoviedb_url} ▶️{track_name}" @"{user}{"  "⭐️<rating>} {bitrate} 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<track_artist>}{" · "<album_name>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {播放时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 播放进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
+</track>
 ```
 
 **继续播放通知**
@@ -51,16 +54,22 @@ pip3 install googletrans==4.0.0-rc1
 <episode>
 {art} {themoviedb_url} ▶️{show_name}" "S{season_num00}·E{episode_num00}" @"{user}{"  "⭐️<rating>} {bitrate} 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {继续时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {单集标题：<episode_name>} {文件大小：<file_size>}"  "{video_codec!u}" ⤷ "{stream_video_codec!u} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
 </episode>
+<track>
+{art} {themoviedb_url} ▶️{track_name}" @"{user}{"  "⭐️<rating>} {bitrate} 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<track_artist>}{" · "<album_name>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {继续时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 播放进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
+</track>
 ```
 
 **停止播放通知**
 ```console
 <movie>
-{art} {themoviedb_url} ⏹{title}" @"{user}{"  "⭐️<rating>} {bitrate} {stream_time} {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {停止时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看时长：watchtime! 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
+{art} {themoviedb_url} ⏹️{title}" @"{user}{"  "⭐️<rating>} {bitrate} {stream_time} {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {停止时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看时长：watchtime! 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
 </movie>
 <episode>
-{art} {themoviedb_url} ⏹{show_name}" "S{season_num00}·E{episode_num00}" @"{user}{"  "⭐️<rating>} {bitrate} {stream_time} {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {停止时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看时长：watchtime! 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {单集标题：<episode_name>} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
+{art} {themoviedb_url} ⏹️{show_name}" "S{season_num00}·E{episode_num00}" @"{user}{"  "⭐️<rating>} {bitrate} {stream_time} {progress_percent} {ip_address} {library_name}{" · "<video_resolution>}" · bitrate!"{" · "<video_dynamic_range>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {停止时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 观看时长：watchtime! 观看进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {单集标题：<episode_name>} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
 </episode>
+<track>
+{art} {themoviedb_url} ⏹️{track_name}" @"{user}{"  "⭐️<rating>} {bitrate} {stream_time} {progress_percent} {ip_address} {library_name}{" · "<track_artist>}{" · "<album_name>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {停止时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 播放时长：watchtime! 播放进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
+</track>
 ```
 
 **影片入库通知**  
