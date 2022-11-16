@@ -245,10 +245,12 @@ class WxApp():
         msgtype = config.get('msgtype')
         plex_server_url = config.get('plex_server_url')
         picurl_default = config.get('picurl_default')
+        picurl_music_default = config.get('picurl_music_default')
         PLEX_TOKEN = config.get('PLEX_TOKEN')
         appcode = config.get('appcode')
         thumb_media_id = config.get('thumb_media_id')
         translate_switch = config.get('translate_switch')
+        play_music = ""
 
         # content = ['picurl_plex_update!', 'https://github.com/Alano-i/wecom-notification', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-09-28 周三 18:08:56', '当前平台：Mac', '当前版本：v3.6587474', '最新版本：v4.023544', '发布时间：2022-09-29', '12新增日志：修复bug', '13修复日志：修复bug,完善体验']
         # content = ['picurl_plex_update!', 'https://downloads.plex.tv/plex-media-server-new/1.29.1.6316-f4cdfea9c/debian/plexmediaserver_1.29.1.6316-f4cdfea9c_amd64.deb', '🆕PLEX 服务器更新可用🚀', '0', '0:0:0', '0', '10.0.0.1', '检测时间：2022-10-21 周5 17:08:52', '当前平台：Linux', '当前版本：1.29.0.6244-819d3678c', '最新版本：1.29.1.6316-f4cdfea9c', '发布时间：2022-10-19', '● (HTTP) Added additional startup state notifications (#13777)\n(Linux) External user-mode graphics drivers no longer need to be installed to use hardware tone mapping on Intel systems (#13788)\n(macOS) Plex Media Server now requires macOS 10.11 or newer to run (#13841)', '● (Auto Update) Old update files are now cleaned up upon server start. (#12693)\n(DVR) EPG data might be lost for new recordings (#13694)\n(DVR) Plex Tuner Service might become unresponsive in certain complex scenarios (#12988)\n(DVR) Sport events recording by team might not be shown in DVR schedule (#13481)\n(Downloads) Corrected a case where played downloaded media was not marked as played on server (#13839)\n(Maintenance) Plex Media Server could quit unexpectedly when asked to clean bundles under certain conditions (#13855)\n(Photos) Photos could get reprocessed for geolocation unnecessarily (#13853)\n(Playback) Corrected playback decisions where metadata contained multiple medias and only some could be direct played or downloaded (#13843)\n(Scanner) Improvements to episode matching logic (#13792)\n(Database) Removed potential SQL syntax error (#13855)']
@@ -287,7 +289,12 @@ class WxApp():
             # 去掉标题中首尾空格，当评分为空时，末尾会出现空格
             title = title.strip()
             bitrate = content[3]
-            bitrate = ('%.1f' %(float(bitrate)/1000))
+            # if bitrate and bitrate != "music":
+            if bitrate.isdigit():
+                bitrate = ('%.1f' %(float(bitrate)/1000))
+            elif bitrate == "music":
+                play_music = "true"
+
             # 观看时间
             try:
                 watch_time = content[4]
@@ -296,7 +303,7 @@ class WxApp():
                     watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟'
                     watch_time = watch_time.replace('00小时 ', '')
                     watch_time = watch_time.replace('00分钟', '0分钟')
-                else :
+                else:
                     watch_time = timelist[0] + '小时 ' + timelist[1] + '分钟 ' + timelist[2] + '秒'
                     watch_time = watch_time.replace('00小时 ', '')
                     watch_time = watch_time.replace('00分钟 ', '')
@@ -501,9 +508,13 @@ class WxApp():
         body = re.sub('\n+','\n',body)
         # 删除字符串末尾所有换行符
         body = body.strip('\n')
-        if (len(art)<18):    #如果没有获取到本地背景封面就使用下方图片作为缺省图，正常art=/library/metadata/xxxx/xxxxxxx 长度大概30多，取 “/library/metadata/” 为临界长度，也可判断为空
-            picurl = picurl_default
-            tmdb_url = "https://github.com/Alano-i/wecom-notification/tree/main/Plex"
+        # if (len(art)<18):    #如果没有获取到本地背景封面就使用下方图片作为缺省图，正常art=/library/metadata/xxxx/xxxxxxx 长度大概30多，取 “/library/metadata/” 为临界长度，也可判断为空
+        if not art:    #如果没有获取到本地背景封面就使用下方图片作为缺省图，正常art=/library/metadata/xxxx/xxxxxxx 长度大概30多，取 “/library/metadata/” 为临界长度，也可判断为空
+            if play_music:
+                picurl = picurl_music_default
+            else:
+                picurl = picurl_default
+                tmdb_url = "https://github.com/Alano-i/wecom-notification/tree/main/Plex"
         elif art == "picurl_plex_server_down!":
             picurl = picurl_default
         elif art == "picurl_tautulli_database_corruption!":
