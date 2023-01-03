@@ -11,7 +11,7 @@ MR插件，定时获取站点最新站内信与公告
 
 
 ## 使用方法
-- 将 `sites_message` 文件夹放到 Plugins 文件夹，重启MR。
+- 将 `sites_message` 文件夹放到 `Plugins` 文件夹，重启MR。
 - 因主干没有 npnews 消息类型的微信通道，需要独立填写配置，需要配置的企业微信参数可参见 [企业微信参数获取方法](https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb)
 
 
