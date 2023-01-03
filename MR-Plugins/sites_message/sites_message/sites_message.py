@@ -48,6 +48,7 @@ site_url = {
     'hhan': 'https://hhanclub.top',
     'hares': 'https://club.hares.top',
     'tjupt': 'https://tjupt.org',
+    'leaves': 'https://leaves.red'
 }
 
 @plugin.after_setup
@@ -317,8 +318,9 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
         caption_content_list.append(caption_content)
     
     # 获取最新公告
-    notice_url = '/index.php'
-    notice_url = urljoin(site_url, notice_url)
+    # notice_url = '/index.php'
+    # notice_url = urljoin(site_url, notice_url)
+    notice_url = site_url
     notice_response = session.request("GET", notice_url, headers=headers, proxies=proxies, timeout=30).text    
     soup = BeautifulSoup(notice_response, 'html.parser')
     # _LOGGER.error(f'soup: {soup}')
@@ -370,7 +372,7 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
             server.common.set_cache('site_notice', site_name, new_notice)
         else:
             notice_list = []
-            _LOGGER.info(f'「{site_name}」获取到的最新公告和缓存相同，不推送')
+            _LOGGER.info(f'「{site_name}」获取到的「最新公告」和「缓存公告」相同，不推送')
             # _LOGGER.info(f'「{site_name}」无新公告')
         
     else:
