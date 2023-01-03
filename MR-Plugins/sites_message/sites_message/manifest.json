@@ -10,7 +10,7 @@
       "fieldName": "corpid",
       "fieldType": "String",
       "label": "corpid",
-      "helperText": "企业ID。这几个参数获取方法: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb",
+      "helperText": "企业ID。此配置页需要配置的参数获取方法: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb",
       "defaultValue": ""
     },
     {
@@ -38,9 +38,12 @@
       "fieldName": "word_ignore",
       "fieldType": "String",
       "label": "屏蔽关键词",
-      "helperText": "设置站内信推送屏蔽关键词，含有关键词的站内信将不会推送，多个关键词用英文逗号分隔,默认值: 广告,已被删除,种子被删除,福利活动,大促,删除提醒,赞助商",
+      "helperText": "设置站内信推送屏蔽关键词，含有关键词的站内信将不会推送，多个关键词用英文逗号分隔, 默认值: 广告,已被删除,种子被删除,福利活动,大促,删除提醒,赞助商",
       "defaultValue": "广告,已被删除,种子被删除,福利活动,大促,删除提醒,赞助商"
     }
   ],
-  "logoUrl": "/plugins/sites_message/logo.png"
+  "logoUrl": "/plugins/sites_message/logo.png",
+  "githubUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message",
+  "dependencies": null
 }
