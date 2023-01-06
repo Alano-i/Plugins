@@ -57,9 +57,10 @@ site_url = {
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global words,user_id
+    global words,user_id,wecom_proxy_url
     user_id = config.get('uid')[0]
     words = config.get('word_ignore')
+    wecom_proxy_url = config.get('wecom_proxy_url')
     # global corpid,corpsecret,agentid,touser,msg_media_id,notice_media_id
     # corpid = config.get('corpid')
     # corpsecret = config.get('corpsecret')
@@ -86,6 +87,15 @@ def sites_message():
         _LOGGER.error('在用户管理页设置「微信账号」，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
         _LOGGER.error('PT站内信推送进程终止，「请先在系统中设置好上述参数重试」')
         sys.exit()
+    wecom_api_url = 'https://qyapi.weixin.qq.com'
+    if wecom_proxy_url:
+        _LOGGER.info(f'设置了微信白名单代理，地址是：{wecom_proxy_url}')
+        wecom_api_url = wecom_proxy_url
+    else:
+        _LOGGER.info('未设置微信白名单代理，使用官方 api 地址: https://qyapi.weixin.qq.com')
+
+    access_token = getToken(corpid, corpsecret, wecom_api_url)
+
     for site in site_list:
         site_id = site.site_id
         site_name = site.site_name
@@ -97,7 +107,6 @@ def sites_message():
         try:
             caption_content_list,count,message_url,message_item_url,notice_list = get_nexusphp_message(site_url[site_id], site.cookie, site.proxies, site_name)
             if caption_content_list or notice_list:
-                access_token = getToken(corpid, corpsecret)
                 image_path = f'/data/plugins/sites_message_wx/pic/{site_id}.gif'
                 try:
                     # 检查 image_path 指向的文件是否存在
@@ -133,7 +142,7 @@ def sites_message():
                     wecom_digest = re.sub(r'<.*?>', '', wecom_content)
                 wecom_content = wecom_content.replace('\n', '<br/>')
                 # 推送站内信
-                result = push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content)
+                result = push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url)
                 _LOGGER.info(f'「{site_name}」💌 有新站内信，企业微信推送结果: {result}')
             else:
                 _LOGGER.info(f'「{site_name}」无未读站内信，或通过关键词过滤后没有需要推送的新消息')
@@ -144,7 +153,7 @@ def sites_message():
                 wecom_digest = re.sub(r'<.*?>', '', wecom_content_m)
                 content_source_url = f'{site_url}'
                 # 推送公告
-                result = push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content)
+                result = push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url)
                 _LOGGER.info(f'「{site_name}」📢 有新公告，企业微信推送结果: {result}')
             else:
                 _LOGGER.info(f'「{site_name}」无新公告')
@@ -154,13 +163,11 @@ def sites_message():
 
 def get_qywx_user(id):
     result = ''
-    # 连接数据库
     conn = sqlite3.connect('/data/db/main.db')
     cursor = conn.cursor()
     cursor.execute('SELECT qywx_user FROM user WHERE id=?', (id,))
     result = cursor.fetchone()
     result = result[0]
-    # 关闭数据库连接
     conn.close()
     return result
 
@@ -180,9 +187,9 @@ def get_qywx_info():
         pass
     return '','',''
 
-def getToken(corpid, corpsecret):
+def getToken(corpid, corpsecret, wecom_api_url):
     # 获取access_token
-    url = 'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={}&corpsecret={}'.format(corpid, corpsecret)
+    url = wecom_api_url + "/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + corpsecret
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
@@ -192,7 +199,6 @@ def getToken(corpid, corpsecret):
         except requests.RequestException as e:
             _LOGGER.error(f'处理异常，原因：{e}')
             time.sleep(2)
-    # 如果重试了 MAX_RETRIES 次后仍然失败，则执行以下代码
     if r is None:
         _LOGGER.error('请求「access_token」失败')
     else:
@@ -256,13 +262,12 @@ def upload_image_and_get_media_id(site_name, access_token, image_path):
         resp_data = response.json()
         media_id = resp_data.get('media_id')
         return media_id
-        # _LOGGER.error(f'上传后获得的「media_id」：{media_id}')
     else:
         _LOGGER.error(f'上传图片失败，状态码：{response.status_code}')
 
-def push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content):
+def push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url):
     # 发送消息
-    url = 'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={}'.format(access_token)
+    url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
     data = {
         "touser": touser,
         "msgtype": "mpnews",
@@ -396,32 +401,22 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
         notice_date = f'{notice_date} 新公告'
         
     # notice_list = [notice_date, notice_title, notice_content]
-
-    # _LOGGER.error(f'date_and_title: {notice_content}')
-    # _LOGGER.error(f'notice_content: {notice_content}')
-    
     # notice_list = ['2022-12-28','站点开邀通知','研究决定明天为庆祝站点100周年，开放邀请！\n 望周知，积极参加！']
     if notice_date and notice_title and notice_content:
     # if notice_list:
         new_notice = {'date':notice_date, 'title':notice_title, 'content':notice_content}
         # new_notice = {'date':notice_list[0], 'title':notice_list[1], 'content':notice_list[2]}
         old_notice = server.common.get_cache('site_notice', site_name)
-
         notice_list = [notice_date, notice_title, notice_content]
-        
         if new_notice != old_notice:
             server.common.set_cache('site_notice', site_name, new_notice)
         else:
             notice_list = []
             _LOGGER.info(f'「{site_name}」获取到的「最新公告」和「缓存公告」相同，不推送')
             # _LOGGER.info(f'「{site_name}」无新公告')
-        
     else:
         _LOGGER.error(f'「{site_name}」获取公告失败')
         notice_list = ''
-    
-    # _LOGGER.error(f'notice_list: {notice_list}')
-
     xxx = server.common.get_cache('site_notice', site_name)
     _LOGGER.info(f'「{site_name}」公告的最新缓存为{xxx}')
 
@@ -429,15 +424,10 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
         _LOGGER.info(f'「关键字过滤前，未读站内信数量」{count}')
         # 关键字检查
         caption_content_list,count = word_ignore(site_name, caption_content_list,count)
-        # _LOGGER.info(f'「站内信主题」{sms_title}')
-        # _LOGGER.info(f'「站内信内容」\n{element_body}')
-        # _LOGGER.info(f'「完整站内信」\n{caption_list}')
-        #_LOGGER.info(f'「排除关键字后，站内信详情页」\n{caption_content_list}')
         _LOGGER.info(f'「关键字过滤后，未读站内信数量」{count}')
     # count = 3   
     # caption_content_list = ['站点开邀通知<line>\n这是内容']
     # caption_content_list = ['<b><big>💬 等级变化</b></big><line>\n<small>你被降级为Crazy User。管理员：sidy</small>\n\n', "<b><big>💬 种子被删除</b></big><line>\n<small>你正在下载或做种的种子 ' The Mortal Ascention 2021 S01E71 1080p WEB-DL H264 AAC-OurTV'被管理员[url=userdetails.php?id=159]admin[/url]删除。原因：Dupe!</small>\n\n", "<b><big>💬 欢迎来到OurBits!</b></big><line>\n<small>祝贺你，'站点用户名'，\n你已成为OurBits的一员，\n我们真诚地欢迎你的加入！\n请务必先阅读[url=rules.php][b]规则[/b][/url]，提问前请自行参考[url=faq.php][b]常见问题[/b][/url],有空也请到[url=forums.php][b]论坛[/b][/url]看看。 \n祝你愉快。\nOurBits管理组</small>\n\n"]
-    
     return caption_content_list,count,message_url,message_item_url,notice_list
 
 def word_ignore(site_name, caption_content_list, count):
@@ -450,11 +440,9 @@ def word_ignore(site_name, caption_content_list, count):
                 if i in item:
                     hit.append(item)
                     break
-        # hit = set(hit)
         for hit_item in hit:
             caption_content_list.remove(hit_item)
             count = count - 1
-            # _LOGGER.info(f'「{site_name}」站内信「{hit_item.strip()}」触发关键词，已屏蔽此条信息！')
             _LOGGER.error(f'「{site_name}」未读站内信触发关键词过滤，将屏蔽此条消息，相关消息不会推送！')
         if not hit:
             _LOGGER.info(f'「{site_name}」未读站内信未触发关键词过滤')
