@@ -98,14 +98,14 @@ def sites_message():
             caption_content_list,count,message_url,message_item_url,notice_list = get_nexusphp_message(site_url[site_id], site.cookie, site.proxies, site_name)
             if caption_content_list or notice_list:
                 access_token = getToken(corpid, corpsecret)
-                image_path = f'/data/plugins/sites_message/pic/{site_id}.gif'
+                image_path = f'/data/plugins/sites_message_wx/pic/{site_id}.gif'
                 try:
                     # 检查 image_path 指向的文件是否存在
                     if not os.path.exists(image_path):
                         if caption_content_list:
-                            image_path = f'/data/plugins/sites_message/pic/msg_default.gif'
+                            image_path = f'/data/plugins/sites_message_wx/pic/msg_default.gif'
                         elif notice_list:
-                            image_path = f'/data/plugins/sites_message/pic/notice_default.gif'
+                            image_path = f'/data/plugins/sites_message_wx/pic/notice_default.gif'
                 except Exception as e:
                     _LOGGER.error(f'检查文件是否存在时发生异常，原因：{e}')
                 thumb_media_id = get_media_id(site_name, access_token, image_path)
