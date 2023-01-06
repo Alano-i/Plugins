@@ -1,5 +1,5 @@
 {
-  "name": "sites_message",
+  "name": "sites_message_wx",
   "title": "PT站内信微信推送",
   "author": "NaNaKo_ & Alano",
   "description": "获取PT站内信并通过微信通知,每天自动执行两次。基于NaNaKo_大佬的插件二次开发的微信通知专用版，感谢大佬。",
@@ -7,32 +7,12 @@
   "requirements": [],
   "configField": [
     {
-      "fieldName": "corpid",
-      "fieldType": "String",
-      "label": "corpid",
-      "helperText": "企业ID。此配置页需要配置的参数获取方法: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb",
-      "defaultValue": ""
-    },
-    {
-      "fieldName": "corpsecret",
-      "fieldType": "String",
-      "label": "corpsecret",
-      "helperText": "企业微信应用corpsecret",
-      "defaultValue": ""
-    },
-    {
-      "fieldName": "agentid",
-      "fieldType": "String",
-      "label": "agentid",
-      "helperText": "企业微信应用agentid",
-      "defaultValue": ""
-    },
-    {
-      "fieldName": "touser",
-      "fieldType": "String",
-      "label": "touser",
-      "helperText": "企业微信消息推送接收人",
-      "defaultValue": ""
+      "fieldName": "uid",
+      "fieldType": "Enum",
+      "label": "推送用户",
+      "helperText": "选择接收推送的用户,用户管理要独立设置推送配置才生效",
+      "enumValuesRef": "UserList",
+      "multiValue": true
     },
     {
       "fieldName": "word_ignore",
