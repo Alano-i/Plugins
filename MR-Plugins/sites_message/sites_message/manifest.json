@@ -22,7 +22,7 @@
       "defaultValue": "广告,已被删除,种子被删除,福利活动,大促,删除提醒,赞助商"
     }
   ],
-  "logoUrl": "/plugins/sites_message/logo.png",
+  "logoUrl": "/plugins/sites_message_wx/logo.png",
   "githubUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message",
   "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message",
   "dependencies": null
