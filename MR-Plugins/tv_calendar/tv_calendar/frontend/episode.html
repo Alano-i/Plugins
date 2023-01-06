@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>更新计划</title>
+    <link
+            rel="stylesheet"
+            href="https://fastly.jsdelivr.net/npm/vant@4/lib/index.css"
+    />
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover"
+    />
+    <style>
+        .van-theme-dark body {
+            color: white;
+            background-color: black;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        :root {
+        }
+
+        .van-card__thumb {
+            width: 160px;
+            height: auto;
+        }
+        .text-ellipsis {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-line-clamp: 3;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+        }
+    </style>
+</head>
+<body>
+<div id="app" v-cloak>
+    <van-config-provider theme="dark">
+        <template v-if="status==false">
+            <van-empty   image="https://fastly.jsdelivr.net/npm/@vant/assets/custom-empty-image.png"  image-size="120" description="怎么肥事!!怎么肥事!!" />
+        </template>
+        <template v-else>
+            <template v-for="(item,index) in date_dict" :key="index">
+                <van-card :title="'第'+item.episode_number+'集 '+getTitle(item.name)" :tag="item.vote_average.toString()">
+                    <template #thumb>
+                        <van-image
+                                v-if="item.still_path!=null"
+                                style="width:160px;height:90px;border-radius: 20px;"
+                                lazy-load
+                                :src="imageBaseUrl+item.still_path"
+                        ></van-image>
+                        <van-image
+                                v-else-if="item.season_poster!=null"
+                                style="width:106px;border-radius: 20px;"
+                                lazy-load
+                                :src="imageBaseUrl+item.season_poster"
+                        ></van-image>
+                        <van-image
+                                v-else
+                                style="width:106px;border-radius: 20px;"
+                                lazy-load
+                                :src="imageBaseUrl+item.tv_poster"
+                        ></van-image>
+                    </template>
+                    <template #desc>
+                        {{dateFormat(item.air_date)+' '+getWeek(item.air_date)}}
+                    </template>
+                    <template #tags>
+                        <p style="color: #909399;font-size: 10px;text-align:left;text-indent:20px;" class="text-ellipsis">{{item.overview}}</p>
+                    </template>
+                    <!--                <template #footer >-->
+                    <!--                    <van-rate color="#ffd21e" v-model="item.vote_average" count="5"   allow-half />-->
+                    <!--                </template>-->
+                </van-card>
+            </template>
+            <van-back-top />
+        </template>
+
+    </van-config-provider>
+    <van-number-keyboard safe-area-inset-bottom></van-number-keyboard>
+</div>
+<script src="https://fastly.jsdelivr.net/npm/vue@3"></script>
+<script src="https://fastly.jsdelivr.net/npm/vant@4/lib/vant.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                date_dict: [],
+                imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
+                offset: 7,
+                showId: '',
+                seasonNumber: '',
+                status: true
+            }
+        },
+        methods: {
+            getTitle(name) {
+                if (name.substring(0,1)==='第'){
+                    return ''
+                }else {
+                    return name
+                }
+
+            },
+            getDate(strDate) {
+                strDate = strDate.toString();
+                return new Date((strDate).replace(/-/g,"/"))
+            },
+            dateFormat(dateStr) {
+                date = this.getDate(dateStr) //转换成Data();
+                var y = date.getFullYear();
+                var m = date.getMonth() + 1;
+                m = m < 10 ? '0' + m : m;
+                var d = date.getDate();
+                d = d < 10 ? ('0' + d) : d;
+                return y + '年' + m + '月' + d + '日';
+            },
+            getWeek(date) {
+                const weekArr = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
+                return weekArr[new Date(date).getDay()]
+            },
+            getEpisodeDetail(tmdb_id, season_number) {
+
+                axios({
+                    method: 'get',
+                    url: '/static/original.json'
+                }).then(res => {
+                    let episodes = res.data
+                    let filterEpisodes = episodes.filter((episode) => {
+                        return episode['show_id'] == tmdb_id && episode['season_number'] == season_number
+                    })
+                    // let groupEpisodes = this.groupBy(filterEpisodes, episode => {
+                    //     return episode['air_date']
+                    // })
+                    this.date_dict = filterEpisodes
+                    if (episodes.length==0){
+                        this.status=false
+                    }else {
+                        this.status=true
+                    }
+                }).catch(e => {
+                    this.status=false
+                });
+            },
+            groupBy(list, fn) {
+                const groups = {};
+                list.forEach(function (o) {
+                    // const group = JSON.stringify(fn(o));
+                    const group = fn(o);
+                    groups[group] = groups[group] || [];
+                    groups[group].push(o);
+                });
+                return groups;
+            },
+            getQueryString(name) {
+                var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+                var r = window.location.search.substr(1).match(reg);
+                if (r != null) {
+                    return unescape(r[2]);
+                }
+                return null;
+            }
+        },
+        mounted() {
+            this.showId = this.getQueryString('showId')
+            this.seasonNumber = this.getQueryString('seasonNumber')
+            this.getEpisodeDetail(this.showId, this.seasonNumber)
+        }
+    })
+
+    app.use(vant);
+    app.use(vant.Lazyload);
+    app.mount('#app');
+</script>
+</body>
+</html>
