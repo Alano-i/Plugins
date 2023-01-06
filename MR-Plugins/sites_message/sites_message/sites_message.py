@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from mbot.core.plugins import plugin
 from mbot.core.plugins import PluginContext, PluginMeta
 from mbot.openapi import mbot_api
@@ -6,11 +7,14 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import time
 import os
+import sys
+import yaml
 from datetime import datetime
 import re
 import random
 import requests
 import logging
+import sqlite3
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 server = mbot_api
@@ -53,14 +57,14 @@ site_url = {
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global words
-    # message_to_uid = config.get('uid')
+    global words,user_id
+    user_id = config.get('uid')[0]
     words = config.get('word_ignore')
-    global corpid,corpsecret,agentid,touser,msg_media_id,notice_media_id
-    corpid = config.get('corpid')
-    corpsecret = config.get('corpsecret')
-    agentid = config.get('agentid')
-    touser = config.get('touser')
+    # global corpid,corpsecret,agentid,touser,msg_media_id,notice_media_id
+    # corpid = config.get('corpid')
+    # corpsecret = config.get('corpsecret')
+    # agentid = config.get('agentid')
+    # touser = config.get('touser')
     # msg_media_id = config.get('msg_media_id')
     # notice_media_id = config.get('notice_media_id')
     
@@ -73,6 +77,15 @@ def task():
 
 def sites_message():
     site_list = server.site.list()
+    corpid, agentid, corpsecret = get_qywx_info()
+    touser = get_qywx_user(user_id)
+    _LOGGER.info(f'获取到的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+    if not agentid or not corpid or not corpsecret or not touser:
+        _LOGGER.error('企业微信信息获取失败或填写不完整')
+        _LOGGER.error('在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
+        _LOGGER.error('在用户管理页设置「微信账号」，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
+        _LOGGER.error('PT站内信推送进程终止，「请先在系统中设置好上述参数重试」')
+        sys.exit()
     for site in site_list:
         site_id = site.site_id
         site_name = site.site_name
@@ -138,6 +151,35 @@ def sites_message():
         except Exception as e:
             _LOGGER.error(f'发生错误，原因：{e}')
             continue
+
+
+def get_qywx_user(id):
+    result = ''
+    # 连接数据库
+    conn = sqlite3.connect('/data/db/main.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT qywx_user FROM user WHERE id=?', (id,))
+    result = cursor.fetchone()
+    result = result[0]
+    # 关闭数据库连接
+    conn.close()
+    return result
+
+def get_qywx_info():
+    try:
+        yml_file = "/data/conf/base_config.yml"
+        with open(yml_file, encoding='utf-8') as f:
+            yml_data = yaml.load(f, Loader=yaml.FullLoader)
+        for item in yml_data['notify_channel']:
+            agentid = item.get('agentid')
+            corpid = item.get('corpid')
+            corpsecret = item.get('corpsecret')
+            if agentid is not None and corpid is not None and corpsecret is not None:
+                return corpid, agentid, corpsecret
+    except Exception as e:
+        print(f'获取「企业微信配置信息」错误，可能MR中填写的信息有误或不全: {e}')
+        pass
+    return '','',''
 
 def getToken(corpid, corpsecret):
     # 获取access_token
@@ -281,7 +323,7 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
             }
         elif proxies.startswith('socks5'):
             proxies = {
-                'socks5': proxies
+            'socks5': proxies
             }
     else:
         proxies = None
