@@ -152,7 +152,6 @@ def sites_message():
             _LOGGER.error(f'发生错误，原因：{e}')
             continue
 
-
 def get_qywx_user(id):
     result = ''
     # 连接数据库
