@@ -69,7 +69,7 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     # msg_media_id = config.get('msg_media_id')
     # notice_media_id = config.get('notice_media_id')
     
-@plugin.task('sites_message', 'PT站内信推送', cron_expression='0 9,19 * * *')
+@plugin.task('sites_message_wx', 'PT站内信推送', cron_expression='0 9,19 * * *')
 def task():
     time.sleep(random.randint(1, 120))
     _LOGGER.info('开始获取站内信和公告')
