@@ -57,8 +57,14 @@ site_url = {
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global words,user_id,wecom_proxy_url
-    user_id = config.get('uid')[0]
+    global words,user_id,wecom_proxy_url,uid
+    uid = config.get('uid')
+    if uid:
+        user_id = uid[0]
+    else:
+         _LOGGER.error('「PT站内信推送」获取推送用户失败，可能是设置了没保存或者还未设置')
+         _LOGGER.error('「PT站内信推送」PS:设置保存后必须重启才会生效！')
+    # user_id = config.get('uid')[0]
     words = config.get('word_ignore')
     wecom_proxy_url = config.get('wecom_proxy_url')
     # global corpid,corpsecret,agentid,touser,msg_media_id,notice_media_id
@@ -77,16 +83,19 @@ def task():
     _LOGGER.info('所有站点站内信和公告获取完成')
 
 def sites_message():
+    push_wx = True
     site_list = server.site.list()
     corpid, agentid, corpsecret = get_qywx_info()
     touser = get_qywx_user(user_id)
     _LOGGER.info(f'获取到的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
     if not agentid or not corpid or not corpsecret or not touser:
         _LOGGER.error('企业微信信息获取失败或填写不完整')
-        _LOGGER.error('在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
-        _LOGGER.error('在用户管理页设置「微信账号」，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
-        _LOGGER.error('PT站内信推送进程终止，「请先在系统中设置好上述参数重试」')
-        sys.exit()
+        _LOGGER.info('在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
+        _LOGGER.info('在用户管理页设置「微信账号」，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
+        # _LOGGER.error('PT站内信推送进程终止，「请先在系统中设置好上述参数重试」')
+        _LOGGER.error('本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用默认消息通道推送')
+        push_wx = False
+        # sys.exit()
     wecom_api_url = 'https://qyapi.weixin.qq.com'
     if wecom_proxy_url:
         _LOGGER.info(f'设置了微信白名单代理，地址是：{wecom_proxy_url}')
