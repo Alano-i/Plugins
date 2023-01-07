@@ -30,7 +30,7 @@
     }
   ],
   "logoUrl": "/plugins/sites_message_wx/logo.png",
-  "githubUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message",
-  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message",
+  "githubUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message_wx",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/sites_message_wx",
   "dependencies": null
 }
