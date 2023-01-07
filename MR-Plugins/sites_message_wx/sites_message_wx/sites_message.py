@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import time
 import os
-import sys
+# import sys
 import yaml
 from datetime import datetime
 import re
@@ -18,8 +18,8 @@ import sqlite3
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 server = mbot_api
-
 _LOGGER = logging.getLogger(__name__)
+
 site_url = {
     'chdbits': 'https://chdbits.co',
     'HDHome': 'https://hdhome.org',
@@ -57,14 +57,14 @@ site_url = {
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global words,user_id,wecom_proxy_url,uid
-    uid = config.get('uid')
-    if uid:
-        user_id = uid[0]
+    global words,user_id,wecom_proxy_url,message_to_uid
+    message_to_uid = config.get('uid')
+    if message_to_uid:
+        user_id = message_to_uid[0]
     else:
          _LOGGER.error('「PT站内信推送」获取推送用户失败，可能是设置了没保存或者还未设置')
          _LOGGER.error('「PT站内信推送」PS:设置保存后必须重启才会生效！')
-    # user_id = config.get('uid')[0]
+         user_id = ''
     words = config.get('word_ignore')
     wecom_proxy_url = config.get('wecom_proxy_url')
     # global corpid,corpsecret,agentid,touser,msg_media_id,notice_media_id
@@ -84,27 +84,33 @@ def task():
 
 def sites_message():
     push_wx = True
-    site_list = server.site.list()
-    corpid, agentid, corpsecret = get_qywx_info()
-    touser = get_qywx_user(user_id)
-    _LOGGER.info(f'获取到的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
-    if not agentid or not corpid or not corpsecret or not touser:
-        _LOGGER.error('企业微信信息获取失败或填写不完整')
-        _LOGGER.info('在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
-        _LOGGER.info('在用户管理页设置「微信账号」，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
-        # _LOGGER.error('PT站内信推送进程终止，「请先在系统中设置好上述参数重试」')
-        _LOGGER.error('本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用默认消息通道推送')
-        push_wx = False
-        # sys.exit()
-    wecom_api_url = 'https://qyapi.weixin.qq.com'
-    if wecom_proxy_url:
-        _LOGGER.info(f'设置了微信白名单代理，地址是：{wecom_proxy_url}')
-        wecom_api_url = wecom_proxy_url
+    if user_id:
+        corpid, agentid, corpsecret = get_qywx_info()
+        touser = get_qywx_user(user_id)
+        _LOGGER.info(f'获取到的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+        if not agentid or not corpid or not corpsecret or not touser:
+            _LOGGER.error('企业微信信息获取失败或填写不完整')
+            _LOGGER.error('在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
+            _LOGGER.error('在用户管理页设置微信账号，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
+            _LOGGER.error('本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用默认消息通道推送')
+            _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
+            push_wx = False
+            # sys.exit()
     else:
-        _LOGGER.info('未设置微信白名单代理，使用官方 api 地址: https://qyapi.weixin.qq.com')
+        _LOGGER.error('未设置推送人，将采用默认消息通道推送')
+        _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
+        push_wx = False
 
-    access_token = getToken(corpid, corpsecret, wecom_api_url)
+    if push_wx:
+        wecom_api_url = 'https://qyapi.weixin.qq.com'
+        if wecom_proxy_url:
+            _LOGGER.info(f'设置了微信白名单代理，地址是：{wecom_proxy_url}')
+            wecom_api_url = wecom_proxy_url
+        else:
+            _LOGGER.info('未设置微信白名单代理，使用官方 api 地址: https://qyapi.weixin.qq.com')
+        access_token = getToken(corpid, corpsecret, wecom_api_url)
 
+    site_list = server.site.list()
     for site in site_list:
         site_id = site.site_id
         site_name = site.site_name
@@ -126,7 +132,8 @@ def sites_message():
                             image_path = f'/data/plugins/sites_message_wx/pic/notice_default.gif'
                 except Exception as e:
                     _LOGGER.error(f'检查文件是否存在时发生异常，原因：{e}')
-                thumb_media_id = get_media_id(site_name, access_token, image_path)
+                if push_wx:
+                    thumb_media_id = get_media_id(site_name, access_token, image_path)
             if caption_content_list:
                 if count > 1:
                     wecom_title = f'💌 {site_name}: {count} 条站内新信息'
@@ -151,8 +158,13 @@ def sites_message():
                     wecom_digest = re.sub(r'<.*?>', '', wecom_content)
                 wecom_content = wecom_content.replace('\n', '<br/>')
                 # 推送站内信
-                result = push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url)
-                _LOGGER.info(f'「{site_name}」💌 有新站内信，企业微信推送结果: {result}')
+                if push_wx:
+                    result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url)
+                    _LOGGER.info(f'「{site_name}」💌 有新站内信，企业微信推送结果: {result}')
+                else:
+                    pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/sites_message_wx/sites_message_wx/pic/msg_default.gif'
+                    result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+                    _LOGGER.info(f'「{site_name}」💌 有新站内信，自选推送通道推送结果: {result}')
             else:
                 _LOGGER.info(f'「{site_name}」无未读站内信，或通过关键词过滤后没有需要推送的新消息')
             if notice_list:
@@ -162,8 +174,13 @@ def sites_message():
                 wecom_digest = re.sub(r'<.*?>', '', wecom_content_m)
                 content_source_url = f'{site_url}'
                 # 推送公告
-                result = push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url)
-                _LOGGER.info(f'「{site_name}」📢 有新公告，企业微信推送结果: {result}')
+                if push_wx:
+                    result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url)
+                    _LOGGER.info(f'「{site_name}」📢 有新公告，企业微信推送结果: {result}')
+                else:
+                    pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/sites_message_wx/sites_message_wx/pic/notice_default.gif'
+                    result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+                    _LOGGER.info(f'「{site_name}」📢 有新公告，自选推送通道推送结果: {result}')
             else:
                 _LOGGER.info(f'「{site_name}」无新公告')
         except Exception as e:
@@ -274,7 +291,7 @@ def upload_image_and_get_media_id(site_name, access_token, image_path):
     else:
         _LOGGER.error(f'上传图片失败，状态码：{response.status_code}')
 
-def push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url):
+def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url):
     # 发送消息
     url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
     data = {
@@ -310,6 +327,36 @@ def push_msg(access_token, touser, agentid, wecom_title, thumb_media_id, content
         _LOGGER.error('请求「推送接口」失败')
     else:
         return r.json()
+
+# def push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url):
+def push_msg_mr(msg_title, message, pic_url, link_url):
+    try:
+        if message_to_uid:
+            for _ in message_to_uid:
+                try:
+                    server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
+                        'title': msg_title,
+                        'a': message,
+                        'pic_url': pic_url,
+                        'link_url': link_url
+                    }, to_uid=_)
+                    return '已推送消息通知'
+                except Exception as e:
+                    return f'消息推送异常，原因: {e}'
+                    pass
+        else:
+            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
+                'title': msg_title,
+                'a': message,
+                'pic_url': pic_url,
+                'link_url': link_url
+            })
+            # _LOGGER.info(f'「已推送消息通知」')
+            return '已推送消息通知'
+    except Exception as e:
+                    # _LOGGER.error(f'消息推送异常，原因: {e}')
+                    return f'消息推送异常，原因: {e}'
+                    pass
 
 def get_nexusphp_message(site_url, cookie, proxies, site_name):
     caption_content_list = []
@@ -458,5 +505,6 @@ def word_ignore(site_name, caption_content_list, count):
     else:
         _LOGGER.info(f'未设定过滤关键词')
     return caption_content_list,count
+
 def main():
     sites_message()
