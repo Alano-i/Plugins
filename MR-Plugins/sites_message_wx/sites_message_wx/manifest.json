@@ -18,7 +18,7 @@
       "fieldName": "wecom_proxy_url",
       "fieldType": "String",
       "label": "微信白名单代理设置",
-      "helperText": "如果不设置则使用官方原版 api 地址，如果需要代理微信官方 api, 请填写此项。示例: https://abc.com",
+      "helperText": "不设置则使用官方原版 api 地址推送消息，如果需要代理微信官方 api, 请填写此项。示例: https://abc.com",
       "defaultValue": ""
     },
     {
