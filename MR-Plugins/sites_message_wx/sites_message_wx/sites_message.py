@@ -86,7 +86,8 @@ def sites_message():
     push_wx = True
     if user_id:
         corpid, agentid, corpsecret = get_qywx_info()
-        touser = get_qywx_user(user_id)
+        # touser = get_qywx_user(user_id)
+        touser = server.user.get(user_id).qywx_user
         _LOGGER.info(f'获取到的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         if not agentid or not corpid or not corpsecret or not touser:
             _LOGGER.error('企业微信信息获取失败或填写不完整')
@@ -187,15 +188,15 @@ def sites_message():
             _LOGGER.error(f'发生错误，原因：{e}')
             continue
 
-def get_qywx_user(id):
-    result = ''
-    conn = sqlite3.connect('/data/db/main.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT qywx_user FROM user WHERE id=?', (id,))
-    result = cursor.fetchone()
-    result = result[0]
-    conn.close()
-    return result
+# def get_qywx_user(id):
+#     result = ''
+#     conn = sqlite3.connect('/data/db/main.db')
+#     cursor = conn.cursor()
+#     cursor.execute('SELECT qywx_user FROM user WHERE id=?', (id,))
+#     result = cursor.fetchone()
+#     result = result[0]
+#     conn.close()
+#     return result
 
 def get_qywx_info():
     try:
