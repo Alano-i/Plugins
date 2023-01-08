@@ -14,7 +14,6 @@ import re
 import random
 import requests
 import logging
-import sqlite3
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 server = mbot_api
