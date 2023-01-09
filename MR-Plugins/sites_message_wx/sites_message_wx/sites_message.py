@@ -542,7 +542,7 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
         _LOGGER.info(f'「关键字过滤后，未读站内信数量」{count}')
     # count = 3   
     # caption_content_list = ['站点开邀通知<line>\n这是内容']
-    # caption_content_list = ['<b><big>💬 等级变化</b></big><line>\n<small>你被降级为Crazy User。管理员：sidy</small>\n\n', "<b><big>💬 种子被删除</b></big><line>\n<small>你正在下载或做种的种子 ' The Mortal Ascention 2021 S01E71 1080p WEB-DL H264 AAC-OurTV'被管理员[url=userdetails.php?id=159]admin[/url]删除。原因：Dupe!</small>\n\n", "<b><big>💬 欢迎来到OurBits!</b></big><line>\n<small>祝贺你，'站点用户名'，\n你已成为OurBits的一员，\n我们真诚地欢迎你的加入！\n请务必先阅读[url=rules.php][b]规则[/b][/url]，提问前请自行参考[url=faq.php][b]常见问题[/b][/url],有空也请到[url=forums.php][b]论坛[/b][/url]看看。 \n祝你愉快。\nOurBits管理组</small>\n\n"]
+    # caption_content_list = ['<b><big>💬 等级变化</b></big><line>\n<small>你被降级为Crazy User\n\n', "<b><big>💬 种子被删除</b></big><line>\n<small>你正在下载或做种的种子 ' The Mortal Ascention'被管理员删除。原因：Dupe!</small>\n\n", "<b><big>💬 欢迎!</b></big><line>\n<small>祝贺你，'站点用户名'，\n你已成为Our的一员，\n我们真诚地欢迎你的加入！\n请务必先阅读[url=rules.php][b]规则[/b][/url]，提问前请自行参考[url=faq.php][b]常见问题[/b][/url],有空也请到[url=forums.php][b]论坛[/b][/url]看看。 \n祝你愉快。</small>\n\n"]
     return caption_content_list,count,message_url,message_item_url,notice_list
 
 def word_ignore(site_name, caption_content_list, count):
