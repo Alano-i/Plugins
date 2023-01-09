@@ -56,23 +56,43 @@ site_url = {
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global words,user_id,wecom_proxy_url,message_to_uid
+    global words,user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra
+
     message_to_uid = config.get('uid')
+    qywx_channel_extra = config.get('qywx_channel_extra')
+    corpid_extra = config.get('corpid_extra')
+    corpsecret_extra = config.get('corpsecret_extra')
+    agentid_extra = config.get('agentid_extra')
+    touser_extra = config.get('touser_extra')
+    words = config.get('word_ignore')
+    wecom_proxy_url = config.get('wecom_proxy_url')
     if message_to_uid:
         user_id = message_to_uid[0]
     else:
          _LOGGER.error('「PT站内信推送」获取推送用户失败，可能是设置了没保存或者还未设置')
          _LOGGER.error('「PT站内信推送」PS:设置保存后必须重启才会生效！')
          user_id = ''
-    words = config.get('word_ignore')
-    wecom_proxy_url = config.get('wecom_proxy_url')
-    # global corpid,corpsecret,agentid,touser,msg_media_id,notice_media_id
-    # corpid = config.get('corpid')
-    # corpsecret = config.get('corpsecret')
-    # agentid = config.get('agentid')
-    # touser = config.get('touser')
+
     # msg_media_id = config.get('msg_media_id')
     # notice_media_id = config.get('notice_media_id')
+
+@plugin.config_changed
+def config_changed(config: Dict[str, Any]):
+    global words,user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra
+
+    message_to_uid = config.get('uid')
+    qywx_channel_extra = config.get('qywx_channel_extra')
+    corpid_extra = config.get('corpid_extra')
+    corpsecret_extra = config.get('corpsecret_extra')
+    agentid_extra = config.get('agentid_extra')
+    touser_extra = config.get('touser_extra')
+    words = config.get('word_ignore')
+    wecom_proxy_url = config.get('wecom_proxy_url')
+    if message_to_uid:
+        user_id = message_to_uid[0]
+    else:
+         _LOGGER.error('「PT站内信推送」获取推送用户失败，可能是设置了没保存成功或者还未设置')
+         user_id = ''
     
 @plugin.task('sites_message_wx', 'PT站内信推送', cron_expression='0 9,19 * * *')
 def task():
@@ -83,11 +103,24 @@ def task():
 
 def sites_message():
     push_wx = True
-    if user_id:
+    extra_flag = True
+    if qywx_channel_extra:
+        if corpid_extra and agentid_extra and corpsecret_extra and touser_extra:
+            corpid = corpid_extra
+            agentid = agentid_extra
+            corpsecret = corpsecret_extra
+            touser = touser_extra
+            _LOGGER.error(f'设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+        else:
+            _LOGGER.error(f'设置的独立微信应用参数不完整，将采用默认消息通道推送')
+            push_wx = False
+            extra_flag = False
+
+    if user_id and not qywx_channel_extra:
         corpid, agentid, corpsecret = get_qywx_info()
         # touser = get_qywx_user(user_id)
         touser = server.user.get(user_id).qywx_user
-        _LOGGER.info(f'获取到的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+        _LOGGER.info(f'获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         if not agentid or not corpid or not corpsecret or not touser:
             _LOGGER.error('企业微信信息获取失败或填写不完整')
             _LOGGER.error('在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
@@ -96,19 +129,20 @@ def sites_message():
             _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
             push_wx = False
             # sys.exit()
-    else:
-        _LOGGER.error('未设置推送人，将采用默认消息通道推送')
+    elif not user_id and not qywx_channel_extra:
+        _LOGGER.error('未设置推送人，也没有设置独立微信应用参数，将采用默认消息通道推送')
         _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
         push_wx = False
 
-    if push_wx:
+    if (push_wx or qywx_channel_extra) and extra_flag:
+       
         wecom_api_url = 'https://qyapi.weixin.qq.com'
         if wecom_proxy_url:
             _LOGGER.info(f'设置了微信白名单代理，地址是：{wecom_proxy_url}')
             wecom_api_url = wecom_proxy_url
         else:
             _LOGGER.info('未设置微信白名单代理，使用官方 api 地址: https://qyapi.weixin.qq.com')
-        access_token = getToken(corpid, corpsecret, wecom_api_url)
+        access_token, push_wx = getToken(corpid, corpsecret, wecom_api_url)
 
     site_list = server.site.list()
     for site in site_list:
@@ -220,15 +254,18 @@ def getToken(corpid, corpsecret, wecom_api_url):
     for i in range(MAX_RETRIES):
         try:
             r = requests.get(url)
-            access_token = r.json()['access_token']
+            # _LOGGER.error(f'r.json: {r.json()}')
             break
         except requests.RequestException as e:
             _LOGGER.error(f'处理异常，原因：{e}')
             time.sleep(2)
-    if r is None:
-        _LOGGER.error('请求「access_token」失败')
+    if r.json()['errcode'] == 0:
+        access_token = r.json()['access_token']
+        return access_token, True
     else:
-        return access_token
+        _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
+        _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
+        return '', False
 
 def get_media_id(site_name, access_token, image_path):
     media_id_info_new = {}
@@ -269,6 +306,28 @@ def get_media_id(site_name, access_token, image_path):
     stored_media_id_info = server.common.get_cache('media_id_info', site_name)
     _LOGGER.info(f'「{site_name}」已缓存的 「media_id 信息」: {stored_media_id_info}')
     return media_id
+# def upload_image_and_get_url(site_name, access_token, image_path):
+#     url = "https://qyapi.weixin.qq.com/cgi-bin/media/uploadimg"
+#     # /cgi-bin/material/add_material 永久素材接口，但需要授权，不知道该怎么授权 ，/cgi-bin/media/upload 临时素材接口，3天有效
+#     querystring = {"access_token": access_token}
+#     files = {"media": ("image.gif", open(image_path, "rb"))}
+#     MAX_RETRIES = 3
+#     for i in range(MAX_RETRIES):
+#         try:
+#             response = requests.request("POST", url, params=querystring, files=files)
+#             break
+#         except requests.RequestException as e:
+#             _LOGGER.error(f'处理异常，原因：{e}')
+#             time.sleep(2)
+#     _LOGGER.info(f'上传封面返回结果：{response.text}')
+#     # 解析响应
+#     if response.status_code == 200:
+#         resp_data = response.json()
+#         media_id = resp_data.get('media_id')
+#         return media_id
+#     else:
+#         _LOGGER.error(f'上传图片失败，状态码：{response.status_code}')
+
 def upload_image_and_get_media_id(site_name, access_token, image_path):
     url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
     # /cgi-bin/material/add_material 永久素材接口，但需要授权，不知道该怎么授权 ，/cgi-bin/media/upload 临时素材接口，3天有效
