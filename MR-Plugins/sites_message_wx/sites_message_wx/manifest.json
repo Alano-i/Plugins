@@ -10,23 +10,58 @@
       "fieldName": "uid",
       "fieldType": "Enum",
       "label": "推送用户",
-      "helperText": "选择接收推送的用户,用户管理要独立设置推送配置才生效",
+      "helperText": "选择接收推送的用户,需在用户管理页独立设置推送配置",
       "enumValuesRef": "UserList",
       "multiValue": true
     },
     {
       "fieldName": "wecom_proxy_url",
       "fieldType": "String",
-      "label": "微信白名单代理设置",
-      "helperText": "不设置则使用官方原版 api 地址推送消息，如果需要代理微信官方 api，请填写此项。示例: https://abc.com",
+      "label": "微信白名单代理设置，示例: https://abc.com",
+      "helperText": "",
       "defaultValue": ""
     },
     {
       "fieldName": "word_ignore",
       "fieldType": "String",
-      "label": "屏蔽关键词",
-      "helperText": "设置站内信推送屏蔽关键词，含有关键词的站内信将不会推送，多个关键词用英文逗号分隔, 默认值: 广告,已被删除,种子被删除,福利活动,大促,删除提醒,赞助商",
+      "label": "屏蔽关键词，多个关键词用英文逗号分隔。",
+      "helperText": "默认值: 广告,已被删除,种子被删除,福利活动,大促,删除提醒,赞助商",
       "defaultValue": "广告,已被删除,种子被删除,福利活动,大促,删除提醒,赞助商"
+    },
+    {
+      "fieldName": "qywx_channel_extra",
+      "fieldType": "Bool",
+      "label": "启用独立微信应用推送消息",
+      "helperText": "开启此项需完成下面4个设置项，上方第一个设置项选择的推送用户将会失效。反之关闭则下方设置项失效。参数获取参考：https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "corpid_extra",
+      "fieldType": "String",
+      "label": "企业 corpid，启用独立推送此设置生效",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "corpsecret_extra",
+      "fieldType": "String",
+      "label": "微信应用 corpsecret，启用独立推送此设置生效",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "agentid_extra",
+      "fieldType": "String",
+      "label": "微信应用 agentid，启用独立推送此设置生效",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "touser_extra",
+      "fieldType": "String",
+      "label": "微信消息推送接收人 touser，启用独立推送此设置生效",
+      "helperText": "",
+      "defaultValue": ""
     }
   ],
   "logoUrl": "/plugins/sites_message_wx/logo.png",
