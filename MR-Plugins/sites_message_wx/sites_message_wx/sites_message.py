@@ -236,14 +236,15 @@ def get_qywx_info():
         yml_file = "/data/conf/base_config.yml"
         with open(yml_file, encoding='utf-8') as f:
             yml_data = yaml.load(f, Loader=yaml.FullLoader)
-        for item in yml_data['notify_channel']:
-            agentid = item.get('agentid')
-            corpid = item.get('corpid')
-            corpsecret = item.get('corpsecret')
-            if agentid is not None and corpid is not None and corpsecret is not None:
-                return corpid, agentid, corpsecret
+        for channel in yml_data['notify_channel']:
+            if channel['enable']:
+                agentid = channel.get('agentid')
+                corpid = channel.get('corpid')
+                corpsecret = channel.get('corpsecret')
+                if agentid and corpid and corpsecret:
+                    return corpid, agentid, corpsecret
     except Exception as e:
-        print(f'获取「企业微信配置信息」错误，可能MR中填写的信息有误或不全: {e}')
+        _LOGGER.error(f'获取「企业微信配置信息」错误，可能MR中填写的信息有误或不全: {e}')
         pass
     return '','',''
 
