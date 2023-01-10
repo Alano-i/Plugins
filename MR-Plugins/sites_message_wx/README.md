@@ -24,7 +24,7 @@ MR插件，定时获取站点最新站内信与公告
 
 
 ## 效果预览
-![git封面](https://user-images.githubusercontent.com/68833595/211194416-1ae20277-9648-44f1-82e4-06cdfdf5cbb9.png)
+![git封面](https://user-images.githubusercontent.com/68833595/211461063-975400c0-eb6e-4ca1-a26a-eb903b885349.png)
 
 
 
