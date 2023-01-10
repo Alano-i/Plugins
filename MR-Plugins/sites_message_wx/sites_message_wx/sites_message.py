@@ -241,10 +241,9 @@ def get_qywx_info():
                 agentid = channel.get('agentid')
                 corpid = channel.get('corpid')
                 corpsecret = channel.get('corpsecret')
-                if agentid and corpid and corpsecret:
-                    return corpid, agentid, corpsecret
+                return corpid, agentid, corpsecret
     except Exception as e:
-        _LOGGER.error(f'获取「企业微信配置信息」错误，可能MR中填写的信息有误或不全: {e}')
+        _LOGGER.error(f'获取「企业微信配置信息」错误，可能 MR 中填写的信息有误或不全: {e}')
         pass
     return '','',''
 
@@ -307,27 +306,6 @@ def get_media_id(site_name, access_token, image_path):
     stored_media_id_info = server.common.get_cache('media_id_info', site_name)
     _LOGGER.info(f'「{site_name}」已缓存的 「media_id 信息」: {stored_media_id_info}')
     return media_id
-# def upload_image_and_get_url(site_name, access_token, image_path):
-#     url = "https://qyapi.weixin.qq.com/cgi-bin/media/uploadimg"
-#     # /cgi-bin/material/add_material 永久素材接口，但需要授权，不知道该怎么授权 ，/cgi-bin/media/upload 临时素材接口，3天有效
-#     querystring = {"access_token": access_token}
-#     files = {"media": ("image.gif", open(image_path, "rb"))}
-#     MAX_RETRIES = 3
-#     for i in range(MAX_RETRIES):
-#         try:
-#             response = requests.request("POST", url, params=querystring, files=files)
-#             break
-#         except requests.RequestException as e:
-#             _LOGGER.error(f'处理异常，原因：{e}')
-#             time.sleep(2)
-#     _LOGGER.info(f'上传封面返回结果：{response.text}')
-#     # 解析响应
-#     if response.status_code == 200:
-#         resp_data = response.json()
-#         media_id = resp_data.get('media_id')
-#         return media_id
-#     else:
-#         _LOGGER.error(f'上传图片失败，状态码：{response.status_code}')
 
 def upload_image_and_get_media_id(site_name, access_token, image_path):
     url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
@@ -518,6 +496,7 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
         
     # notice_list = [notice_date, notice_title, notice_content]
     # notice_list = ['2022-12-28','站点开邀通知','研究决定明天为庆祝站点100周年，开放邀请！\n 望周知，积极参加！']
+
     if notice_date and notice_title and notice_content:
     # if notice_list:
         new_notice = {'date':notice_date, 'title':notice_title, 'content':notice_content}
@@ -544,6 +523,7 @@ def get_nexusphp_message(site_url, cookie, proxies, site_name):
     # count = 3   
     # caption_content_list = ['站点开邀通知<line>\n这是内容']
     # caption_content_list = ['<b><big>💬 等级变化</b></big><line>\n<small>你被降级为Crazy User\n\n', "<b><big>💬 种子被删除</b></big><line>\n<small>你正在下载或做种的种子 ' The Mortal Ascention'被管理员删除。原因：Dupe!</small>\n\n", "<b><big>💬 欢迎!</b></big><line>\n<small>祝贺你，'站点用户名'，\n你已成为Our的一员，\n我们真诚地欢迎你的加入！\n请务必先阅读[url=rules.php][b]规则[/b][/url]，提问前请自行参考[url=faq.php][b]常见问题[/b][/url],有空也请到[url=forums.php][b]论坛[/b][/url]看看。 \n祝你愉快。</small>\n\n"]
+    # notice_list = ['2022-12-28','站点开邀通知','研究决定明天为庆祝站点100周年，开放邀请！\n 望周知，积极参加！']
     return caption_content_list,count,message_url,message_item_url,notice_list
 
 def word_ignore(site_name, caption_content_list, count):
