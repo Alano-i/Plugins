@@ -558,3 +558,4 @@ def main():
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
     sites_message_by_manual(push_wx, access_token, agentid, touser, wecom_api_url)
     site_notice(push_wx, access_token, agentid, touser, wecom_api_url)
+    
