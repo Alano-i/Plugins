@@ -18,7 +18,7 @@ from datetime import datetime
 server = mbot_api
 _LOGGER = logging.getLogger(__name__)
 site_list = server.site.list()
-message_skip_list = ['mteam', 'pttime' 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares', 'iptorrents','rarbg']
+message_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares', 'iptorrents','rarbg']
 notice_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'ttg', 'filelist', 'hares','iptorrents', 'rarbg']
 
 @plugin.after_setup
