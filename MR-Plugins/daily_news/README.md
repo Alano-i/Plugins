@@ -23,7 +23,8 @@ MR插件，定时获取每日新闻和天气并微信通知
 
 
 ## 效果预览
-![git封面](https://user-images.githubusercontent.com/68833595/211461063-975400c0-eb6e-4ca1-a26a-eb903b885349.png)
+![git](https://user-images.githubusercontent.com/68833595/216824475-88298af8-035c-4c08-a989-e879334d92ce.png)
+
 
 
 
