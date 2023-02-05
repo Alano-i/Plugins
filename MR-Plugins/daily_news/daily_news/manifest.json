@@ -24,7 +24,7 @@
     {
       "fieldName": "key",
       "fieldType": "String",
-      "label": "和风天气api key",
+      "label": "和风天气 api key",
       "helperText": "在 https://dev.qweather.com 申请 key，创建项目后进入控制台新建项目然后添加 key",
       "defaultValue": ""
     },
