@@ -560,11 +560,11 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
             time.sleep(2)
     if r is None:
         _LOGGER.error(f'「每天60秒读懂世界」请求「推送接口」失败，将采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+        result = push_msg_mr(msg_title, message, pic_url, link_url)
         return result
     elif r.json()['errcode'] != 0:
         _LOGGER.error(f'「每天60秒读懂世界」通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+        result = push_msg_mr(msg_title, message, pic_url, link_url)
         return result
     elif r.json()['errcode'] == 0:
         _LOGGER.info(f'「每天60秒读懂世界」通过设置的微信参数推送消息成功')
