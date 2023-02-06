@@ -24,7 +24,7 @@ def GetPackage(PackageName):
         install_log = os.popen(comand)
         # _LOGGER.error(f"「安装依赖脚本」安装日志：{install_log}")
         _LOGGER.info(f'「安装依赖脚本」安装日志如下:\n{install_log.read()}')
-        _LOGGER.info(f'「安装依赖脚本」如果下方报错：依赖库 zhdate 安装失败导致插件载入失败，请手动进入 mr 命令行安装，安装命令：pip install zhdate')
+        _LOGGER.error(f'「安装依赖脚本」如果下方报错：依赖库 zhdate 安装失败导致插件载入失败，请手动进入 mr 命令行安装，安装命令：pip install zhdate')
         # os.system(f'{comand} | tee /data/plugins/daily_news/install.log')
     except Exception as e:
         _LOGGER.error(f"「安装依赖脚本」安装依赖库失败！原因：{e}")
