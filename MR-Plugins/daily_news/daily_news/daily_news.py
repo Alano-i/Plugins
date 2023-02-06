@@ -21,6 +21,8 @@ from requests.packages.urllib3.util.retry import Retry
 from datetime import datetime
 server = mbot_api
 _LOGGER = logging.getLogger(__name__)
+plugins_name = '「每天60秒读懂世界」'
+plugins_path = '/data/plugins/daily_news'
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
@@ -37,13 +39,13 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     if message_to_uid:
         user_id = message_to_uid[0]
     else:
-         _LOGGER.error('「每天60秒读懂世界」获取推送用户失败，可能是设置了没保存成功或者还未设置')
+         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
          user_id = ''
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
     global user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra,city,key
-    _LOGGER.info('「每天60秒读懂世界」配置发生变更，加载新设置！')
+    _LOGGER.info(f'{plugins_name}配置发生变更，加载新设置！')
     message_to_uid = config.get('uid')
     qywx_channel_extra = config.get('qywx_channel_extra')
     corpid_extra = config.get('corpid_extra')
@@ -56,16 +58,15 @@ def config_changed(config: Dict[str, Any]):
     if message_to_uid:
         user_id = message_to_uid[0]
     else:
-         _LOGGER.error('「每天60秒读懂世界」获取推送用户失败，可能是设置了没保存成功或者还未设置')
+         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
          user_id = ''
 
-@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 7 * * *')
+@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 9 * * *')
 def task():
     # time.sleep(random.randint(1, 600))
-    _LOGGER.info('「每天60秒读懂世界」定时任务启动，开始获取每日新闻和天气')
-    # site_notice()
+    _LOGGER.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
     main()
-    _LOGGER.info('「每天60秒读懂世界」每日新闻和天气获取完成并已推送消息')
+    _LOGGER.info(f'{plugins_name}每日新闻和天气获取完成并已推送消息')
 
 def get_daily_news(img_url):
     url = "https://www.zhihu.com/api/v4/columns/c_1261258401923026944/items"
@@ -81,7 +82,7 @@ def get_daily_news(img_url):
     session.mount('https://', adapter)
     res = session.request("GET", url, headers=headers, timeout=30)
 
-    # res = requests.get(url, headers=headers)
+    # res = requests.get(url, headers=headers, timeout=20)
     if res.status_code == 200:
         data = json.loads(res.text)["data"]
         news_url = data[0]["url"]
@@ -91,6 +92,11 @@ def get_daily_news(img_url):
         news_digest = '\n\n'.join([p.text for p in p_tags])
         news_digest = news_digest.replace('在这里，每天60秒读懂世界！', '')
         news_digest = news_digest.strip()
+        # _LOGGER.error(news_digest)
+        if (len(news_digest)>1000):
+            news_digest = news_digest[0:1000]
+        # _LOGGER.error(news_digest)
+        
         news_content = re.sub(r"<figcaption>.*?</figcaption>", "", news_content, flags=re.DOTALL)
         news_content = re.sub(r"<a.*?</a>", "", news_content, flags=re.DOTALL)
         news_content = news_content.replace('<figure', '<div style="border-radius: 12px; overflow: hidden; margin-top: -22px;"><figure')
@@ -119,7 +125,7 @@ def get_weather():
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('https://', adapter)
     response_city = session.request("GET", city_url, timeout=30)
-    # response_city = requests.get(city_url)
+    # response_city = requests.get(city_url, timeout=20)
     # _LOGGER.error(f'response_city:{response_city}')
     city_data = response_city.json()
     # _LOGGER.error(f'city_data:{city_data}')
@@ -129,7 +135,7 @@ def get_weather():
         city_id = city_data["id"]
         weather_url = "https://devapi.qweather.com/v7/weather/3d?location=" + city_id + "&key=" + key
         response = session.request("GET", weather_url, timeout=30)
-        # response = requests.get(weather_url)
+        # response = requests.get(weather_url, timeout=20)
         weather_data = response.json()
         if weather_data['code'] == '200':
             daily_weather_data = weather_data["daily"][0]
@@ -141,13 +147,13 @@ def get_weather():
         else:
             cond = '风雨难测°'
             daily_weather_iconDay = '100'
-            _LOGGER.error('获取天气信息失败')
+            _LOGGER.error(f'{plugins_name}获取天气信息失败')
     else:
         city_name = '你在天涯海角'
         cond = '风雨难测°'
         daily_weather_iconDay = '100'
-        _LOGGER.error('获取城市名失败,请确定 ➊「城市名称」是否设置正确，示例：北京。➋「和风天气」的 key 设置正确')
-        _LOGGER.error('和风天气的 key 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 key')
+        _LOGGER.error(f'{plugins_name}获取城市名失败,请确定 ➊「城市名称」是否设置正确，示例：北京。➋「和风天气」的 key 设置正确')
+        _LOGGER.error(f'{plugins_name}和风天气的 key 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 key')
  
     return city_name, cond, daily_weather_iconDay
 
@@ -197,7 +203,7 @@ def get_quote():
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('https://', adapter)
     quote = session.request("GET", quote_url, timeout=30)
-    # quote = requests.get(quote_url)
+    # quote = requests.get(quote_url, timeout=20)
     response = quote.json()
     quote_content = response['hitokoto']
     line_length = 22
@@ -331,7 +337,6 @@ def process_weather_data(daily_weather_iconDay):
 
 # 生成图片
 def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
-    plugins_path = '/data/plugins/daily_news'
     # 画布大小
     width = 1500
     height = 640
@@ -407,13 +412,13 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     image1.save(f"{plugins_path}/weather.png")
     shutil.copy(f'{plugins_path}/weather.png', f'{plugins_path}/weather.jpg')
     img_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
-    _LOGGER.info(f'上传到MR服务器的图片URL是:{img_url}')
-    image_path = f'{plugins_path}/weather.png'
+    _LOGGER.info(f'{plugins_name}上传到MR服务器的图片URL是:{img_url}')
+    image_path = f'{plugins_name}{plugins_path}/weather.png'
     try:
         if not os.path.exists(image_path):
             image_path = f'{plugins_path}/weather.png'
     except Exception as e:
-        _LOGGER.error(f'检查文件是否存在时发生异常，原因：{e}')
+        _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
     wecom_title = '🌎 每天60秒读懂世界'
     wecom_digest, wecom_content, news_url = get_daily_news(img_url)
     author = f'农历{lunar_date} 星期{weekday}'
@@ -421,11 +426,11 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     if push_wx:
         thumb_media_id = get_media_id(access_token, image_path)
         result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author)
-        _LOGGER.info(f'「每天60秒读懂世界」企业微信推送结果: {result}')
+        _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
         pic_url = img_url
         result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
-        _LOGGER.info(f'「每天60秒读懂世界」，自选推送通道推送结果: {result}')
+        _LOGGER.info(f'{plugins_name}自选推送通道推送结果: {result}')
 
 def is_push_to_wx():
     push_wx = True
@@ -440,32 +445,32 @@ def is_push_to_wx():
             agentid = agentid_extra
             corpsecret = corpsecret_extra
             touser = touser_extra
-            _LOGGER.error(f'设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+            _LOGGER.error(f'{plugins_name}设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         else:
-            _LOGGER.error(f'设置的独立微信应用参数不完整，将采用默认消息通道推送')
+            _LOGGER.error(f'{plugins_name}设置的独立微信应用参数不完整或错误，注意 touser 不带 @ 符号（除非设置的@all,所有人接收）。将采用默认消息通道推送')
             push_wx = False
             extra_flag = False
     if user_id and not qywx_channel_extra:
         corpid, agentid, corpsecret = get_qywx_info()
         touser = server.user.get(user_id).qywx_user
-        _LOGGER.info(f'获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+        _LOGGER.info(f'{plugins_name}获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         if not agentid or not corpid or not corpsecret or not touser:
-            _LOGGER.error('企业微信信息获取失败或填写不完整')
-            _LOGGER.error('在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
-            _LOGGER.error('在用户管理页设置微信账号，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
-            _LOGGER.error('本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用默认消息通道推送')
+            _LOGGER.error(f'{plugins_name}企业微信信息获取失败或填写不完整')
+            _LOGGER.error(f'{plugins_name}在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
+            _LOGGER.error(f'{plugins_name}在用户管理页设置微信账号，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
+            _LOGGER.error(f'{plugins_name}本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用默认消息通道推送')
             # _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
             push_wx = False
     elif not user_id and not qywx_channel_extra:
-        _LOGGER.error('未设置推送人，也没有设置独立微信应用参数，将采用默认消息通道推送')
+        _LOGGER.error(f'{plugins_name}未设置推送人，也没有设置独立微信应用参数，将采用默认消息通道推送')
         # _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
         push_wx = False
     if (push_wx or qywx_channel_extra) and extra_flag:
         if wecom_proxy_url:
-            _LOGGER.info(f'设置了微信白名单代理，地址是：{wecom_proxy_url}')
+            _LOGGER.info(f'{plugins_name}设置了微信白名单代理，地址是：{wecom_proxy_url}')
             wecom_api_url = wecom_proxy_url
         else:
-            _LOGGER.info('未设置微信白名单代理，使用官方 api 地址: https://qyapi.weixin.qq.com')
+            _LOGGER.info(f'{plugins_name}未设置微信白名单代理，使用官方 api 地址: https://qyapi.weixin.qq.com')
         push_wx, access_token = getToken(corpid, corpsecret, wecom_api_url)
     return push_wx, access_token, agentid, touser, wecom_api_url
 
@@ -481,7 +486,7 @@ def get_qywx_info():
                 corpsecret = channel.get('corpsecret')
                 return corpid, agentid, corpsecret
     except Exception as e:
-        _LOGGER.error(f'获取「企业微信配置信息」错误，可能 MR 中填写的信息有误或不全: {e}')
+        _LOGGER.error(f'{plugins_name}获取「企业微信配置信息」错误，可能 MR 中填写的信息有误或不全: {e}')
         pass
     return '','',''
 
@@ -490,17 +495,18 @@ def getToken(corpid, corpsecret, wecom_api_url):
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            r = requests.get(url)
+            r = requests.get(url, timeout=20)
+            # _LOGGER.info(f'{plugins_name}尝试 {i+1} 次后，请求「获取token接口」成功')
             break
         except requests.RequestException as e:
-            _LOGGER.error(f'处理异常，原因：{e}')
+            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求「获取token接口」异常，原因：{e}')
             time.sleep(2)
     if r.json()['errcode'] == 0:
         access_token = r.json()['access_token']
         return True, access_token
     else:
-        _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
-        # _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
+        _LOGGER.error(f'{plugins_name}请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
+        # _LOGGER.error(f'{plugins_name}默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
         return False, ''
 
 def get_media_id(access_token, image_path):
@@ -514,18 +520,19 @@ def upload_image_and_get_media_id(access_token, image_path):
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            response = requests.request("POST", url, params=querystring, files=files)
+            response = requests.request("POST", url, params=querystring, files=files, timeout=20)
+            # _LOGGER.info(f'{plugins_name}第 {i+1} 次尝试，请求「上传封面接口」成功')
             break
         except requests.RequestException as e:
-            _LOGGER.error(f'「每天60秒读懂世界」上传封面处理异常，原因：{e}')
+            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求「上传封面接口」异常，原因：{e}')
             time.sleep(2)
-    _LOGGER.info(f'「每天60秒读懂世界」上传封面返回结果：{response.text}')
+    _LOGGER.info(f'{plugins_name}上传封面返回结果：{response.text}')
     if response.status_code == 200:
         resp_data = response.json()
         media_id = resp_data.get('media_id')
         return media_id
     else:
-        _LOGGER.error(f'「每天60秒读懂世界」上传封面失败，状态码：{response.status_code}')
+        _LOGGER.error(f'{plugins_name}上传封面失败，状态码：{response.status_code}')
 
 def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author):
     url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
@@ -553,27 +560,29 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            r = requests.post(url, json=data)
+            r = requests.post(url, json=data, timeout=20)
+            # _LOGGER.info(f'{plugins_name}尝试 {i+1} 次后，请求「推送接口」成功')
             break
         except requests.RequestException as e:
-            _LOGGER.error(f'处理异常，原因：{e}')
+            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求「推送接口」异常，原因：{e}')
             time.sleep(2)
     if r is None:
-        _LOGGER.error(f'「每天60秒读懂世界」请求「推送接口」失败，将采用 MR 默认通知通道推送')
-        result = push_msg_mr(msg_title, message, pic_url, link_url)
+        _LOGGER.error(f'{plugins_name}请求推送接口失败，将采用 MR 默认通知通道推送')
+        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
         return result
     elif r.json()['errcode'] != 0:
-        _LOGGER.error(f'「每天60秒读懂世界」通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
-        result = push_msg_mr(msg_title, message, pic_url, link_url)
+        _LOGGER.error(f'{plugins_name}通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
+        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
         return result
     elif r.json()['errcode'] == 0:
-        _LOGGER.info(f'「每天60秒读懂世界」通过设置的微信参数推送消息成功')
+        _LOGGER.info(f'{plugins_name}通过设置的微信参数推送消息成功')
         return r.json()
 
 def push_msg_mr(msg_title, message, pic_url, link_url):
-    try:
-        if message_to_uid:
-            for _ in message_to_uid:
+    # try:
+    if message_to_uid:
+        for _ in message_to_uid:
+            for i in range(3):
                 try:
                     server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
                         'title': msg_title,
@@ -581,21 +590,29 @@ def push_msg_mr(msg_title, message, pic_url, link_url):
                         'pic_url': pic_url,
                         'link_url': link_url
                     }, to_uid=_)
-                    return '已推送消息通知'
+                    result = f'尝试 {i+1} 次后，已推送消息通知'
+                    break
+                    # return '已推送消息通知'
                 except Exception as e:
-                    return f'消息推送异常，原因: {e}'
-                    pass
-        else:
-            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
-                'title': msg_title,
-                'a': message,
-                'pic_url': pic_url,
-                'link_url': link_url
-            })
-            return '已推送消息通知'
-    except Exception as e:
-        return f'消息推送异常，原因: {e}'
-        pass
+                    result =  f'第 {i+1} 次尝试，消息推送异常，原因: {e}'
+            return result
+    else:
+        for i in range(3):
+            try:
+                server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
+                    'title': msg_title,
+                    'a': message,
+                    'pic_url': pic_url,
+                    'link_url': link_url
+                })
+                result = f'尝试 {i+1} 次后，已推送消息通知'
+                break
+            except Exception as e:
+                result =  f'第 {i+1} 次尝试，消息推送异常，原因: {e}'
+        return result
+    # except Exception as e:
+    #     return f'消息推送异常，原因: {e}'
+    #     pass
 
 def main():
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
