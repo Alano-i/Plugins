@@ -386,7 +386,8 @@ def is_push_to_wx():
             extra_flag = False
     if user_id and not qywx_channel_extra:
         corpid, agentid, corpsecret = get_qywx_info()
-        touser = server.user.get(user_id).qywx_user
+        touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid])
+        # touser = server.user.get(user_id).qywx_user
         _LOGGER.info(f'获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         if not agentid or not corpid or not corpsecret or not touser:
             _LOGGER.error('企业微信信息获取失败或填写不完整')
