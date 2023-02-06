@@ -21,8 +21,13 @@ from requests.packages.urllib3.util.retry import Retry
 from datetime import datetime
 server = mbot_api
 _LOGGER = logging.getLogger(__name__)
+
 plugins_name = '「每天60秒读懂世界」'
 plugins_path = '/data/plugins/daily_news'
+session = requests.Session()
+retry = Retry(connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('https://', adapter)
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
@@ -76,12 +81,7 @@ def get_daily_news(img_url):
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Headers": "x-requested-with, content-type"
     }
-    session = requests.Session()
-    retry = Retry(connect=3, backoff_factor=0.5)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('https://', adapter)
     res = session.request("GET", url, headers=headers, timeout=30)
-
     # res = requests.get(url, headers=headers, timeout=20)
     if res.status_code == 200:
         data = json.loads(res.text)["data"]
@@ -96,7 +96,6 @@ def get_daily_news(img_url):
         if (len(news_digest)>1000):
             news_digest = news_digest[0:1000]
         # _LOGGER.error(news_digest)
-        
         news_content = re.sub(r"<figcaption>.*?</figcaption>", "", news_content, flags=re.DOTALL)
         news_content = re.sub(r"<a.*?</a>", "", news_content, flags=re.DOTALL)
         news_content = news_content.replace('<figure', '<div style="border-radius: 12px; overflow: hidden; margin-top: -22px;"><figure')
@@ -106,9 +105,8 @@ def get_daily_news(img_url):
         news_content = news_content.replace('在这里，每天60秒读懂世界！', '')
         news_content = news_content.replace('<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px"></p>', '')
         # news_content = re.sub(r'<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px" data-pid="(.*?)"></p>', '', news_content, flags=re.DOTALL)
-        news_content = re.sub(r'<p(.*?)></p>', '', news_content, flags=re.DOTALL)
+        news_content = re.sub(r"<p(.*?)></p>", "", news_content, flags=re.DOTALL)
         news_content = news_content.strip()
-        # _LOGGER.error(news_content)
         # news_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{img_url}" alt="封面"></div>{news_content}'
     else:
         news_content = '热点新闻'
@@ -120,10 +118,6 @@ def get_daily_news(img_url):
 def get_weather():
     # city = "北京"
     city_url = "https://geoapi.qweather.com/v2/city/lookup?location=" + city + "&key=" + key
-    session = requests.Session()
-    retry = Retry(connect=3, backoff_factor=0.5)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('https://', adapter)
     response_city = session.request("GET", city_url, timeout=30)
     # response_city = requests.get(city_url, timeout=20)
     # _LOGGER.error(f'response_city:{response_city}')
@@ -152,8 +146,9 @@ def get_weather():
         city_name = '你在天涯海角'
         cond = '风雨难测°'
         daily_weather_iconDay = '100'
-        _LOGGER.error(f'{plugins_name}获取城市名失败,请确定 ➊「城市名称」是否设置正确，示例：北京。➋「和风天气」的 key 设置正确')
-        _LOGGER.error(f'{plugins_name}和风天气的 key 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 key')
+        _LOGGER.error(f'{plugins_name}获取城市名失败,请确定 ➊【城市名称】是否设置正确，示例：北京。➋【和风天气】的 key 设置正确')
+        _LOGGER.error(f'{plugins_name}【和风天气】的 key 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 key。')
+        _LOGGER.error(f'{plugins_name}在项目管理找到新建的项目，KEY 下面有个查看，点开查看，即可查看需要填入到插件的 api key 值')
  
     return city_name, cond, daily_weather_iconDay
 
@@ -198,10 +193,6 @@ def get_lunar_date(today_day,today_month,today_year):
 # 获取心灵鸡汤
 def get_quote():
     quote_url = 'https://v1.hitokoto.cn'
-    session = requests.Session()
-    retry = Retry(connect=3, backoff_factor=0.5)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('https://', adapter)
     quote = session.request("GET", quote_url, timeout=30)
     # quote = requests.get(quote_url, timeout=20)
     response = quote.json()
@@ -235,32 +226,25 @@ def process_weather_data(daily_weather_iconDay):
     daily_weather_iconDay = int(daily_weather_iconDay)
     if daily_weather_iconDay == 100: 
         bg_name = 'sunny'
-        unicode_value = hex(0xf1cc + int(daily_weather_iconDay) - 100)
-        unicode_text = chr(int(unicode_value, 16))
+        unicode_value = hex(0xf1cc)
     elif daily_weather_iconDay in range(101, 105): 
         bg_name = 'cloud'
         unicode_value = hex(0xf1cc + int(daily_weather_iconDay) - 100)
-        unicode_text = chr(int(unicode_value, 16))
     elif daily_weather_iconDay in range(300, 319): 
         bg_name = 'rain'
         unicode_value = hex(0xf1d5 + int(daily_weather_iconDay) - 300)
-        unicode_text = chr(int(unicode_value, 16))
     elif daily_weather_iconDay == 399:
         bg_name = 'rain'
         unicode_value = hex(0xf1ea)
-        unicode_text = chr(int(unicode_value, 16))
     elif daily_weather_iconDay in range(400, 411): 
         bg_name = 'snow'
         unicode_value = hex(0xf1eb + int(daily_weather_iconDay) - 400)
-        unicode_text = chr(int(unicode_value, 16))
     elif daily_weather_iconDay == 499: 
         bg_name = 'snow'
         unicode_value = hex(0xf1f8)
-        unicode_text = chr(int(unicode_value, 16))
     elif daily_weather_iconDay in range(500, 502): 
         bg_name = 'fog'
         unicode_value = hex(0xf1f9 + int(daily_weather_iconDay) - 500)
-        unicode_text = chr(int(unicode_value, 16))
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -273,7 +257,6 @@ def process_weather_data(daily_weather_iconDay):
     elif daily_weather_iconDay in range(509, 511): 
         bg_name = 'fog'
         unicode_value = hex(0xf200 + int(daily_weather_iconDay) - 509)
-        unicode_text = chr(int(unicode_value, 16))
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -286,7 +269,7 @@ def process_weather_data(daily_weather_iconDay):
     elif daily_weather_iconDay in range(514, 516): 
         bg_name = 'fog'
         unicode_value = hex(0xf205 + int(daily_weather_iconDay) - 514)
-        unicode_text = chr(int(unicode_value, 16))
+        
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -299,7 +282,6 @@ def process_weather_data(daily_weather_iconDay):
     elif daily_weather_iconDay == 502:
         bg_name = 'haze'
         unicode_value = hex(0xf1fb)
-        unicode_text = chr(int(unicode_value, 16))
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -312,7 +294,6 @@ def process_weather_data(daily_weather_iconDay):
     elif daily_weather_iconDay in range(511, 514):
         bg_name = 'haze'
         unicode_value = hex(0xf202 + int(daily_weather_iconDay) - 511)
-        unicode_text = chr(int(unicode_value, 16))
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -325,14 +306,13 @@ def process_weather_data(daily_weather_iconDay):
     elif daily_weather_iconDay in range(503, 505):
         bg_name = 'dust'
         unicode_value = hex(0xf1fc + int(daily_weather_iconDay) - 503)
-        unicode_text = chr(int(unicode_value, 16))
     elif daily_weather_iconDay in range(507, 509):
         bg_name = 'dust'
         unicode_value = hex(0xf1fe + int(daily_weather_iconDay) - 507)
-        unicode_text = chr(int(unicode_value, 16))
     else:
         bg_name = 'sunny'
-        unicode_text = '\uf1ca'
+        unicode_value = hex(0xf1ca)
+    unicode_text = chr(int(unicode_value, 16))
     return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
 
 # 生成图片
@@ -379,54 +359,53 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
 
     # 绘制竖线
     # 定义线段的起始坐标和终止坐标
-    x0, y0 = day_x + today_day_width + 25, day_y+118
+    x0, y0 = day_x + today_day_width + 25, day_y + 118
     x1, y1 = x0, y0 + 210
 
     # 绘制白色线段，宽度为4
-    draw.line((x0, y0, x1, y1), fill=line_color, width=4)
+    draw.line((x0, y0, x1, y1), fill=line_color, width = 4)
 
     # 绘制星期
-    draw.text((day_x + today_day_width + 80, day_y+95), '星', fill=weekday_color, font=week_font_Regular)
-    draw.text((day_x + today_day_width + 80 + 120 + 20, day_y+95), '期', fill=weekday_color, font=week_font_Regular)
-    draw.text((day_x + today_day_width + 80+ 120 + 130 + 20, day_y+95), weekday, fill=weekday_color, font=week_font_Regular)
+    draw.text((day_x + today_day_width + 80, day_y + 95), '星', fill=weekday_color, font=week_font_Regular)
+    draw.text((day_x + today_day_width + 80 + 120 + 20, day_y + 95), '期', fill=weekday_color, font=week_font_Regular)
+    draw.text((day_x + today_day_width + 80+ 120 + 130 + 20, day_y + 95), weekday, fill=weekday_color, font=week_font_Regular)
     # 绘制年月
     year_month_width = draw.textlength(today, num_font_Regular)
-    draw.text((day_x + today_day_width + 80, day_y+270), today, fill=today_color, font=num_font_Regular)
-    draw.text((day_x + today_day_width + 80 + year_month_width + 20 , day_y+270), lunar_date, fill=lunar_date_color, font=text_font)
+    draw.text((day_x + today_day_width + 80, day_y + 270), today, fill=today_color, font=num_font_Regular)
+    draw.text((day_x + today_day_width + 80 + year_month_width + 20 , day_y + 270), lunar_date, fill=lunar_date_color, font=text_font)
 
     # 绘制鸡汤
     draw.text((day_x + 20, day_y+400), quote_content, fill=quote_content_color, font=quote_font)
 
     # 绘制天气图标
     icon_width = draw.textlength(unicode_text, icon_font)
-    draw.text((width - 105 - icon_width, day_y +100), unicode_text, fill=icon_color, font=icon_font, align='center')
+    draw.text((width - 105 - icon_width, day_y + 100), unicode_text, fill=icon_color, font=icon_font, align='center')
     
     # 绘制城市
     city_width = draw.textlength(city_name, text_font)
-    draw.text((width - 105 - city_width, day_y +195), city_name, fill=city_color, font=text_font)
+    draw.text((width - 105 - city_width, day_y + 195), city_name, fill=city_color, font=text_font)
     # 绘制天气说明
     cond_width = draw.textlength(cond, text_font)
-    draw.text((width - 105 - cond_width + 18, day_y +270), cond, fill=weather_desc_color, font=text_font)
+    draw.text((width - 105 - cond_width + 18, day_y + 270), cond, fill=weather_desc_color, font=text_font)
     # 保存图片
     image1 = Image.alpha_composite(square,image)
     image1.save(f"{plugins_path}/weather.png")
     shutil.copy(f'{plugins_path}/weather.png', f'{plugins_path}/weather.jpg')
+    img_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
     for i in range(3):
         try:
             img_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
-            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 UR L是:{img_url}')
+            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{img_url}')
             break
         except Exception as e:
-            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,用插件封面代替，原因: {e}')
-            img_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
-    # img_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
-    _LOGGER.info(f'{plugins_name}上传到MR服务器的图片URL是:{img_url}')
-    image_path = f'{plugins_name}{plugins_path}/weather.png'
+            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
+    image_path = f'{plugins_path}/weather.png'
     try:
         if not os.path.exists(image_path):
-            image_path = f'{plugins_path}/weather.png'
+            image_path = f'{plugins_path}/logo.jpg'
     except Exception as e:
         _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
+
     wecom_title = '🌎 每天60秒读懂世界'
     wecom_digest, wecom_content, news_url = get_daily_news(img_url)
     author = f'农历{lunar_date} 星期{weekday}'
@@ -503,7 +482,6 @@ def get_qywx_info():
     return '','',''
 
 def getToken(corpid, corpsecret, wecom_api_url):
-    # url = wecom_api_url + "/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + corpsecret
     url = f'{wecom_api_url}/cgi-bin/gettoken?corpid={corpid}&corpsecret={corpsecret}'
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
@@ -527,7 +505,6 @@ def get_media_id(access_token, image_path, wecom_api_url):
     return media_id
 
 def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
-    # url = wecom_api_url + "/cgi-bin/media/upload"
     url = f'{wecom_api_url}/cgi-bin/media/upload'
     # url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
     querystring = {"access_token": access_token, "type": "image"}
@@ -536,10 +513,10 @@ def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
     for i in range(MAX_RETRIES):
         try:
             response = requests.request("POST", url, params=querystring, files=files, timeout=20)
-            # _LOGGER.info(f'{plugins_name}第 {i+1} 次尝试，请求「上传封面接口」成功')
+            # _LOGGER.info(f'{plugins_name}第 {i+1} 次尝试，请求【上传封面接口】成功')
             break
         except requests.RequestException as e:
-            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求「上传封面接口」异常，原因：{e}')
+            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求【上传封面接口】异常，原因：{e}')
             time.sleep(2)
     _LOGGER.info(f'{plugins_name}上传封面返回结果：{response.text}')
     if response.status_code == 200:
@@ -550,7 +527,6 @@ def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
         _LOGGER.error(f'{plugins_name}上传封面失败，状态码：{response.status_code}')
 
 def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url):
-    # url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
     url = f'{wecom_api_url}/cgi-bin/message/send?access_token={access_token}'
     data = {
         "touser": touser,
@@ -577,13 +553,13 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
     for i in range(MAX_RETRIES):
         try:
             r = requests.post(url, json=data, timeout=20)
-            # _LOGGER.info(f'{plugins_name}尝试 {i+1} 次后，请求「推送接口」成功')
+            # _LOGGER.info(f'{plugins_name}尝试 {i+1} 次后，请求【推送接口】成功')
             break
         except requests.RequestException as e:
-            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求「推送接口」异常，原因：{e}')
+            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求【推送接口】异常，原因：{e}')
             time.sleep(2)
     if r is None:
-        _LOGGER.error(f'{plugins_name}请求推送接口失败，将采用 MR 默认通知通道推送')
+        _LOGGER.error(f'{plugins_name}请求【推送接口】失败，将采用 MR 默认通知通道推送')
         result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
         return result
     elif r.json()['errcode'] != 0:
@@ -595,7 +571,6 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
         return r.json()
 
 def push_msg_mr(msg_title, message, pic_url, link_url):
-    # try:
     if message_to_uid:
         for _ in message_to_uid:
             for i in range(3):
@@ -626,9 +601,6 @@ def push_msg_mr(msg_title, message, pic_url, link_url):
             except Exception as e:
                 result =  f'{plugins_name}第 {i+1} 次尝试，消息推送异常，原因: {e}'
         return result
-    # except Exception as e:
-    #     return f'消息推送异常，原因: {e}'
-    #     pass
 
 def main():
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
