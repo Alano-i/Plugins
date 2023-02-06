@@ -82,7 +82,6 @@ def get_daily_news(img_url):
         "Access-Control-Allow-Headers": "x-requested-with, content-type"
     }
     res = session.request("GET", url, headers=headers, timeout=30)
-    # res = requests.get(url, headers=headers, timeout=20)
     if res.status_code == 200:
         data = json.loads(res.text)["data"]
         news_url = data[0]["url"]
@@ -92,10 +91,8 @@ def get_daily_news(img_url):
         news_digest = '\n\n'.join([p.text for p in p_tags])
         news_digest = news_digest.replace('在这里，每天60秒读懂世界！', '')
         news_digest = news_digest.strip()
-        # _LOGGER.error(news_digest)
         if (len(news_digest)>1000):
             news_digest = news_digest[0:1000]
-        # _LOGGER.error(news_digest)
         news_content = re.sub(r"<figcaption>.*?</figcaption>", "", news_content, flags=re.DOTALL)
         news_content = re.sub(r"<a.*?</a>", "", news_content, flags=re.DOTALL)
         news_content = news_content.replace('<figure', '<div style="border-radius: 12px; overflow: hidden; margin-top: -22px;"><figure')
@@ -119,8 +116,6 @@ def get_weather():
     # city = "北京"
     city_url = "https://geoapi.qweather.com/v2/city/lookup?location=" + city + "&key=" + key
     response_city = session.request("GET", city_url, timeout=30)
-    # response_city = requests.get(city_url, timeout=20)
-    # _LOGGER.error(f'response_city:{response_city}')
     city_data = response_city.json()
     # _LOGGER.error(f'city_data:{city_data}')
     if city_data['code'] == '200':
@@ -129,7 +124,6 @@ def get_weather():
         city_id = city_data["id"]
         weather_url = "https://devapi.qweather.com/v7/weather/3d?location=" + city_id + "&key=" + key
         response = session.request("GET", weather_url, timeout=30)
-        # response = requests.get(weather_url, timeout=20)
         weather_data = response.json()
         if weather_data['code'] == '200':
             daily_weather_data = weather_data["daily"][0]
@@ -194,7 +188,6 @@ def get_lunar_date(today_day,today_month,today_year):
 def get_quote():
     quote_url = 'https://v1.hitokoto.cn'
     quote = session.request("GET", quote_url, timeout=30)
-    # quote = requests.get(quote_url, timeout=20)
     response = quote.json()
     quote_content = response['hitokoto']
     line_length = 22
@@ -297,9 +290,8 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     lunar_date = get_lunar_date(today_day,today_month,today_year)
     quote_content = get_quote()
     bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color = process_weather_data(daily_weather_iconDay)
-    
+
     # 加载图片
-    # image_path = f"/Users/alano/Downloads/py测试/icon/{daily_weather_iconDay}.svg"
     bg = Image.open(f"{plugins_path}/bg/{bg_name}.png")
 
     # 创建画布
@@ -448,7 +440,6 @@ def get_qywx_info():
                 return corpid, agentid, corpsecret
     except Exception as e:
         _LOGGER.error(f'{plugins_name}获取「企业微信配置信息」错误，可能 MR 中填写的信息有误或不全: {e}')
-        pass
     return '','',''
 
 def getToken(corpid, corpsecret, wecom_api_url):
@@ -540,37 +531,29 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
         return r.json()
 
 def push_msg_mr(msg_title, message, pic_url, link_url):
-    if message_to_uid:
-        for _ in message_to_uid:
-            for i in range(3):
-                try:
+    result = None
+    for i in range(3):
+        try:
+            if message_to_uid:
+                for _ in message_to_uid:
                     server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
                         'title': msg_title,
                         'a': message,
                         'pic_url': pic_url,
                         'link_url': link_url
                     }, to_uid=_)
-                    result = f'{plugins_name}尝试 {i+1} 次后，已推送消息通知'
-                    break
-                    # return '已推送消息通知'
-                except Exception as e:
-                    result =  f'{plugins_name}第 {i+1} 次尝试，消息推送异常，原因: {e}'
-            return result
-    else:
-        for i in range(3):
-            try:
+            else:
                 server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
                     'title': msg_title,
                     'a': message,
                     'pic_url': pic_url,
                     'link_url': link_url
                 })
-                result = f'{plugins_name}尝试 {i+1} 次后，已推送消息通知'
-                break
-            except Exception as e:
-                result =  f'{plugins_name}第 {i+1} 次尝试，消息推送异常，原因: {e}'
-        return result
-
+            result = f'尝试 {i+1} 次后，已推送消息通知'
+            break
+        except Exception as e:
+            result = f'第 {i+1} 次尝试，消息推送异常，原因: {e}'
+    return result
 def main():
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
     generate_image(push_wx, access_token, agentid, touser, wecom_api_url)
