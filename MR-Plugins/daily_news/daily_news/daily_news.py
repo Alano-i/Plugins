@@ -411,7 +411,15 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     image1 = Image.alpha_composite(square,image)
     image1.save(f"{plugins_path}/weather.png")
     shutil.copy(f'{plugins_path}/weather.png', f'{plugins_path}/weather.jpg')
-    img_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
+    for i in range(3):
+        try:
+            img_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
+            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 UR L是:{img_url}')
+            break
+        except Exception as e:
+            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,用插件封面代替，原因: {e}')
+            img_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
+    # img_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
     _LOGGER.info(f'{plugins_name}上传到MR服务器的图片URL是:{img_url}')
     image_path = f'{plugins_name}{plugins_path}/weather.png'
     try:
@@ -423,9 +431,12 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     wecom_digest, wecom_content, news_url = get_daily_news(img_url)
     author = f'农历{lunar_date} 星期{weekday}'
     content_source_url = news_url
+
+    # 开始推送消息
     if push_wx:
+        pic_url = img_url
         thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
-        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author)
+        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url)
         _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
         pic_url = img_url
@@ -445,14 +456,15 @@ def is_push_to_wx():
             agentid = agentid_extra
             corpsecret = corpsecret_extra
             touser = touser_extra
-            _LOGGER.error(f'{plugins_name}设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+            _LOGGER.info(f'{plugins_name}设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         else:
             _LOGGER.error(f'{plugins_name}设置的独立微信应用参数不完整或错误，注意 touser 不带 @ 符号（除非设置的@all,所有人接收）。将采用默认消息通道推送')
             push_wx = False
             extra_flag = False
     if user_id and not qywx_channel_extra:
         corpid, agentid, corpsecret = get_qywx_info()
-        touser = server.user.get(user_id).qywx_user
+        # 获取设置的接收用户
+        touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid])
         _LOGGER.info(f'{plugins_name}获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         if not agentid or not corpid or not corpsecret or not touser:
             _LOGGER.error(f'{plugins_name}企业微信信息获取失败或填写不完整')
@@ -491,7 +503,8 @@ def get_qywx_info():
     return '','',''
 
 def getToken(corpid, corpsecret, wecom_api_url):
-    url = wecom_api_url + "/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + corpsecret
+    # url = wecom_api_url + "/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + corpsecret
+    url = f'{wecom_api_url}/cgi-bin/gettoken?corpid={corpid}&corpsecret={corpsecret}'
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
@@ -514,7 +527,8 @@ def get_media_id(access_token, image_path, wecom_api_url):
     return media_id
 
 def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
-    url = wecom_api_url + "/cgi-bin/media/upload"
+    # url = wecom_api_url + "/cgi-bin/media/upload"
+    url = f'{wecom_api_url}/cgi-bin/media/upload'
     # url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
     querystring = {"access_token": access_token, "type": "image"}
     files = {"media": ("image.gif", open(image_path, "rb"))}
@@ -535,8 +549,9 @@ def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
     else:
         _LOGGER.error(f'{plugins_name}上传封面失败，状态码：{response.status_code}')
 
-def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author):
-    url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
+def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url):
+    # url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
+    url = f'{wecom_api_url}/cgi-bin/message/send?access_token={access_token}'
     data = {
         "touser": touser,
         "msgtype": "mpnews",
@@ -591,11 +606,11 @@ def push_msg_mr(msg_title, message, pic_url, link_url):
                         'pic_url': pic_url,
                         'link_url': link_url
                     }, to_uid=_)
-                    result = f'尝试 {i+1} 次后，已推送消息通知'
+                    result = f'{plugins_name}尝试 {i+1} 次后，已推送消息通知'
                     break
                     # return '已推送消息通知'
                 except Exception as e:
-                    result =  f'第 {i+1} 次尝试，消息推送异常，原因: {e}'
+                    result =  f'{plugins_name}第 {i+1} 次尝试，消息推送异常，原因: {e}'
             return result
     else:
         for i in range(3):
@@ -606,10 +621,10 @@ def push_msg_mr(msg_title, message, pic_url, link_url):
                     'pic_url': pic_url,
                     'link_url': link_url
                 })
-                result = f'尝试 {i+1} 次后，已推送消息通知'
+                result = f'{plugins_name}尝试 {i+1} 次后，已推送消息通知'
                 break
             except Exception as e:
-                result =  f'第 {i+1} 次尝试，消息推送异常，原因: {e}'
+                result =  f'{plugins_name}第 {i+1} 次尝试，消息推送异常，原因: {e}'
         return result
     # except Exception as e:
     #     return f'消息推送异常，原因: {e}'
