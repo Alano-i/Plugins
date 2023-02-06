@@ -211,7 +211,6 @@ def get_random_color():
     color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)
     return color
 
-# 处理天气数据
 def process_weather_data(daily_weather_iconDay):
     # 定义颜色
     today_day_color = (252, 215, 102)
@@ -229,22 +228,21 @@ def process_weather_data(daily_weather_iconDay):
         unicode_value = hex(0xf1cc)
     elif daily_weather_iconDay in range(101, 105): 
         bg_name = 'cloud'
-        unicode_value = hex(0xf1cc + int(daily_weather_iconDay) - 100)
-    elif daily_weather_iconDay in range(300, 319): 
+        unicode_value = hex(0xf1cc + daily_weather_iconDay - 100)
+    elif daily_weather_iconDay in range(300, 319) or daily_weather_iconDay == 399:
         bg_name = 'rain'
-        unicode_value = hex(0xf1d5 + int(daily_weather_iconDay) - 300)
-    elif daily_weather_iconDay == 399:
-        bg_name = 'rain'
-        unicode_value = hex(0xf1ea)
-    elif daily_weather_iconDay in range(400, 411): 
+        if daily_weather_iconDay == 399:
+            unicode_value = hex(0xf1ea)
+        else:
+            unicode_value = hex(0xf1d5 + daily_weather_iconDay - 300)
+    elif daily_weather_iconDay in range(400, 411) or daily_weather_iconDay == 499:
         bg_name = 'snow'
-        unicode_value = hex(0xf1eb + int(daily_weather_iconDay) - 400)
-    elif daily_weather_iconDay == 499: 
-        bg_name = 'snow'
-        unicode_value = hex(0xf1f8)
-    elif daily_weather_iconDay in range(500, 502): 
+        if daily_weather_iconDay == 499:
+            unicode_value = hex(0xf1f8)
+        else:
+            unicode_value = hex(0xf1eb + daily_weather_iconDay - 400)
+    elif daily_weather_iconDay in [500,501,509,510,514,515]:
         bg_name = 'fog'
-        unicode_value = hex(0xf1f9 + int(daily_weather_iconDay) - 500)
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -254,34 +252,14 @@ def process_weather_data(daily_weather_iconDay):
         icon_color = (72, 63, 61)
         city_color = (72, 63, 61)
         weather_desc_color = (72, 63, 61)
-    elif daily_weather_iconDay in range(509, 511): 
-        bg_name = 'fog'
-        unicode_value = hex(0xf200 + int(daily_weather_iconDay) - 509)
-        today_day_color = (169, 67, 56)
-        line_color = (72, 63, 61, 50)
-        weekday_color = (72, 63, 61)
-        today_color = (72, 63, 61)
-        lunar_date_color = (72, 63, 61)
-        quote_content_color = (72, 63, 61, 150)
-        icon_color = (72, 63, 61)
-        city_color = (72, 63, 61)
-        weather_desc_color = (72, 63, 61)
-    elif daily_weather_iconDay in range(514, 516): 
-        bg_name = 'fog'
-        unicode_value = hex(0xf205 + int(daily_weather_iconDay) - 514)
-        
-        today_day_color = (169, 67, 56)
-        line_color = (72, 63, 61, 50)
-        weekday_color = (72, 63, 61)
-        today_color = (72, 63, 61)
-        lunar_date_color = (72, 63, 61)
-        quote_content_color = (72, 63, 61, 150)
-        icon_color = (72, 63, 61)
-        city_color = (72, 63, 61)
-        weather_desc_color = (72, 63, 61)
-    elif daily_weather_iconDay == 502:
+        if daily_weather_iconDay in [500,501]:
+            unicode_value = hex(0xf1f9 + daily_weather_iconDay - 500)
+        elif daily_weather_iconDay in [509,510]:
+            unicode_value = hex(0xf200 + daily_weather_iconDay - 509)
+        else:
+            unicode_value = hex(0xf205 + daily_weather_iconDay - 514)
+    elif daily_weather_iconDay in [502,511,512,513]:
         bg_name = 'haze'
-        unicode_value = hex(0xf1fb)
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -291,30 +269,22 @@ def process_weather_data(daily_weather_iconDay):
         icon_color = (72, 63, 61)
         city_color = (72, 63, 61)
         weather_desc_color = (72, 63, 61)
-    elif daily_weather_iconDay in range(511, 514):
-        bg_name = 'haze'
-        unicode_value = hex(0xf202 + int(daily_weather_iconDay) - 511)
-        today_day_color = (169, 67, 56)
-        line_color = (72, 63, 61, 50)
-        weekday_color = (72, 63, 61)
-        today_color = (72, 63, 61)
-        lunar_date_color = (72, 63, 61)
-        quote_content_color = (72, 63, 61, 150)
-        icon_color = (72, 63, 61)
-        city_color = (72, 63, 61)
-        weather_desc_color = (72, 63, 61)
-    elif daily_weather_iconDay in range(503, 505):
+        if daily_weather_iconDay == 502:
+            unicode_value = hex(0xf1fb)
+        else:
+            unicode_value = hex(0xf202 + daily_weather_iconDay - 511)
+    elif daily_weather_iconDay in [503,504,507,508]:
         bg_name = 'dust'
-        unicode_value = hex(0xf1fc + int(daily_weather_iconDay) - 503)
-    elif daily_weather_iconDay in range(507, 509):
-        bg_name = 'dust'
-        unicode_value = hex(0xf1fe + int(daily_weather_iconDay) - 507)
+        if daily_weather_iconDay in [503,504]:
+            unicode_value = hex(0xf1fc + daily_weather_iconDay - 503)
+        else:
+            unicode_value = hex(0xf1fe + daily_weather_iconDay - 507)
     else:
         bg_name = 'sunny'
         unicode_value = hex(0xf1ca)
     unicode_text = chr(int(unicode_value, 16))
     return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
-
+    
 # 生成图片
 def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     # 画布大小
@@ -497,7 +467,6 @@ def getToken(corpid, corpsecret, wecom_api_url):
         return True, access_token
     else:
         _LOGGER.error(f'{plugins_name}请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
-        # _LOGGER.error(f'{plugins_name}默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
         return False, ''
 
 def get_media_id(access_token, image_path, wecom_api_url):
