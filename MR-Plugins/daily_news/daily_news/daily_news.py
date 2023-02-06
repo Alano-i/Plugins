@@ -424,7 +424,7 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     author = f'农历{lunar_date} 星期{weekday}'
     content_source_url = news_url
     if push_wx:
-        thumb_media_id = get_media_id(access_token, image_path)
+        thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
         result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author)
         _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
@@ -509,12 +509,13 @@ def getToken(corpid, corpsecret, wecom_api_url):
         # _LOGGER.error(f'{plugins_name}默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
         return False, ''
 
-def get_media_id(access_token, image_path):
-    media_id = upload_image_and_get_media_id(access_token, image_path)
+def get_media_id(access_token, image_path, wecom_api_url):
+    media_id = upload_image_and_get_media_id(access_token, image_path, wecom_api_url)
     return media_id
 
-def upload_image_and_get_media_id(access_token, image_path):
-    url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
+def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
+    url = wecom_api_url + "/cgi-bin/media/upload"
+    # url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
     querystring = {"access_token": access_token, "type": "image"}
     files = {"media": ("image.gif", open(image_path, "rb"))}
     MAX_RETRIES = 3
