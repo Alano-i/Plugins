@@ -11,7 +11,7 @@ import json
 import random
 import re
 import os
-import shutil
+# import shutil
 import requests
 import logging
 import yaml
@@ -73,7 +73,7 @@ def task():
     main()
     _LOGGER.info(f'{plugins_name}每日新闻和天气获取完成并已推送消息')
 
-def get_daily_news(img_url):
+def get_daily_news():
     url = "https://www.zhihu.com/api/v4/columns/c_1261258401923026944/items"
     headers = {
         "Content-Type": "text/html;charset=utf-8",
@@ -118,6 +118,7 @@ def get_weather():
     response_city = session.request("GET", city_url, timeout=30)
     city_data = response_city.json()
     # _LOGGER.error(f'city_data:{city_data}')
+    daily_weather_iconDay = '100'
     if city_data['code'] == '200':
         city_data = city_data["location"][0]
         city_name = city_data["name"]
@@ -134,12 +135,10 @@ def get_weather():
             cond = f'{daily_weather_desc}  {daily_weather_tempMin}°~{daily_weather_tempMax}°'
         else:
             cond = '风雨难测°'
-            daily_weather_iconDay = '100'
             _LOGGER.error(f'{plugins_name}获取天气信息失败')
     else:
         city_name = '你在天涯海角'
         cond = '风雨难测°'
-        daily_weather_iconDay = '100'
         _LOGGER.error(f'{plugins_name}获取城市名失败,请确定 ➊【城市名称】是否设置正确，示例：北京。➋【和风天气】的 key 设置正确')
         _LOGGER.error(f'{plugins_name}【和风天气】的 key 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 key。')
         _LOGGER.error(f'{plugins_name}在项目管理找到新建的项目，KEY 下面有个查看，点开查看，即可查看需要填入到插件的 api key 值')
@@ -190,7 +189,7 @@ def get_quote():
     quote = session.request("GET", quote_url, timeout=30)
     response = quote.json()
     quote_content = response['hitokoto']
-    line_length = 22
+    line_length = 21
     lines = []
     for i in range(0, len(quote_content), line_length):
         lines.append(quote_content[i:i + line_length])
@@ -198,11 +197,6 @@ def get_quote():
         lines[1] = lines[1][:-1] + "..."
     quote_content = '\n'.join(lines[:2])
     return quote_content
-
-# 随机生成背景颜色
-def get_random_color():
-    color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)
-    return color
 
 def process_weather_data(daily_weather_iconDay):
     # 定义颜色
@@ -352,16 +346,11 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     # 保存图片
     image1 = Image.alpha_composite(square,image)
     image1.save(f"{plugins_path}/weather.png")
-    shutil.copy(f'{plugins_path}/weather.png', f'{plugins_path}/weather.jpg')
-    img_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
-    for i in range(3):
-        try:
-            img_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
-            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{img_url}')
-            break
-        except Exception as e:
-            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
-    image_path = f'{plugins_path}/weather.png'
+    image1 = image1.convert("RGB")
+    image1.save(f"{plugins_path}/weather.jpg", quality=97)
+    # shutil.copy(f'{plugins_path}/weather.png', f'{plugins_path}/weather.jpg')
+    # image_path = f'{plugins_path}/weather.png'
+    image_path = f'{plugins_path}/weather.jpg'
     try:
         if not os.path.exists(image_path):
             image_path = f'{plugins_path}/logo.jpg'
@@ -369,19 +358,17 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
         _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
 
     wecom_title = '🌎 每天60秒读懂世界'
-    wecom_digest, wecom_content, news_url = get_daily_news(img_url)
+    wecom_digest, wecom_content, news_url = get_daily_news()
     author = f'农历{lunar_date} 星期{weekday}'
     content_source_url = news_url
 
     # 开始推送消息
     if push_wx:
-        pic_url = img_url
         thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
-        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url)
+        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author)
         _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
-        pic_url = img_url
-        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url)
         _LOGGER.info(f'{plugins_name}自选推送通道推送结果: {result}')
 
 def is_push_to_wx():
@@ -412,11 +399,9 @@ def is_push_to_wx():
             _LOGGER.error(f'{plugins_name}在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
             _LOGGER.error(f'{plugins_name}在用户管理页设置微信账号，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
             _LOGGER.error(f'{plugins_name}本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用默认消息通道推送')
-            # _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
             push_wx = False
     elif not user_id and not qywx_channel_extra:
         _LOGGER.error(f'{plugins_name}未设置推送人，也没有设置独立微信应用参数，将采用默认消息通道推送')
-        # _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
         push_wx = False
     if (push_wx or qywx_channel_extra) and extra_flag:
         if wecom_proxy_url:
@@ -486,7 +471,7 @@ def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
     else:
         _LOGGER.error(f'{plugins_name}上传封面失败，状态码：{response.status_code}')
 
-def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url):
+def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author):
     url = f'{wecom_api_url}/cgi-bin/message/send?access_token={access_token}'
     data = {
         "touser": touser,
@@ -520,17 +505,26 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
             time.sleep(2)
     if r is None:
         _LOGGER.error(f'{plugins_name}请求【推送接口】失败，将采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url)
         return result
     elif r.json()['errcode'] != 0:
         _LOGGER.error(f'{plugins_name}通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url)
         return result
     elif r.json()['errcode'] == 0:
         _LOGGER.info(f'{plugins_name}通过设置的微信参数推送消息成功')
         return r.json()
 
-def push_msg_mr(msg_title, message, pic_url, link_url):
+def push_msg_mr(msg_title, message, link_url):
+    pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
+    for i in range(3):
+        try:
+            pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
+            _LOGGER.info(f'{plugins_name}调用 MR 默认通知通道，上传到 MR 服务器的图片 URL 是:{pic_url}')
+            break
+        except Exception as e:
+            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
+
     result = None
     for i in range(3):
         try:
