@@ -369,7 +369,7 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
         _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
         result = push_msg_mr(wecom_title, wecom_digest, content_source_url)
-        _LOGGER.info(f'{plugins_name}自选推送通道推送结果: {result}')
+        _LOGGER.info(f'{plugins_name}MR 默认推送通道推送结果: {result}')
 
 def is_push_to_wx():
     push_wx = True
@@ -386,7 +386,7 @@ def is_push_to_wx():
             touser = touser_extra
             _LOGGER.info(f'{plugins_name}设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         else:
-            _LOGGER.error(f'{plugins_name}设置的独立微信应用参数不完整或错误，注意 touser 不带 @ 符号（除非设置的@all,所有人接收）。将采用默认消息通道推送')
+            _LOGGER.error(f'{plugins_name}设置的独立微信应用参数不完整或错误，注意 touser 不带 @ 符号（除非设置的@all,所有人接收）。将采用 MR 默认消息通道推送')
             push_wx = False
             extra_flag = False
     if user_id and not qywx_channel_extra:
@@ -398,10 +398,10 @@ def is_push_to_wx():
             _LOGGER.error(f'{plugins_name}企业微信信息获取失败或填写不完整')
             _LOGGER.error(f'{plugins_name}在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
             _LOGGER.error(f'{plugins_name}在用户管理页设置微信账号，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
-            _LOGGER.error(f'{plugins_name}本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用默认消息通道推送')
+            _LOGGER.error(f'{plugins_name}本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用 MR 默认消息通道推送')
             push_wx = False
     elif not user_id and not qywx_channel_extra:
-        _LOGGER.error(f'{plugins_name}未设置推送人，也没有设置独立微信应用参数，将采用默认消息通道推送')
+        _LOGGER.error(f'{plugins_name}未设置推送人，也没有设置独立微信应用参数，将采用 MR 默认消息通道推送')
         push_wx = False
     if (push_wx or qywx_channel_extra) and extra_flag:
         if wecom_proxy_url:
@@ -442,7 +442,7 @@ def getToken(corpid, corpsecret, wecom_api_url):
         access_token = r.json()['access_token']
         return True, access_token
     else:
-        _LOGGER.error(f'{plugins_name}请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
+        _LOGGER.error(f'{plugins_name}请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用 MR 默认消息通道推送！')
         return False, ''
 
 def get_media_id(access_token, image_path, wecom_api_url):
