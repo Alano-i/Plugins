@@ -8,7 +8,7 @@ _LOGGER = logging.getLogger(__name__)
 @plugin.command(name='daily_news', title='每天60秒读懂世界', desc='获取每日新闻和天气并微信通知', icon='LocalPostOffice', run_in_background=True)
 def daily_news_echo(ctx: PluginCommandContext):
     try:
-        _LOGGER.info('「每天60秒读懂世界」获取每日新闻和天气')
+        _LOGGER.info('「每天60秒读懂世界」开始获取每日新闻和天气')
         main()
         _LOGGER.info('「每天60秒读懂世界」获取每日新闻和天气完成,并已推送消息')
         return PluginCommandResponse(True, f'「每天60秒读懂世界」获取每日新闻和天气完成,并已推送消息')
