@@ -74,5 +74,6 @@
   "logoUrl": "/plugins/daily_news/logo.jpg",
   "githubUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/daily_news",
   "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/daily_news",
+  "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
   "dependencies": null
 }
