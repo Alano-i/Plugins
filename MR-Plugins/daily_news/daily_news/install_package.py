@@ -17,21 +17,21 @@ sourceurl = "pypi.douban.com"
 def GetPackage(PackageName):
     comand = f"pip install {PackageName} -i {sourcestr} --trusted-host {sourceurl}"
     # 正在安装
-    _LOGGER.info(f"「安装依赖脚本」正在安装依赖 + {str(PackageName)}")
+    _LOGGER.info(f"「每天60秒读懂世界 - 安装依赖脚本」正在安装依赖 + {str(PackageName)}")
     _LOGGER.info(comand)
     try:
         # os.system(comand)
         install_log = os.popen(comand)
-        # _LOGGER.error(f"「安装依赖脚本」安装日志：{install_log}")
-        _LOGGER.info(f'「安装依赖脚本」安装日志如下:\n{install_log.read()}')
-        _LOGGER.error(f'「安装依赖脚本」如果下方报错：依赖库 zhdate 安装失败导致插件载入失败，请手动进入 mr 命令行安装，安装命令：pip install zhdate')
+        # _LOGGER.error(f"「每天60秒读懂世界 - 安装依赖脚本」安装日志：{install_log}")
+        _LOGGER.info(f'「每天60秒读懂世界 - 安装依赖脚本」安装依赖日志如下:\n{install_log.read()}')
+        _LOGGER.warning(f'「每天60秒读懂世界 - 安装依赖脚本」如果下方报错：依赖库 zhdate 安装失败导致插件载入失败，请手动进入 MR 命令行安装，安装命令：pip install zhdate')
         # os.system(f'{comand} | tee /data/plugins/daily_news/install.log')
     except Exception as e:
-        _LOGGER.error(f"「安装依赖脚本」安装依赖库失败！原因：{e}")
+        _LOGGER.error(f"「每天60秒读懂世界 - 安装依赖脚本」安装依赖库失败！原因：{e}")
 for v in import_list:
     try:
         import_module(v)
     except ImportError:
-        _LOGGER.error("「安装依赖脚本」没有找到需要的依赖库:  "+v+" 现在开始安装！")
+        _LOGGER.error("「每天60秒读懂世界 - 安装依赖脚本」没有找到需要的依赖库:  "+v+" 现在开始安装！")
         GetPackage(v)
 ##############################################################
