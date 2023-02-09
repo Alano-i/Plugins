@@ -2,7 +2,7 @@
   "name": "daily_news",
   "title": "每天60秒读懂世界",
   "author": "Alano",
-  "description": "获取每日新闻和天气",
+  "description": "获取每日新闻和天气，封面跟随当天天气情况，实时变化。",
   "version": "0.2",
   "requirements": [],
   "configField": [
@@ -27,6 +27,24 @@
       "label": "和风天气 API KEY",
       "helperText": "在 https://dev.qweather.com 申请 KEY，创建项目后进入控制台新建项目然后添加 KEY",
       "defaultValue": ""
+    },
+    {
+      "fieldName": "news_type",
+      "fieldType": "Enum",
+      "label": "每日新闻类型",
+      "helperText": "",
+      "enumValues": [
+        {
+          "name": "热点新闻",
+          "value": "daily"
+        },
+        {
+          "name": "热点影视快讯",
+          "value": "entertainment"
+        }
+      ],
+      "defaultValue": "1",
+      "multiValue": false
     },
     {
       "fieldName": "wecom_proxy_url",
@@ -72,8 +90,10 @@
     }
   ],
   "logoUrl": "/plugins/daily_news/logo.jpg",
-  "githubUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/daily_news",
+  "githubUrl": "",
   "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/daily_news",
   "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
-  "dependencies": null
+  "dependencies": {
+    "appVersion": ">=1.9.29"
+  }
 }
