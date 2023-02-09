@@ -386,7 +386,14 @@ def is_push_to_wx():
             extra_flag = False
     if user_id and not qywx_channel_extra:
         corpid, agentid, corpsecret = get_qywx_info()
-        touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid])
+        touser = []
+        for uid in message_to_uid:
+            if server.user.get(uid).qywx_user:
+                touser.append(server.user.get(uid).qywx_user)
+            else:
+                _LOGGER.error(f'{plugins_name}用户ID为 {uid} 的用户未绑定微信，将不会给他推送消息')
+        if touser: touser = '|'.join(touser)
+        # touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid])
         # touser = server.user.get(user_id).qywx_user
         _LOGGER.info(f'获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         if not agentid or not corpid or not corpsecret or not touser:
