@@ -3,7 +3,7 @@
   "title": "每天60秒读懂世界",
   "author": "Alano",
   "description": "获取每日新闻和天气，封面跟随当天天气情况，实时变化。",
-  "version": "0.2",
+  "version": "0.3",
   "requirements": [],
   "configField": [
     {
