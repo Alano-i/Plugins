@@ -117,12 +117,12 @@ def get_daily_news():
 
 # 影视快讯
 def get_entertainment_news(pic_url):
-    wecom_title = '🎬 热点影视快讯'
-    news_url = 'https://ent.sina.cn/film'
+    wecom_title = '🔥 热点影视快讯'
     news_urls = [
         "https://ent.sina.cn/film",
         "https://ent.sina.cn/tv"
     ]
+    news_url = news_urls[1]
     news_content = ""
     for url in news_urls:
         # 获取网页源代码
@@ -139,14 +139,14 @@ def get_entertainment_news(pic_url):
         content = '\n\n'.join(f'{i}、{h_tag}' for i, h_tag in enumerate(result[:11]))
         news_content += f'{content}\n\n'
     if news_content:
-        news_content = news_content.replace('0、\n娱乐 \n电视前沿 \n\n', '电视前沿 \n')
-        news_content = news_content.replace('0、\n娱乐 \n电影宝库 \n\n', '电影宝库 \n')
+        news_content = news_content.replace('0、\n娱乐 \n电视前沿 \n\n', '📺 电视前沿\n')
+        news_content = news_content.replace('0、\n娱乐 \n电影宝库 \n\n', '🎬 电影快讯\n')
         wecom_digest = news_content
         news_content = re.sub('\n+','\n',news_content)
         wecom_content = news_content.replace('\n', '<br>')
-        wecom_content = wecom_content.replace('电影宝库', '<big><b>电影宝库</b></big><small>')
-        wecom_content = wecom_content.replace('电视前沿', '</small>电视前沿')
-        wecom_content = wecom_content.replace('电视前沿', '<big><b>电视前沿</b></big><small>')
+        wecom_content = wecom_content.replace('🎬 电影快讯', '<big><big><b>🎬 电影快讯</b></big></big><small>')
+        wecom_content = wecom_content.replace('📺 电视前沿', '</small>📺 电视前沿')
+        wecom_content = wecom_content.replace('📺 电视前沿', '<br><big><big><b>📺 电视前沿</b></big></big><small>')
         wecom_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{pic_url}" alt="封面"></div>{wecom_content}'
         return wecom_title, wecom_digest, wecom_content, news_url
     else:
@@ -181,8 +181,8 @@ def get_weather():
         city_name = '你在天涯海角'
         cond = '风雨难测°'
         _LOGGER.error(f'{plugins_name}获取城市名失败,请确定 ➊【城市名称】是否设置正确，示例：北京。➋【和风天气】的 key 设置正确')
-        _LOGGER.error(f'{plugins_name}【和风天气】的 key 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 key。')
-        _LOGGER.error(f'{plugins_name}在项目管理找到新建的项目，KEY 下面有个查看，点开查看，即可查看需要填入到插件的 api key 值')
+        _LOGGER.error(f'{plugins_name}【和风天气】的 KEY 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 KEY')
+        _LOGGER.error(f'{plugins_name}在项目管理找到新建的项目，KEY 下面有个查看，点开查看，即可查看需要填入到插件的 API KEY 值')
  
     return city_name, cond, daily_weather_iconDay
 
@@ -240,7 +240,8 @@ def get_quote():
     return quote_content
 
 def process_weather_data(daily_weather_iconDay):
-    # 定义颜色
+    daily_weather_iconDay = int(daily_weather_iconDay)
+    # Define colors
     today_day_color = (252, 215, 102)
     line_color = (255, 255, 255, 50)
     weekday_color = (255, 255, 255)
@@ -250,27 +251,8 @@ def process_weather_data(daily_weather_iconDay):
     icon_color = (255, 255, 255)
     city_color = (255, 255, 255)
     weather_desc_color = (255, 255, 255)
-    daily_weather_iconDay = int(daily_weather_iconDay)
-    if daily_weather_iconDay == 100: 
-        bg_name = 'sunny'
-        unicode_value = hex(0xf1cc)
-    elif daily_weather_iconDay in range(101, 105): 
-        bg_name = 'cloud'
-        unicode_value = hex(0xf1cc + daily_weather_iconDay - 100)
-    elif daily_weather_iconDay in range(300, 319) or daily_weather_iconDay == 399:
-        bg_name = 'rain'
-        if daily_weather_iconDay == 399:
-            unicode_value = hex(0xf1ea)
-        else:
-            unicode_value = hex(0xf1d5 + daily_weather_iconDay - 300)
-    elif daily_weather_iconDay in range(400, 411) or daily_weather_iconDay == 499:
-        bg_name = 'snow'
-        if daily_weather_iconDay == 499:
-            unicode_value = hex(0xf1f8)
-        else:
-            unicode_value = hex(0xf1eb + daily_weather_iconDay - 400)
-    elif daily_weather_iconDay in [500,501,509,510,514,515]:
-        bg_name = 'fog'
+    # Set colors for fog, haze, and dust
+    if daily_weather_iconDay in [500,501,509,510,514,515,502,511,512,513]:
         today_day_color = (169, 67, 56)
         line_color = (72, 63, 61, 50)
         weekday_color = (72, 63, 61)
@@ -280,38 +262,139 @@ def process_weather_data(daily_weather_iconDay):
         icon_color = (72, 63, 61)
         city_color = (72, 63, 61)
         weather_desc_color = (72, 63, 61)
-        if daily_weather_iconDay in [500,501]:
-            unicode_value = hex(0xf1f9 + daily_weather_iconDay - 500)
-        elif daily_weather_iconDay in [509,510]:
-            unicode_value = hex(0xf200 + daily_weather_iconDay - 509)
-        else:
-            unicode_value = hex(0xf205 + daily_weather_iconDay - 514)
-    elif daily_weather_iconDay in [502,511,512,513]:
-        bg_name = 'haze'
-        today_day_color = (169, 67, 56)
-        line_color = (72, 63, 61, 50)
-        weekday_color = (72, 63, 61)
-        today_color = (72, 63, 61)
-        lunar_date_color = (72, 63, 61)
-        quote_content_color = (72, 63, 61, 150)
-        icon_color = (72, 63, 61)
-        city_color = (72, 63, 61)
-        weather_desc_color = (72, 63, 61)
-        if daily_weather_iconDay == 502:
-            unicode_value = hex(0xf1fb)
-        else:
-            unicode_value = hex(0xf202 + daily_weather_iconDay - 511)
-    elif daily_weather_iconDay in [503,504,507,508]:
-        bg_name = 'dust'
-        if daily_weather_iconDay in [503,504]:
-            unicode_value = hex(0xf1fc + daily_weather_iconDay - 503)
-        else:
-            unicode_value = hex(0xf1fe + daily_weather_iconDay - 507)
-    else:
-        bg_name = 'sunny'
-        unicode_value = hex(0xf1ca)
+    # Define unicode values and background names
+    default_weather_values = (hex(0xf1ca), 'sunny')
+    weather_data = {
+        99999:  default_weather_values,
+        100:  (hex(0xf1cc), 'sunny'),
+        101:  (hex(0xf1cd), 'cloud'),
+        102:  (hex(0xf1ce), 'cloud'),
+        103:  (hex(0xf1cf), 'cloud'),
+        104:  (hex(0xf1d0), 'cloud'),
+        300:  (hex(0xf1d5), 'rain'),
+        301:  (hex(0xf1d6), 'rain'),
+        302:  (hex(0xf1d7), 'rain'),
+        303:  (hex(0xf1d8), 'rain'),
+        304:  (hex(0xf1d9), 'rain'),
+        305:  (hex(0xf1da), 'rain'),
+        306:  (hex(0xf1db), 'rain'),
+        307:  (hex(0xf1dc), 'rain'),
+        308:  (hex(0xf1dd), 'rain'),
+        309:  (hex(0xf1de), 'rain'),
+        310:  (hex(0xf1df), 'rain'),
+        311:  (hex(0xf1e0), 'rain'),
+        312:  (hex(0xf1e1), 'rain'),
+        313:  (hex(0xf1e2), 'rain'),
+        314:  (hex(0xf1e3), 'rain'),
+        315:  (hex(0xf1e4), 'rain'),
+        316:  (hex(0xf1e5), 'rain'),
+        317:  (hex(0xf1e6), 'rain'),
+        318:  (hex(0xf1e7), 'rain'),
+        399:  (hex(0xf1ea), 'rain'),
+        400:  (hex(0xf1eb), 'snow'),
+        401:  (hex(0xf1ec), 'snow'),
+        402:  (hex(0xf1ed), 'snow'),
+        403:  (hex(0xf1ee), 'snow'),
+        404:  (hex(0xf1ef), 'snow'),
+        405:  (hex(0xf1f0), 'snow'),
+        406:  (hex(0xf1f1), 'snow'),
+        407:  (hex(0xf1f2), 'snow'),
+        408:  (hex(0xf1f3), 'snow'),
+        409:  (hex(0xf1f4), 'snow'),
+        410:  (hex(0xf1f5), 'snow'),
+        499:  (hex(0xf1f8), 'snow'),
+        500:  (hex(0xf1f9), 'fog'),
+        501:  (hex(0xf1fa), 'fog'),
+        502:  (hex(0xf1fb), 'haze'),
+        503:  (hex(0xf1fc), 'dust'),
+        504:  (hex(0xf1fd), 'dust'),
+        507:  (hex(0xf1fe), 'dust'),
+        508:  (hex(0xf1ff), 'dust'),
+        509:  (hex(0xf200), 'haze'),
+        510:  (hex(0xf201), 'haze'),
+        511:  (hex(0xf202), 'haze'),
+        512:  (hex(0xf203), 'haze'),
+        513:  (hex(0xf204), 'haze'),
+        514:  (hex(0xf205), 'fog'),
+        515:  (hex(0xf206), 'fog')
+    }
+    bg_name = weather_data.get(daily_weather_iconDay, default_weather_values)[1]
+    unicode_value = weather_data.get(daily_weather_iconDay, default_weather_values)[0]
+    # bg_name, unicode_value = weather_data.get(daily_weather_iconDay, default_weather_values)
     unicode_text = chr(int(unicode_value, 16))
     return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
+    # # 定义颜色
+    # today_day_color = (252, 215, 102)
+    # line_color = (255, 255, 255, 50)
+    # weekday_color = (255, 255, 255)
+    # today_color = (255, 255, 255)
+    # lunar_date_color = (255, 255, 255)
+    # quote_content_color = (255, 255, 255, 150)
+    # icon_color = (255, 255, 255)
+    # city_color = (255, 255, 255)
+    # weather_desc_color = (255, 255, 255)
+    # daily_weather_iconDay = int(daily_weather_iconDay)
+    # if daily_weather_iconDay == 100: 
+    #     bg_name = 'sunny'
+    #     unicode_value = hex(0xf1cc)
+    # elif daily_weather_iconDay in range(101, 105): 
+    #     bg_name = 'cloud'
+    #     unicode_value = hex(0xf1cc + daily_weather_iconDay - 100)
+    # elif daily_weather_iconDay in range(300, 319) or daily_weather_iconDay == 399:
+    #     bg_name = 'rain'
+    #     if daily_weather_iconDay == 399:
+    #         unicode_value = hex(0xf1ea)
+    #     else:
+    #         unicode_value = hex(0xf1d5 + daily_weather_iconDay - 300)
+    # elif daily_weather_iconDay in range(400, 411) or daily_weather_iconDay == 499:
+    #     bg_name = 'snow'
+    #     if daily_weather_iconDay == 499:
+    #         unicode_value = hex(0xf1f8)
+    #     else:
+    #         unicode_value = hex(0xf1eb + daily_weather_iconDay - 400)
+    # elif daily_weather_iconDay in [500,501,509,510,514,515]:
+    #     bg_name = 'fog'
+    #     today_day_color = (169, 67, 56)
+    #     line_color = (72, 63, 61, 50)
+    #     weekday_color = (72, 63, 61)
+    #     today_color = (72, 63, 61)
+    #     lunar_date_color = (72, 63, 61)
+    #     quote_content_color = (72, 63, 61, 150)
+    #     icon_color = (72, 63, 61)
+    #     city_color = (72, 63, 61)
+    #     weather_desc_color = (72, 63, 61)
+    #     if daily_weather_iconDay in [500,501]:
+    #         unicode_value = hex(0xf1f9 + daily_weather_iconDay - 500)
+    #     elif daily_weather_iconDay in [509,510]:
+    #         unicode_value = hex(0xf200 + daily_weather_iconDay - 509)
+    #     else:
+    #         unicode_value = hex(0xf205 + daily_weather_iconDay - 514)
+    # elif daily_weather_iconDay in [502,511,512,513]:
+    #     bg_name = 'haze'
+    #     today_day_color = (169, 67, 56)
+    #     line_color = (72, 63, 61, 50)
+    #     weekday_color = (72, 63, 61)
+    #     today_color = (72, 63, 61)
+    #     lunar_date_color = (72, 63, 61)
+    #     quote_content_color = (72, 63, 61, 150)
+    #     icon_color = (72, 63, 61)
+    #     city_color = (72, 63, 61)
+    #     weather_desc_color = (72, 63, 61)
+    #     if daily_weather_iconDay == 502:
+    #         unicode_value = hex(0xf1fb)
+    #     else:
+    #         unicode_value = hex(0xf202 + daily_weather_iconDay - 511)
+    # elif daily_weather_iconDay in [503,504,507,508]:
+    #     bg_name = 'dust'
+    #     if daily_weather_iconDay in [503,504]:
+    #         unicode_value = hex(0xf1fc + daily_weather_iconDay - 503)
+    #     else:
+    #         unicode_value = hex(0xf1fe + daily_weather_iconDay - 507)
+    # else:
+    #     bg_name = 'sunny'
+    #     unicode_value = hex(0xf1ca)
+    # unicode_text = chr(int(unicode_value, 16))
+    # return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
 
 # 生成图片
 def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
@@ -399,18 +482,11 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
         _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
 
     # 开始推送消息
-    pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
-    for i in range(3):
-        try:
-            pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
-            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{pic_url}')
-            break
-        except Exception as e:
-            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
-
+    pic_url = ''
     if news_type == 'daily':
         wecom_title, wecom_digest, wecom_content, news_url = get_daily_news()
     else:
+        pic_url = upload_image_to_mr()
         wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
     
     author = f'农历{lunar_date} 星期{weekday}'
@@ -510,6 +586,17 @@ def get_media_id(access_token, image_path, wecom_api_url):
     media_id = upload_image_and_get_media_id(access_token, image_path, wecom_api_url)
     return media_id
 
+def upload_image_to_mr():
+    pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
+    for i in range(3):
+        try:
+            pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
+            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{pic_url}')
+            break
+        except Exception as e:
+            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
+    return pic_url
+
 def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
     url = f'{wecom_api_url}/cgi-bin/media/upload'
     # url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
@@ -577,15 +664,7 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
         return r.json()
 
 def push_msg_mr(msg_title, message, link_url,pic_url):
-    # pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
-    # for i in range(3):
-    #     try:
-    #         pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
-    #         _LOGGER.info(f'{plugins_name}调用 MR 默认通知通道，上传到 MR 服务器的图片 URL 是:{pic_url}')
-    #         break
-    #     except Exception as e:
-    #         _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
-
+    if not pic_url: pic_url = upload_image_to_mr()
     result = None
     for i in range(3):
         try:
