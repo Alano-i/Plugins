@@ -75,6 +75,7 @@ def task():
     main()
     _LOGGER.info(f'{plugins_name}每日新闻和天气获取完成并已推送消息')
 
+# 热点新闻
 def get_daily_news():
     wecom_title = '🌎 每天60秒读懂世界'
     url = "https://www.zhihu.com/api/v4/columns/c_1261258401923026944/items"
@@ -113,6 +114,43 @@ def get_daily_news():
         news_digest = '热点新闻'
         _LOGGER.error('热点新闻获取失败') 
     return wecom_title, news_digest, news_content, news_url
+
+# 影视快讯
+def get_entertainment_news(pic_url):
+    wecom_title = '🎬 热点影视快讯'
+    news_url = 'https://ent.sina.cn/film'
+    news_urls = [
+        "https://ent.sina.cn/film",
+        "https://ent.sina.cn/tv"
+    ]
+    news_content = ""
+    for url in news_urls:
+        # 获取网页源代码
+        res = session.request("GET", url, timeout=30)
+        res.encoding = "utf-8"
+        html = res.text
+        # 使用BeautifulSoup解析网页源代码
+        soup = BeautifulSoup(html, 'html.parser')
+        h_tags = soup.find_all(["h2", "h3"])
+        result = []
+        for h_tag in h_tags:
+            if h_tag.text not in result:
+                result.append(h_tag.text)
+        content = '\n\n'.join(f'{i}、{h_tag}' for i, h_tag in enumerate(result[:11]))
+        news_content += f'{content}\n\n'
+    if news_content:
+        news_content = news_content.replace('0、\n娱乐 \n电视前沿 \n\n', '电视前沿 \n')
+        news_content = news_content.replace('0、\n娱乐 \n电影宝库 \n\n', '电影宝库 \n')
+        wecom_digest = news_content
+        news_content = re.sub('\n+','\n',news_content)
+        wecom_content = news_content.replace('\n', '<br>')
+        wecom_content = wecom_content.replace('电影宝库', '<big><b>电影宝库</b></big><small>')
+        wecom_content = wecom_content.replace('电视前沿', '</small>电视前沿')
+        wecom_content = wecom_content.replace('电视前沿', '<big><b>电视前沿</b></big><small>')
+        wecom_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{pic_url}" alt="封面"></div>{wecom_content}'
+        return wecom_title, wecom_digest, wecom_content, news_url
+    else:
+        return wecom_title, '影视快讯' , '影视快讯'
 
 # 请求天气数据
 def get_weather():
@@ -275,43 +313,6 @@ def process_weather_data(daily_weather_iconDay):
     unicode_text = chr(int(unicode_value, 16))
     return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
 
-# 影视快讯
-def get_entertainment_news(pic_url):
-    wecom_title = '🎬 热点影视快讯'
-    news_url = 'https://ent.sina.cn/film'
-    news_urls = [
-        "https://ent.sina.cn/film",
-        "https://ent.sina.cn/tv"
-    ]
-    news_content = ""
-    for url in news_urls:
-        # 获取网页源代码
-        res = session.request("GET", url, timeout=30)
-        res.encoding = "utf-8"
-        html = res.text
-        # 使用BeautifulSoup解析网页源代码
-        soup = BeautifulSoup(html, 'html.parser')
-        h_tags = soup.find_all(["h2", "h3"])
-        result = []
-        for h_tag in h_tags:
-            if h_tag.text not in result:
-                result.append(h_tag.text)
-        content = '\n\n'.join(f'{i}、{h_tag}' for i, h_tag in enumerate(result[:11]))
-        news_content += f'{content}\n\n'
-    if news_content:
-        news_content = news_content.replace('0、\n娱乐 \n电视前沿 \n\n', '电视前沿 \n')
-        news_content = news_content.replace('0、\n娱乐 \n电影宝库 \n\n', '电影宝库 \n')
-        wecom_digest = news_content
-        news_content = re.sub('\n+','\n',news_content)
-        wecom_content = news_content.replace('\n', '<br>')
-        wecom_content = wecom_content.replace('电影宝库', '<big><b>电影宝库</b></big><small>')
-        wecom_content = wecom_content.replace('电视前沿', '</small>电视前沿')
-        wecom_content = wecom_content.replace('电视前沿', '<big><b>电视前沿</b></big><small>')
-        wecom_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{pic_url}" alt="封面"></div>{wecom_content}'
-        return wecom_title, wecom_digest, wecom_content, news_url
-    else:
-        return wecom_title, '影视快讯' , '影视快讯'
-
 # 生成图片
 def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     # 画布大小
@@ -444,7 +445,15 @@ def is_push_to_wx():
     if user_id and not qywx_channel_extra:
         corpid, agentid, corpsecret = get_qywx_info()
         # 获取设置的接收用户
-        touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid])
+        # touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid])
+        # touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid if server.user.get(uid) is not None])
+        touser = []
+        for uid in message_to_uid:
+            if server.user.get(uid).qywx_user:
+                touser.append(server.user.get(uid).qywx_user)
+            else:
+                _LOGGER.error(f'{plugins_name}用户ID为 {uid} 的用户未绑定微信，将不会给他推送消息')
+        if touser: touser = '|'.join(touser)
         _LOGGER.info(f'{plugins_name}获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         if not agentid or not corpid or not corpsecret or not touser:
             _LOGGER.error(f'{plugins_name}企业微信信息获取失败或填写不完整')
