@@ -31,7 +31,7 @@ session.mount('https://', adapter)
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra,city,key
+    global user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra,city,key,news_type
     message_to_uid = config.get('uid')
     qywx_channel_extra = config.get('qywx_channel_extra')
     corpid_extra = config.get('corpid_extra')
@@ -40,6 +40,7 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     touser_extra = config.get('touser_extra')
     city = config.get('city')
     key = config.get('key')
+    news_type = config.get('news_type')
     wecom_proxy_url = config.get('wecom_proxy_url')
     if message_to_uid:
         user_id = message_to_uid[0]
@@ -49,7 +50,7 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra,city,key
+    global user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra,city,key,news_type
     _LOGGER.info(f'{plugins_name}配置发生变更，加载新设置！')
     message_to_uid = config.get('uid')
     qywx_channel_extra = config.get('qywx_channel_extra')
@@ -59,6 +60,7 @@ def config_changed(config: Dict[str, Any]):
     touser_extra = config.get('touser_extra')
     city = config.get('city')
     key = config.get('key')
+    news_type = config.get('news_type')
     wecom_proxy_url = config.get('wecom_proxy_url')
     if message_to_uid:
         user_id = message_to_uid[0]
@@ -74,6 +76,7 @@ def task():
     _LOGGER.info(f'{plugins_name}每日新闻和天气获取完成并已推送消息')
 
 def get_daily_news():
+    wecom_title = '🌎 每天60秒读懂世界'
     url = "https://www.zhihu.com/api/v4/columns/c_1261258401923026944/items"
     headers = {
         "Content-Type": "text/html;charset=utf-8",
@@ -109,7 +112,7 @@ def get_daily_news():
         news_content = '热点新闻'
         news_digest = '热点新闻'
         _LOGGER.error('热点新闻获取失败') 
-    return news_digest, news_content, news_url
+    return wecom_title, news_digest, news_content, news_url
 
 # 请求天气数据
 def get_weather():
@@ -271,7 +274,44 @@ def process_weather_data(daily_weather_iconDay):
         unicode_value = hex(0xf1ca)
     unicode_text = chr(int(unicode_value, 16))
     return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
-    
+
+# 影视快讯
+def get_entertainment_news(pic_url):
+    wecom_title = '🎬 热点影视快讯'
+    news_url = 'https://ent.sina.cn/film'
+    news_urls = [
+        "https://ent.sina.cn/film",
+        "https://ent.sina.cn/tv"
+    ]
+    news_content = ""
+    for url in news_urls:
+        # 获取网页源代码
+        res = session.request("GET", url, timeout=30)
+        res.encoding = "utf-8"
+        html = res.text
+        # 使用BeautifulSoup解析网页源代码
+        soup = BeautifulSoup(html, 'html.parser')
+        h_tags = soup.find_all(["h2", "h3"])
+        result = []
+        for h_tag in h_tags:
+            if h_tag.text not in result:
+                result.append(h_tag.text)
+        content = '\n\n'.join(f'{i}、{h_tag}' for i, h_tag in enumerate(result[:11]))
+        news_content += f'{content}\n\n'
+    if news_content:
+        news_content = news_content.replace('0、\n娱乐 \n电视前沿 \n\n', '电视前沿 \n')
+        news_content = news_content.replace('0、\n娱乐 \n电影宝库 \n\n', '电影宝库 \n')
+        wecom_digest = news_content
+        news_content = re.sub('\n+','\n',news_content)
+        wecom_content = news_content.replace('\n', '<br>')
+        wecom_content = wecom_content.replace('电影宝库', '<big><b>电影宝库</b></big><small>')
+        wecom_content = wecom_content.replace('电视前沿', '</small>电视前沿')
+        wecom_content = wecom_content.replace('电视前沿', '<big><b>电视前沿</b></big><small>')
+        wecom_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{pic_url}" alt="封面"></div>{wecom_content}'
+        return wecom_title, wecom_digest, wecom_content, news_url
+    else:
+        return wecom_title, '影视快讯' , '影视快讯'
+
 # 生成图片
 def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     # 画布大小
@@ -357,18 +397,30 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     except Exception as e:
         _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
 
-    wecom_title = '🌎 每天60秒读懂世界'
-    wecom_digest, wecom_content, news_url = get_daily_news()
+    # 开始推送消息
+    pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
+    for i in range(3):
+        try:
+            pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
+            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{pic_url}')
+            break
+        except Exception as e:
+            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
+
+    if news_type == 'daily':
+        wecom_title, wecom_digest, wecom_content, news_url = get_daily_news()
+    else:
+        wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
+    
     author = f'农历{lunar_date} 星期{weekday}'
     content_source_url = news_url
 
-    # 开始推送消息
     if push_wx:
         thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
-        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author)
+        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author,pic_url)
         _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url)
         _LOGGER.info(f'{plugins_name}MR 默认推送通道推送结果: {result}')
 
 def is_push_to_wx():
@@ -471,7 +523,7 @@ def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
     else:
         _LOGGER.error(f'{plugins_name}上传封面失败，状态码：{response.status_code}')
 
-def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author):
+def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url):
     url = f'{wecom_api_url}/cgi-bin/message/send?access_token={access_token}'
     data = {
         "touser": touser,
@@ -505,25 +557,25 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
             time.sleep(2)
     if r is None:
         _LOGGER.error(f'{plugins_name}请求【推送接口】失败，将采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url)
         return result
     elif r.json()['errcode'] != 0:
         _LOGGER.error(f'{plugins_name}通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url)
         return result
     elif r.json()['errcode'] == 0:
         _LOGGER.info(f'{plugins_name}通过设置的微信参数推送消息成功')
         return r.json()
 
-def push_msg_mr(msg_title, message, link_url):
-    pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
-    for i in range(3):
-        try:
-            pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
-            _LOGGER.info(f'{plugins_name}调用 MR 默认通知通道，上传到 MR 服务器的图片 URL 是:{pic_url}')
-            break
-        except Exception as e:
-            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
+def push_msg_mr(msg_title, message, link_url,pic_url):
+    # pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
+    # for i in range(3):
+    #     try:
+    #         pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
+    #         _LOGGER.info(f'{plugins_name}调用 MR 默认通知通道，上传到 MR 服务器的图片 URL 是:{pic_url}')
+    #         break
+    #     except Exception as e:
+    #         _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
 
     result = None
     for i in range(3):
