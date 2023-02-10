@@ -16,6 +16,16 @@ MR插件，定时获取每日新闻和天气并微信通知
 - 如采用默认消息通道推送。
 - 重启后如果日志报错：依赖库 `zhdate` 安装失败而导致插件载入失败，请手动进入 MR 命令行安装，安装命令：`pip install zhdate`
 
+## 关于如何设置独立微信应用通知（和 MR 通知分开）
+<img width="796" alt="image" src="https://user-images.githubusercontent.com/68833595/218129187-ccb09a99-e72e-4b4e-9c18-a754e329c5e3.png">
+
+- 填好下图红框中的三项即可，接收人到插件设置页选择
+<img width="823" alt="image" src="https://user-images.githubusercontent.com/68833595/218130974-585c3d6c-3eed-4504-8bb1-9290dd0f1032.png">
+
+- 插件设置页选择刚刚新添加的额外微信应用通道
+<img width="1289" alt="image" src="https://user-images.githubusercontent.com/68833595/218128832-d5c7cb7b-5cef-4da4-af12-8394d31cfb64.png">
+
+
 
 ## 为获得更好的效果体验，需要配置企业微信参数，配在MR系统里，下面是配置方法
 - 在设置-设置企业微信页设置：`agentid` `corpid` `corpsecret`
