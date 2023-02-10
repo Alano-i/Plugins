@@ -12,9 +12,9 @@ def daily_news_echo(ctx: PluginCommandContext):
         _LOGGER.info('「每天60秒读懂世界」手动运行，开始获取每日新闻和天气')
         server.common.set_cache('is_get_news', 'daily_news', False)
         server.common.set_cache('is_get_news', 'entertainment', False)
+        server.common.set_cache('is_get_news', 'hour', 8)
         # server.common.set_cache('is_get_news', 'entertainment', True)
         # server.common.set_cache('is_get_news', 'hour', '')
-        server.common.set_cache('is_get_news', 'hour', 8)
         if main():
             _LOGGER.info('「每天60秒读懂世界」手动运行，获取每日新闻和天气完成,并已推送消息')
         return PluginCommandResponse(True, f'「每天60秒读懂世界」手动运行，执行完成')
