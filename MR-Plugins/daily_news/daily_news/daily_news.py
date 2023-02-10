@@ -68,12 +68,12 @@ def config_changed(config: Dict[str, Any]):
          _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
          user_id = ''
 
-@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 9 * * *')
+@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 1-23 * * *')
 def task():
-    # time.sleep(random.randint(1, 600))
+    time.sleep(random.randint(1, 600))
     _LOGGER.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
-    main()
-    _LOGGER.info(f'{plugins_name}每日新闻和天气获取完成并已推送消息')
+    if main():
+        _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成并已推送消息')
 
 # 热点新闻
 def get_daily_news():
@@ -88,32 +88,54 @@ def get_daily_news():
     res = session.request("GET", url, headers=headers, timeout=30)
     if res.status_code == 200:
         data = json.loads(res.text)["data"]
-        news_url = data[0]["url"]
-        news_content = data[0]["content"]
-        soup = BeautifulSoup(news_content, 'html.parser')
-        p_tags = soup.find_all('p')[2:]
-        news_digest = '\n\n'.join([p.text for p in p_tags])
-        news_digest = news_digest.replace('在这里，每天60秒读懂世界！', '')
-        news_digest = news_digest.strip()
-        if (len(news_digest)>1000):
-            news_digest = news_digest[0:1000]
-        news_content = re.sub(r"<figcaption>.*?</figcaption>", "", news_content, flags=re.DOTALL)
-        news_content = re.sub(r"<a.*?</a>", "", news_content, flags=re.DOTALL)
-        news_content = news_content.replace('<figure', '<div style="border-radius: 12px; overflow: hidden; margin-top: -22px;"><figure')
-        news_content = news_content.replace('<img', '<img style="border-radius: 12px; transform: translateY(22px);"')
-        news_content = news_content.replace('</figure>', '</figure></div>')
-        news_content = news_content.replace('<p', '<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px"')
-        news_content = news_content.replace('在这里，每天60秒读懂世界！', '')
-        news_content = news_content.replace('<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px"></p>', '')
-        # news_content = re.sub(r'<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px" data-pid="(.*?)"></p>', '', news_content, flags=re.DOTALL)
-        news_content = re.sub(r"<p(.*?)></p>", "", news_content, flags=re.DOTALL)
-        news_content = news_content.strip()
-        # news_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{img_url}" alt="封面"></div>{news_content}'
+        # 最新文章更新日期
+        updated = data[0]['updated']
+        # 将时间戳转换为日期
+        date = datetime.fromtimestamp(updated)
+        # 格式化日期，只保留年月日
+        updated_date = date.strftime("%Y-%m-%d")
+        # 获取今天的日期
+        today = datetime.today().strftime("%Y-%m-%d")
+        # _LOGGER.error(f"运行前获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
+        if updated_date < today:
+            _LOGGER.error(f'{plugins_name}今天的每日新闻还未更新，一小时后会再重试！')
+            server.common.set_cache('is_get_news', 'daily_news', False)
+            exit_falg = True
+            return '', '', '', '', exit_falg
+        elif server.common.get_cache('is_get_news', 'daily_news'):
+            _LOGGER.error(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，停止运行！')
+            exit_falg = True
+            return '', '', '', '', exit_falg
+        else:
+            news_url = data[0]["url"]
+            news_content = data[0]["content"]
+            soup = BeautifulSoup(news_content, 'html.parser')
+            p_tags = soup.find_all('p')[2:]
+            news_digest = '\n\n'.join([p.text for p in p_tags])
+            news_digest = news_digest.replace('在这里，每天60秒读懂世界！', '')
+            news_digest = news_digest.strip()
+            if (len(news_digest)>1000):
+                news_digest = news_digest[0:1000]
+            news_content = re.sub(r"<figcaption>.*?</figcaption>", "", news_content, flags=re.DOTALL)
+            news_content = re.sub(r"<a.*?</a>", "", news_content, flags=re.DOTALL)
+            news_content = news_content.replace('<figure', '<div style="border-radius: 12px; overflow: hidden; margin-top: -22px;"><figure')
+            news_content = news_content.replace('<img', '<img style="border-radius: 12px; transform: translateY(22px);"')
+            news_content = news_content.replace('</figure>', '</figure></div>')
+            news_content = news_content.replace('<p', '<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px"')
+            news_content = news_content.replace('在这里，每天60秒读懂世界！', '')
+            news_content = news_content.replace('<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px"></p>', '')
+            # news_content = re.sub(r'<p style="line-height: 175%; font-size:15px; margin: 10px 0px 10px 0px" data-pid="(.*?)"></p>', '', news_content, flags=re.DOTALL)
+            news_content = re.sub(r"<p(.*?)></p>", "", news_content, flags=re.DOTALL)
+            news_content = news_content.strip()
+            server.common.set_cache('is_get_news', 'daily_news',True)
+            # news_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{img_url}" alt="封面"></div>{news_content}'
     else:
         news_content = '热点新闻'
         news_digest = '热点新闻'
-        _LOGGER.error('热点新闻获取失败') 
-    return wecom_title, news_digest, news_content, news_url
+        _LOGGER.error('热点新闻获取失败')
+    # _LOGGER.error(f"运行后获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
+        
+    return wecom_title, news_digest, news_content, news_url, exit_falg
 
 # 影视快讯
 def get_entertainment_news(pic_url):
@@ -398,6 +420,9 @@ def process_weather_data(daily_weather_iconDay):
 
 # 生成图片
 def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
+    exit_falg = False
+    if news_type == 'daily': wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
+    if exit_falg: return False
     # 画布大小
     width = 1500
     height = 640
@@ -483,15 +508,12 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
 
     # 开始推送消息
     pic_url = ''
-    if news_type == 'daily':
-        wecom_title, wecom_digest, wecom_content, news_url = get_daily_news()
-    else:
+    if news_type == 'entertainment':
         pic_url = upload_image_to_mr()
         wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
-    
+
     author = f'农历{lunar_date} 星期{weekday}'
     content_source_url = news_url
-
     if push_wx:
         thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
         result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author,pic_url)
@@ -499,6 +521,7 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     else:
         result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url)
         _LOGGER.info(f'{plugins_name}MR 默认推送通道推送结果: {result}')
+    return True
 
 def is_push_to_wx():
     push_wx = True
@@ -690,4 +713,4 @@ def push_msg_mr(msg_title, message, link_url,pic_url):
     return result
 def main():
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
-    generate_image(push_wx, access_token, agentid, touser, wecom_api_url)
+    return generate_image(push_wx, access_token, agentid, touser, wecom_api_url)
