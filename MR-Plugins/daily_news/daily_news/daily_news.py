@@ -422,6 +422,7 @@ def process_weather_data(daily_weather_iconDay):
 def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
     exit_falg = False
     if news_type == 'daily': wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
+    if news_type == 'entertainment' and datetime.now().time().hour < 8: exit_falg = True
     if exit_falg: return False
     # 画布大小
     width = 1500
@@ -508,7 +509,7 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
 
     # 开始推送消息
     pic_url = ''
-    if news_type == 'entertainment':
+    if news_type == 'entertainment' and datetime.now().time().hour > 7:
         pic_url = upload_image_to_mr()
         wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
 
