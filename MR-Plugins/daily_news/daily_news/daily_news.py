@@ -510,10 +510,10 @@ def push_msg(push_wx, access_token, touser, agentid, wecom_title, wecom_digest, 
     content_source_url = news_url
     if push_wx:
         thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
-        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url)
+        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url,image_path)
         _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url, pic_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url, pic_url,image_path)
         _LOGGER.info(f'{plugins_name}MR 默认推送通道推送结果: {result}')
 
 def is_push_to_wx():
@@ -635,7 +635,7 @@ def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
     else:
         _LOGGER.error(f'{plugins_name}上传封面失败，状态码：{response.status_code}')
 
-def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url):
+def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url,image_path):
     url = f'{wecom_api_url}/cgi-bin/message/send?access_token={access_token}'
     data = {
         "touser": touser,
@@ -669,18 +669,18 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
             time.sleep(2)
     if r is None:
         _LOGGER.error(f'{plugins_name}请求【推送接口】失败，将采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url,image_path)
         return result
     elif r.json()['errcode'] != 0:
         _LOGGER.error(f'{plugins_name}通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url,image_path)
         return result
     elif r.json()['errcode'] == 0:
         _LOGGER.info(f'{plugins_name}通过设置的微信参数推送消息成功')
         return r.json()
 
-def push_msg_mr(msg_title, message, link_url,pic_url):
-    if not pic_url: pic_url = upload_image_to_mr()
+def push_msg_mr(msg_title, message, link_url,pic_url,image_path):
+    if not pic_url: pic_url = upload_image_to_mr(image_path)
     result = None
     for i in range(3):
         try:
