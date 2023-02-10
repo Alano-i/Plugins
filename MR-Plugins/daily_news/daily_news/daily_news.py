@@ -77,6 +77,7 @@ def task():
 
 # 热点新闻
 def get_daily_news():
+    exit_falg = False
     wecom_title = '🌎 每天60秒读懂世界'
     url = "https://www.zhihu.com/api/v4/columns/c_1261258401923026944/items"
     headers = {
@@ -134,7 +135,6 @@ def get_daily_news():
         news_digest = '热点新闻'
         _LOGGER.error('热点新闻获取失败')
     # _LOGGER.error(f"运行后获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
-        
     return wecom_title, news_digest, news_content, news_url, exit_falg
 
 # 影视快讯
@@ -170,6 +170,8 @@ def get_entertainment_news(pic_url):
         wecom_content = wecom_content.replace('📺 电视前沿', '</small>📺 电视前沿')
         wecom_content = wecom_content.replace('📺 电视前沿', '<br><big><big><b>📺 电视前沿</b></big></big><small>')
         wecom_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{pic_url}" alt="封面"></div>{wecom_content}'
+        server.common.set_cache('is_get_news', 'entertainment',True)
+        server.common.set_cache('is_get_news', 'hour', '')
         return wecom_title, wecom_digest, wecom_content, news_url
     else:
         return wecom_title, '影视快讯' , '影视快讯'
@@ -419,10 +421,10 @@ def process_weather_data(daily_weather_iconDay):
     # return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
 
 # 生成图片
-def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
+def generate_image(push_wx, access_token, agentid, touser, wecom_api_url,hour):
     exit_falg = False
     if news_type == 'daily': wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
-    if news_type == 'entertainment' and datetime.now().time().hour < 8: exit_falg = True
+    # if news_type == 'entertainment' and datetime.now().time().hour != 8: exit_falg = True
     if exit_falg: return False
     # 画布大小
     width = 1500
@@ -509,7 +511,7 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url):
 
     # 开始推送消息
     pic_url = ''
-    if news_type == 'entertainment' and datetime.now().time().hour > 7:
+    if news_type == 'entertainment':
         pic_url = upload_image_to_mr()
         wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
 
@@ -712,6 +714,14 @@ def push_msg_mr(msg_title, message, link_url,pic_url):
         except Exception as e:
             result = f'第 {i+1} 次尝试，消息推送异常，原因: {e}'
     return result
+
 def main():
+    if server.common.get_cache('is_get_news', 'hour'):
+        hour = server.common.get_cache('is_get_news', 'hour')
+    else:
+        hour = datetime.now().time().hour
+    if news_type == 'entertainment' and hour != 8 and server.common.get_cache('is_get_news', 'entertainment'):
+        _LOGGER.error(f'{plugins_name}今天已获取过影视快讯，明天 8:00 再次获取。')
+        return False
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
-    return generate_image(push_wx, access_token, agentid, touser, wecom_api_url)
+    return generate_image(push_wx, access_token, agentid, touser, wecom_api_url,hour)
