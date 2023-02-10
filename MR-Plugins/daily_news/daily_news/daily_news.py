@@ -31,42 +31,33 @@ session.mount('https://', adapter)
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra,city,key,news_type
+    global message_to_uid, channel, city, key, news_type
     message_to_uid = config.get('uid')
-    qywx_channel_extra = config.get('qywx_channel_extra')
-    corpid_extra = config.get('corpid_extra')
-    corpsecret_extra = config.get('corpsecret_extra')
-    agentid_extra = config.get('agentid_extra')
-    touser_extra = config.get('touser_extra')
+    if config.get('channel'):
+        channel = config.get('channel')
+        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+    else:
+        channel = 'qywx'
     city = config.get('city')
     key = config.get('key')
     news_type = config.get('news_type')
-    wecom_proxy_url = config.get('wecom_proxy_url')
-    if message_to_uid:
-        user_id = message_to_uid[0]
-    else:
-         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
-         user_id = ''
+    if not message_to_uid:
+        _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global user_id,wecom_proxy_url,message_to_uid,qywx_channel_extra,corpid_extra,corpsecret_extra,agentid_extra,touser_extra,city,key,news_type
-    _LOGGER.info(f'{plugins_name}配置发生变更，加载新设置！')
+    global message_to_uid, channel, city, key, news_type
     message_to_uid = config.get('uid')
-    qywx_channel_extra = config.get('qywx_channel_extra')
-    corpid_extra = config.get('corpid_extra')
-    corpsecret_extra = config.get('corpsecret_extra')
-    agentid_extra = config.get('agentid_extra')
-    touser_extra = config.get('touser_extra')
+    if config.get('channel'):
+        channel = config.get('channel')
+        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+    else:
+        channel = 'qywx'
     city = config.get('city')
     key = config.get('key')
     news_type = config.get('news_type')
-    wecom_proxy_url = config.get('wecom_proxy_url')
-    if message_to_uid:
-        user_id = message_to_uid[0]
-    else:
-         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
-         user_id = ''
+    if not message_to_uid:
+        _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
 @plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 1-23 * * *')
 def task():
@@ -349,78 +340,6 @@ def process_weather_data(daily_weather_iconDay):
     # bg_name, unicode_value = weather_data.get(daily_weather_iconDay, default_weather_values)
     unicode_text = chr(int(unicode_value, 16))
     return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
-    # # 定义颜色
-    # today_day_color = (252, 215, 102)
-    # line_color = (255, 255, 255, 50)
-    # weekday_color = (255, 255, 255)
-    # today_color = (255, 255, 255)
-    # lunar_date_color = (255, 255, 255)
-    # quote_content_color = (255, 255, 255, 150)
-    # icon_color = (255, 255, 255)
-    # city_color = (255, 255, 255)
-    # weather_desc_color = (255, 255, 255)
-    # daily_weather_iconDay = int(daily_weather_iconDay)
-    # if daily_weather_iconDay == 100: 
-    #     bg_name = 'sunny'
-    #     unicode_value = hex(0xf1cc)
-    # elif daily_weather_iconDay in range(101, 105): 
-    #     bg_name = 'cloud'
-    #     unicode_value = hex(0xf1cc + daily_weather_iconDay - 100)
-    # elif daily_weather_iconDay in range(300, 319) or daily_weather_iconDay == 399:
-    #     bg_name = 'rain'
-    #     if daily_weather_iconDay == 399:
-    #         unicode_value = hex(0xf1ea)
-    #     else:
-    #         unicode_value = hex(0xf1d5 + daily_weather_iconDay - 300)
-    # elif daily_weather_iconDay in range(400, 411) or daily_weather_iconDay == 499:
-    #     bg_name = 'snow'
-    #     if daily_weather_iconDay == 499:
-    #         unicode_value = hex(0xf1f8)
-    #     else:
-    #         unicode_value = hex(0xf1eb + daily_weather_iconDay - 400)
-    # elif daily_weather_iconDay in [500,501,509,510,514,515]:
-    #     bg_name = 'fog'
-    #     today_day_color = (169, 67, 56)
-    #     line_color = (72, 63, 61, 50)
-    #     weekday_color = (72, 63, 61)
-    #     today_color = (72, 63, 61)
-    #     lunar_date_color = (72, 63, 61)
-    #     quote_content_color = (72, 63, 61, 150)
-    #     icon_color = (72, 63, 61)
-    #     city_color = (72, 63, 61)
-    #     weather_desc_color = (72, 63, 61)
-    #     if daily_weather_iconDay in [500,501]:
-    #         unicode_value = hex(0xf1f9 + daily_weather_iconDay - 500)
-    #     elif daily_weather_iconDay in [509,510]:
-    #         unicode_value = hex(0xf200 + daily_weather_iconDay - 509)
-    #     else:
-    #         unicode_value = hex(0xf205 + daily_weather_iconDay - 514)
-    # elif daily_weather_iconDay in [502,511,512,513]:
-    #     bg_name = 'haze'
-    #     today_day_color = (169, 67, 56)
-    #     line_color = (72, 63, 61, 50)
-    #     weekday_color = (72, 63, 61)
-    #     today_color = (72, 63, 61)
-    #     lunar_date_color = (72, 63, 61)
-    #     quote_content_color = (72, 63, 61, 150)
-    #     icon_color = (72, 63, 61)
-    #     city_color = (72, 63, 61)
-    #     weather_desc_color = (72, 63, 61)
-    #     if daily_weather_iconDay == 502:
-    #         unicode_value = hex(0xf1fb)
-    #     else:
-    #         unicode_value = hex(0xf202 + daily_weather_iconDay - 511)
-    # elif daily_weather_iconDay in [503,504,507,508]:
-    #     bg_name = 'dust'
-    #     if daily_weather_iconDay in [503,504]:
-    #         unicode_value = hex(0xf1fc + daily_weather_iconDay - 503)
-    #     else:
-    #         unicode_value = hex(0xf1fe + daily_weather_iconDay - 507)
-    # else:
-    #     bg_name = 'sunny'
-    #     unicode_value = hex(0xf1ca)
-    # unicode_text = chr(int(unicode_value, 16))
-    # return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
 
 # 绘制天气封面图片
 def generate_image():
@@ -506,101 +425,9 @@ def generate_image():
         _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
     return image_path, lunar_date, weekday
 
-def push_msg(push_wx, access_token, touser, agentid, wecom_title, wecom_digest, wecom_content, wecom_api_url, author, news_url, image_path, pic_url):
-    content_source_url = news_url
-    if push_wx:
-        thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
-        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url,image_path)
-        _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
-    else:
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url, pic_url,image_path)
-        _LOGGER.info(f'{plugins_name}MR 默认推送通道推送结果: {result}')
-
-def is_push_to_wx():
-    push_wx = True
-    extra_flag = True
-    wecom_api_url = 'https://qyapi.weixin.qq.com'
-    access_token = ''
-    agentid = ''
-    touser = ''
-    if qywx_channel_extra:
-        if corpid_extra and agentid_extra and corpsecret_extra and touser_extra:
-            corpid = corpid_extra
-            agentid = agentid_extra
-            corpsecret = corpsecret_extra
-            touser = touser_extra
-            _LOGGER.info(f'{plugins_name}设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
-        else:
-            _LOGGER.error(f'{plugins_name}设置的独立微信应用参数不完整或错误，注意 touser 不带 @ 符号（除非设置的@all,所有人接收）。将采用 MR 默认消息通道推送')
-            push_wx = False
-            extra_flag = False
-    if user_id and not qywx_channel_extra:
-        corpid, agentid, corpsecret = get_qywx_info()
-        # 获取设置的接收用户
-        # touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid])
-        # touser = '|'.join([server.user.get(uid).qywx_user for uid in message_to_uid if server.user.get(uid) is not None])
-        touser = []
-        for uid in message_to_uid:
-            if server.user.get(uid).qywx_user:
-                touser.append(server.user.get(uid).qywx_user)
-            else:
-                _LOGGER.error(f'{plugins_name}用户ID为 {uid} 的用户未绑定微信，将不会给他推送消息')
-        if touser: touser = '|'.join(touser)
-        _LOGGER.info(f'{plugins_name}获取到 MR 系统主干设置的的企业微信信息:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
-        if not agentid or not corpid or not corpsecret or not touser:
-            _LOGGER.error(f'{plugins_name}企业微信信息获取失败或填写不完整')
-            _LOGGER.error(f'{plugins_name}在设置-设置企业微信页设置：「agentid」，「corpid」，「corpsecret」')
-            _LOGGER.error(f'{plugins_name}在用户管理页设置微信账号，获取方法参考: https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb')
-            _LOGGER.error(f'{plugins_name}本插件选用微信通道推送消息效果最佳，但现在没获取到，将采用 MR 默认消息通道推送')
-            push_wx = False
-    elif not user_id and not qywx_channel_extra:
-        _LOGGER.error(f'{plugins_name}未设置推送人，也没有设置独立微信应用参数，将采用 MR 默认消息通道推送')
-        push_wx = False
-    if (push_wx or qywx_channel_extra) and extra_flag:
-        if wecom_proxy_url:
-            _LOGGER.info(f'{plugins_name}设置了微信白名单代理，地址是：{wecom_proxy_url}')
-            wecom_api_url = wecom_proxy_url
-        else:
-            _LOGGER.info(f'{plugins_name}未设置微信白名单代理，使用官方 api 地址: https://qyapi.weixin.qq.com')
-        push_wx, access_token = getToken(corpid, corpsecret, wecom_api_url)
-    return push_wx, access_token, agentid, touser, wecom_api_url
-
-def get_qywx_info():
-    try:
-        yml_file = "/data/conf/base_config.yml"
-        with open(yml_file, encoding='utf-8') as f:
-            yml_data = yaml.load(f, Loader=yaml.FullLoader)
-        for channel in yml_data['notify_channel']:
-            if channel['enable']:
-                agentid = channel.get('agentid')
-                corpid = channel.get('corpid')
-                corpsecret = channel.get('corpsecret')
-                return corpid, agentid, corpsecret
-    except Exception as e:
-        _LOGGER.error(f'{plugins_name}获取「企业微信配置信息」错误，可能 MR 中填写的信息有误或不全: {e}')
-    return '','',''
-
-def getToken(corpid, corpsecret, wecom_api_url):
-    url = f'{wecom_api_url}/cgi-bin/gettoken?corpid={corpid}&corpsecret={corpsecret}'
-    MAX_RETRIES = 3
-    for i in range(MAX_RETRIES):
-        try:
-            r = requests.get(url, timeout=20)
-            # _LOGGER.info(f'{plugins_name}尝试 {i+1} 次后，请求「获取token接口」成功')
-            break
-        except requests.RequestException as e:
-            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求「获取token接口」异常，原因：{e}')
-            time.sleep(2)
-    if r.json()['errcode'] == 0:
-        access_token = r.json()['access_token']
-        return True, access_token
-    else:
-        _LOGGER.error(f'{plugins_name}请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用 MR 默认消息通道推送！')
-        return False, ''
-
-def get_media_id(access_token, image_path, wecom_api_url):
-    media_id = upload_image_and_get_media_id(access_token, image_path, wecom_api_url)
-    return media_id
+def push_msg(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url):
+    result = push_msg_mr(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url)
+    _LOGGER.info(f'{plugins_name}消息推送结果: {result}')
 
 def upload_image_to_mr(image_path):
     pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
@@ -613,96 +440,40 @@ def upload_image_to_mr(image_path):
             _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
     return pic_url
 
-def upload_image_and_get_media_id(access_token, image_path, wecom_api_url):
-    url = f'{wecom_api_url}/cgi-bin/media/upload'
-    # url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
-    querystring = {"access_token": access_token, "type": "image"}
-    files = {"media": ("image.gif", open(image_path, "rb"))}
-    MAX_RETRIES = 3
-    for i in range(MAX_RETRIES):
-        try:
-            response = requests.request("POST", url, params=querystring, files=files, timeout=20)
-            # _LOGGER.info(f'{plugins_name}第 {i+1} 次尝试，请求【上传封面接口】成功')
-            break
-        except requests.RequestException as e:
-            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求【上传封面接口】异常，原因：{e}')
-            time.sleep(2)
-    _LOGGER.info(f'{plugins_name}上传封面返回结果：{response.text}')
-    if response.status_code == 200:
-        resp_data = response.json()
-        media_id = resp_data.get('media_id')
-        return media_id
-    else:
-        _LOGGER.error(f'{plugins_name}上传封面失败，状态码：{response.status_code}')
-
-def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url,image_path):
-    url = f'{wecom_api_url}/cgi-bin/message/send?access_token={access_token}'
-    data = {
-        "touser": touser,
-        "msgtype": "mpnews",
-        "agentid": agentid,
-        "mpnews": {
-            "articles": [
-                {
-                    "title" : wecom_title,
-                    "thumb_media_id" : thumb_media_id,
-                    "author" : author,
-                    "content_source_url" : content_source_url,
-                    "digest" : wecom_digest,
-                    "content" : wecom_content,
-                }
-            ]
-        },
-        "safe": 0,
-        "enable_id_trans": 0,
-        "enable_duplicate_check": 0,
-        "duplicate_check_interval": 1800
-    }
-    MAX_RETRIES = 3
-    for i in range(MAX_RETRIES):
-        try:
-            r = requests.post(url, json=data, timeout=20)
-            # _LOGGER.info(f'{plugins_name}尝试 {i+1} 次后，请求【推送接口】成功')
-            break
-        except requests.RequestException as e:
-            _LOGGER.error(f'{plugins_name}第 {i+1} 次尝试，请求【推送接口】异常，原因：{e}')
-            time.sleep(2)
-    if r is None:
-        _LOGGER.error(f'{plugins_name}请求【推送接口】失败，将采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url,image_path)
-        return result
-    elif r.json()['errcode'] != 0:
-        _LOGGER.error(f'{plugins_name}通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url,image_path)
-        return result
-    elif r.json()['errcode'] == 0:
-        _LOGGER.info(f'{plugins_name}通过设置的微信参数推送消息成功')
-        return r.json()
-
-def push_msg_mr(msg_title, message, link_url,pic_url,image_path):
-    if not pic_url: pic_url = upload_image_to_mr(image_path)
-    result = None
-    for i in range(3):
-        try:
-            if message_to_uid:
-                for _ in message_to_uid:
-                    server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
-                        'title': msg_title,
-                        'a': message,
-                        'pic_url': pic_url,
-                        'link_url': link_url
-                    }, to_uid=_)
-            else:
+def push_msg_mr(msg_title, msg_digest, msg_content, author, link_url, image_path, pic_url):
+    result = ''
+    try:
+        if message_to_uid:
+            for _ in message_to_uid:
                 server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
                     'title': msg_title,
-                    'a': message,
+                    'a': msg_digest,
                     'pic_url': pic_url,
-                    'link_url': link_url
-                })
-            result = f'尝试 {i+1} 次后，已推送消息通知'
-            break
-        except Exception as e:
-            result = f'第 {i+1} 次尝试，消息推送异常，原因: {e}'
+                    'link_url': link_url,
+                    'msgtype': 'mpnews',
+                    'mpnews': {
+                        "articles": [
+                            {
+                                "title" : msg_title,
+                                "thumb_media_id" : image_path,
+                                "author" : author,
+                                "content_source_url" : link_url,
+                                "digest" : msg_digest,
+                                "content" : msg_content
+                            }
+                        ]
+                    }
+                }, to_uid=_, to_channel_name = channel)
+        else:
+            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
+                'title': msg_title,
+                'a': msg_digest,
+                'pic_url': pic_url,
+                'link_url': link_url
+            })
+        result = f'已推送消息通知'
+    except Exception as e:
+        result = f'消息推送异常，原因: {e}'
     return result
 
 def main():
@@ -717,12 +488,13 @@ def main():
     if news_type == 'daily': 
         wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
     if exit_falg: return False
-    push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
+
+    # 绘图并返回天气封面路径
     image_path, lunar_date, weekday = generate_image()
-    pic_url = ''
+    pic_url = upload_image_to_mr(image_path)
+
     if news_type == 'entertainment':
-        pic_url = upload_image_to_mr(image_path)
         wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
     author = f'农历{lunar_date} 星期{weekday}'
-    push_msg(push_wx, access_token, touser, agentid, wecom_title, wecom_digest, wecom_content, wecom_api_url, author, news_url, image_path, pic_url)
+    push_msg(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url)
     return True
