@@ -15,6 +15,14 @@
       "multiValue": true
     },
     {
+      "fieldName": "channel",
+      "fieldType": "Enum",
+      "label": "推送通道",
+      "helperText": "选择推送通道，可选择独立的微信应用通知（需先在设置中添加额外的微信通道）",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
       "fieldName": "city",
       "fieldType": "String",
       "label": "设置城市，用于查询天气，例: 北京",
@@ -45,48 +53,6 @@
       ],
       "defaultValue": "1",
       "multiValue": false
-    },
-    {
-      "fieldName": "wecom_proxy_url",
-      "fieldType": "String",
-      "label": "微信白名单代理设置，示例: https://abc.com",
-      "helperText": "",
-      "defaultValue": ""
-    },
-    {
-      "fieldName": "qywx_channel_extra",
-      "fieldType": "Bool",
-      "label": "启用独立微信应用推送消息",
-      "helperText": "开启此项需完成下面4个设置项，上方第一个设置项选择的推送用户将会失效。反之关闭则下方设置项失效。参数获取参考：https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb",
-      "defaultValue": false
-    },
-    {
-      "fieldName": "corpid_extra",
-      "fieldType": "String",
-      "label": "企业 corpid，启用独立推送此设置生效",
-      "helperText": "",
-      "defaultValue": ""
-    },
-    {
-      "fieldName": "corpsecret_extra",
-      "fieldType": "String",
-      "label": "微信应用 corpsecret，启用独立推送此设置生效",
-      "helperText": "",
-      "defaultValue": ""
-    },
-    {
-      "fieldName": "agentid_extra",
-      "fieldType": "String",
-      "label": "微信应用 agentid，启用独立推送此设置生效",
-      "helperText": "",
-      "defaultValue": ""
-    },
-    {
-      "fieldName": "touser_extra",
-      "fieldType": "String",
-      "label": "微信消息推送接收人 touser，启用独立推送此设置生效，多个接收人: UserID1|UserID2",
-      "helperText": "",
-      "defaultValue": ""
     }
   ],
   "logoUrl": "/plugins/daily_news/logo.jpg",
@@ -94,6 +60,6 @@
   "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/daily_news",
   "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
   "dependencies": {
-    "appVersion": ">=1.9.29"
+    "appVersion": ">=1.9.30"
   }
 }
