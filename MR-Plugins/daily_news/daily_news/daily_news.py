@@ -99,12 +99,12 @@ def get_daily_news():
         today = datetime.today().strftime("%Y-%m-%d")
         # _LOGGER.error(f"运行前获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
         if updated_date < today:
-            _LOGGER.error(f'{plugins_name}今天的每日新闻还未更新，一小时后会再重试！')
+            _LOGGER.error(f'{plugins_name}今天的每日新闻还未更新，一小时后会再次重试！')
             server.common.set_cache('is_get_news', 'daily_news', False)
             exit_falg = True
             return '', '', '', '', exit_falg
         elif server.common.get_cache('is_get_news', 'daily_news'):
-            _LOGGER.error(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，停止运行！')
+            _LOGGER.error(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天再次获取！')
             exit_falg = True
             return '', '', '', '', exit_falg
         else:
@@ -133,6 +133,7 @@ def get_daily_news():
     else:
         news_content = '热点新闻'
         news_digest = '热点新闻'
+        news_url = 'https://www.zhihu.com/people/mt36501'
         _LOGGER.error('热点新闻获取失败')
     # _LOGGER.error(f"运行后获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
     return wecom_title, news_digest, news_content, news_url, exit_falg
@@ -173,8 +174,9 @@ def get_entertainment_news(pic_url):
         server.common.set_cache('is_get_news', 'entertainment',True)
         server.common.set_cache('is_get_news', 'hour', '')
         return wecom_title, wecom_digest, wecom_content, news_url
+
     else:
-        return wecom_title, '影视快讯' , '影视快讯'
+        return wecom_title, '影视快讯' , '影视快讯', news_url
 
 # 请求天气数据
 def get_weather():
@@ -420,12 +422,8 @@ def process_weather_data(daily_weather_iconDay):
     # unicode_text = chr(int(unicode_value, 16))
     # return bg_name,unicode_text,today_day_color,line_color,weekday_color,today_color,lunar_date_color,quote_content_color,icon_color,city_color,weather_desc_color
 
-# 生成图片
-def generate_image(push_wx, access_token, agentid, touser, wecom_api_url,hour):
-    exit_falg = False
-    if news_type == 'daily': wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
-    # if news_type == 'entertainment' and datetime.now().time().hour != 8: exit_falg = True
-    if exit_falg: return False
+# 绘制天气封面图片
+def generate_image():
     # 画布大小
     width = 1500
     height = 640
@@ -500,31 +498,23 @@ def generate_image(push_wx, access_token, agentid, touser, wecom_api_url,hour):
     image1.save(f"{plugins_path}/weather.png")
     image1 = image1.convert("RGB")
     image1.save(f"{plugins_path}/weather.jpg", quality=97)
-    # shutil.copy(f'{plugins_path}/weather.png', f'{plugins_path}/weather.jpg')
-    # image_path = f'{plugins_path}/weather.png'
     image_path = f'{plugins_path}/weather.jpg'
     try:
         if not os.path.exists(image_path):
             image_path = f'{plugins_path}/logo.jpg'
     except Exception as e:
         _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
+    return image_path, lunar_date, weekday
 
-    # 开始推送消息
-    pic_url = ''
-    if news_type == 'entertainment':
-        pic_url = upload_image_to_mr()
-        wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
-
-    author = f'农历{lunar_date} 星期{weekday}'
+def push_msg(push_wx, access_token, touser, agentid, wecom_title, wecom_digest, wecom_content, wecom_api_url, author, news_url, image_path, pic_url):
     content_source_url = news_url
     if push_wx:
         thumb_media_id = get_media_id(access_token, image_path, wecom_api_url)
-        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author,pic_url)
+        result = push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, author, pic_url)
         _LOGGER.info(f'{plugins_name}企业微信推送结果: {result}')
     else:
-        result = push_msg_mr(wecom_title, wecom_digest, content_source_url,pic_url)
+        result = push_msg_mr(wecom_title, wecom_digest, content_source_url, pic_url)
         _LOGGER.info(f'{plugins_name}MR 默认推送通道推送结果: {result}')
-    return True
 
 def is_push_to_wx():
     push_wx = True
@@ -612,11 +602,11 @@ def get_media_id(access_token, image_path, wecom_api_url):
     media_id = upload_image_and_get_media_id(access_token, image_path, wecom_api_url)
     return media_id
 
-def upload_image_to_mr():
+def upload_image_to_mr(image_path):
     pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
     for i in range(3):
         try:
-            pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(f'{plugins_path}/weather.jpg')
+            pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(image_path)
             _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{pic_url}')
             break
         except Exception as e:
@@ -716,12 +706,23 @@ def push_msg_mr(msg_title, message, link_url,pic_url):
     return result
 
 def main():
+    exit_falg = False
     if server.common.get_cache('is_get_news', 'hour'):
         hour = server.common.get_cache('is_get_news', 'hour')
     else:
         hour = datetime.now().time().hour
     if news_type == 'entertainment' and hour != 8 and server.common.get_cache('is_get_news', 'entertainment'):
-        _LOGGER.error(f'{plugins_name}今天已获取过影视快讯，明天 8:00 再次获取。')
+        _LOGGER.error(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
         return False
+    if news_type == 'daily': 
+        wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
+    if exit_falg: return False
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
-    return generate_image(push_wx, access_token, agentid, touser, wecom_api_url,hour)
+    image_path, lunar_date, weekday = generate_image()
+    pic_url = ''
+    if news_type == 'entertainment':
+        pic_url = upload_image_to_mr(image_path)
+        wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
+    author = f'农历{lunar_date} 星期{weekday}'
+    push_msg(push_wx, access_token, touser, agentid, wecom_title, wecom_digest, wecom_content, wecom_api_url, author, news_url, image_path, pic_url)
+    return True
