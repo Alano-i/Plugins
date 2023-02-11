@@ -8,7 +8,8 @@ MR插件，定时获取每日新闻和天气并微信通知
 
 本人能力有限，各位可帮助一起完善提PR即可！
 
-
+## 效果预览
+![git](https://user-images.githubusercontent.com/68833595/216874085-3f036cb1-861b-4153-a890-8c723fae478b.png)
 
 ## 使用说明
 - 将 `daily_news` 文件夹放到 `Plugins` 文件夹，`设置好推送人保存后一定要重启MR`，配置才会生效。
@@ -31,11 +32,6 @@ MR插件，定时获取每日新闻和天气并微信通知
 - 在设置-设置企业微信页设置：`agentid` `corpid` `corpsecret`
 - 在用户管理页设置 `微信账号`
 - 如果这些参数你不知道怎么获取，可参见 [企业微信参数获取方法](https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb)
-
-
-
-## 效果预览
-![git](https://user-images.githubusercontent.com/68833595/216874085-3f036cb1-861b-4153-a890-8c723fae478b.png)
 
 
 
