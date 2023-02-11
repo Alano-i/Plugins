@@ -21,7 +21,7 @@ MR插件，定时获取每日新闻和天气并微信通知
 - 设置好额外的微信应用参数，接收人到插件设置页选择。
 - 插件设置页选择新添加的额外微信应用通道
 
-![image](https://user-images.githubusercontent.com/68833595/218243313-57ca1871-c262-4023-a85e-a638ab492579.png)
+![image](https://user-images.githubusercontent.com/68833595/218243351-50e2a395-fde0-4910-b42f-bea311c4fb28.png)
 
 
 
