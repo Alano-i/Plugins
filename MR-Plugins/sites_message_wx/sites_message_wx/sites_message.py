@@ -12,6 +12,7 @@ import os
 import requests
 import logging
 import yaml
+import httpx
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from datetime import datetime
@@ -213,17 +214,24 @@ def get_nexusphp_message(site_name, site_url, cookie, proxies, user_agent):
             }
     else:
         proxies = None
-    message_url = 'messages.php?action=viewmailbox&box=1&unread=1'
+    message_url = 'messages.php?action=viewmailbox&box=1'
+    # message_url = 'messages.php?action=viewmailbox&box=1&unread=1'
     messages_url = urljoin(site_url, message_url)
     headers = {
         'cookie': cookie,
         'user-agent': user_agent,
     }
+    # session_x = httpx.Client(retries=3, backoff_factor=0.5)
     session = requests.Session()
     retry = Retry(connect=3, backoff_factor=0.5)
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('https://', adapter)
-    response = session.request("GET", messages_url, headers=headers, proxies=proxies, timeout=30).text
+    if 'totheglory' in site_url:
+        response = httpx.get(messages_url, headers=headers, proxies=proxies, timeout=30).text
+        # response = session_x.get(messages_url, headers=headers, proxies=proxies, timeout=30).text
+    else:
+        # response = requests.request("GET", messages_url, headers=headers, proxies=proxies, timeout=30).text
+        response = session.request("GET", messages_url, headers=headers, proxies=proxies, timeout=30).text
     soup_tmp = SoupStrainer("form", {"action": "messages.php"})
     soup = BeautifulSoup(response, 'html.parser', parse_only=soup_tmp)
     unread_list = soup.select(unread_selector)
@@ -234,7 +242,11 @@ def get_nexusphp_message(site_name, site_url, cookie, proxies, user_agent):
         sms_title = f'💬 {sms_title}'
         href = td.a['href']
         messages_item_url = urljoin(site_url, href)
-        message_res = requests.request("GET", messages_item_url, headers=headers, proxies=proxies, timeout=30).text
+        if 'totheglory' in site_url:
+            message_res = httpx.get(messages_item_url, headers=headers, proxies=proxies, timeout=30).text
+            # message_res = session_x.get(messages_item_url, headers=headers, proxies=proxies, timeout=30).text
+        else:
+            message_res = requests.request("GET", messages_item_url, headers=headers, proxies=proxies, timeout=30).text
         message_soup_tmp = SoupStrainer("td", {"colspan": "2"})
         message_soup = BeautifulSoup(message_res, 'html.parser', parse_only=message_soup_tmp)
         element_body = message_soup.select(body_selector)[0].text.strip()
@@ -276,8 +288,7 @@ def get_nexusphp_notice(site_name, site_id, site_url, cookie, proxies, user_agen
             'notice_content_selector': 'td.text > div > div',
         }
     }
-    if site_id not in sites_notice_selector.keys():
-        site_id = 'nexusphp'
+    if site_id not in sites_notice_selector.keys(): site_id = 'nexusphp'
     notice_box_selector = sites_notice_selector[site_id].get('notice_box_selector')
     notice_box_attributes = sites_notice_selector[site_id].get('notice_box_attributes')
     notice_title_selector = sites_notice_selector[site_id].get('notice_title_selector')
@@ -422,7 +433,7 @@ def get_qywx_info():
         with open(yml_file, encoding='utf-8') as f:
             yml_data = yaml.load(f, Loader=yaml.FullLoader)
         for channel in yml_data['notify_channel']:
-            if channel['enable']:
+            if channel.get('enable') and channel.get('type') == 'qywx':
                 agentid = channel.get('agentid')
                 corpid = channel.get('corpid')
                 corpsecret = channel.get('corpsecret')
