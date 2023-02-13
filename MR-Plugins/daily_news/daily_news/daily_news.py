@@ -63,6 +63,8 @@ def config_changed(config: Dict[str, Any]):
 def task():
     time.sleep(random.randint(1, 600))
     _LOGGER.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
+    if datetime.now().time().hour == 1:
+        server.common.set_cache('is_get_news', 'daily_news', False)
     if main():
         _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成并已推送消息')
 
@@ -95,7 +97,7 @@ def get_daily_news():
             exit_falg = True
             return '', '', '', '', exit_falg
         elif server.common.get_cache('is_get_news', 'daily_news'):
-            _LOGGER.error(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天再次获取！')
+            _LOGGER.info(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天再次获取！')
             exit_falg = True
             return '', '', '', '', exit_falg
         else:
@@ -483,7 +485,7 @@ def main():
     else:
         hour = datetime.now().time().hour
     if news_type == 'entertainment' and hour != 8 and server.common.get_cache('is_get_news', 'entertainment'):
-        _LOGGER.error(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
+        _LOGGER.info(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
         return False
     if news_type == 'daily': 
         wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
