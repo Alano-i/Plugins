@@ -390,7 +390,7 @@ def is_push_to_wx():
             agentid = agentid_extra
             corpsecret = corpsecret_extra
             touser = touser_extra
-            _LOGGER.error(f'设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
+            _LOGGER.info(f'设置的独立微信应用参数:「agentid: {agentid} corpid: {corpid} corpsecret: {corpsecret} touser: {touser}」')
         else:
             _LOGGER.error(f'设置的独立微信应用参数不完整或错误，注意 touser 不带 @ 符号（除非设置的@all,所有人接收）。将采用默认消息通道推送')
             push_wx = False
@@ -444,11 +444,14 @@ def get_qywx_info():
     return '','',''
 
 def getToken(corpid, corpsecret, wecom_api_url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+    }
     url = wecom_api_url + "/cgi-bin/gettoken?corpid=" + corpid + "&corpsecret=" + corpsecret
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            r = requests.get(url)
+            r = requests.get(url, headers=headers)
             break
         except requests.RequestException as e:
             _LOGGER.error(f'处理异常，原因：{e}')
@@ -497,6 +500,9 @@ def get_media_id(site_name, access_token, image_path, wecom_api_url):
     return media_id
 
 def upload_image_and_get_media_id(site_name, access_token, image_path, wecom_api_url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+    }
     url = wecom_api_url + "/cgi-bin/media/upload"
     # url = "https://qyapi.weixin.qq.com/cgi-bin/media/upload"
     querystring = {"access_token": access_token, "type": "image"}
@@ -504,7 +510,7 @@ def upload_image_and_get_media_id(site_name, access_token, image_path, wecom_api
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            response = requests.request("POST", url, params=querystring, files=files)
+            response = requests.request("POST", url, params=querystring, files=files, headers=headers)
             break
         except requests.RequestException as e:
             _LOGGER.error(f'「{site_name}」上传封面处理异常，原因：{e}')
@@ -519,6 +525,9 @@ def upload_image_and_get_media_id(site_name, access_token, image_path, wecom_api
 
 def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, pic_url, site_name):
     url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+    }
     data = {
         "touser": touser,
         "msgtype": "mpnews",
@@ -543,7 +552,7 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            r = requests.post(url, json=data)
+            r = requests.post(url, json=data, headers=headers)
             break
         except requests.RequestException as e:
             _LOGGER.error(f'处理异常，原因：{e}')
