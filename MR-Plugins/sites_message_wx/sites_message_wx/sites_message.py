@@ -452,17 +452,21 @@ def getToken(corpid, corpsecret, wecom_api_url):
     for i in range(MAX_RETRIES):
         try:
             r = requests.get(url, headers=headers)
-            break
-        except requests.RequestException as e:
+            r.raise_for_status()
+            response = r.json()
+            if response['errcode'] == 0:
+                return True, response['access_token']
+            else:
+                _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
+                _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
+                return False, ''
+        except Exception as e:
+            _LOGGER.error(f'第 {i+1} 次尝试，请求「获取token接口」异常，原因：{e}')
             _LOGGER.error(f'处理异常，原因：{e}')
             time.sleep(2)
-    if r.json()['errcode'] == 0:
-        access_token = r.json()['access_token']
-        return True, access_token
-    else:
-        _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
-        _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
-        return False, ''
+    _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
+    _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
+    return False, ''
 
 def get_media_id(site_name, access_token, image_path, wecom_api_url):
     media_id_info_new = {}
@@ -510,18 +514,22 @@ def upload_image_and_get_media_id(site_name, access_token, image_path, wecom_api
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            response = requests.request("POST", url, params=querystring, files=files, headers=headers)
-            break
+            r = requests.request("POST", url, params=querystring, files=files, headers=headers)
+            r.raise_for_status()
+            response = r.json()
+            error_code = response['errcode']
+            _LOGGER.info(f'「{site_name}」上传封面返回结果：{response}')
+            if response['errcode'] == 0:
+                media_id = response['media_id']
+                return media_id
+            else:
+                _LOGGER.error(f'「{site_name}」上传封面失败，状态码：{error_code}')
         except requests.RequestException as e:
-            _LOGGER.error(f'「{site_name}」上传封面处理异常，原因：{e}')
+            _LOGGER.error(f'{site_name}第 {i+1} 次尝试，请求【上传封面接口】异常，原因：{e}')
             time.sleep(2)
-    _LOGGER.info(f'「{site_name}」上传封面返回结果：{response.text}')
-    if response.status_code == 200:
-        resp_data = response.json()
-        media_id = resp_data.get('media_id')
-        return media_id
-    else:
-        _LOGGER.error(f'「{site_name}」上传封面失败，状态码：{response.status_code}')
+    _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
+    _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
+    return ''
 
 def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, content_source_url, wecom_digest, wecom_content, wecom_api_url, pic_url, site_name):
     url = wecom_api_url + '/cgi-bin/message/send?access_token=' + access_token
@@ -553,21 +561,22 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
     for i in range(MAX_RETRIES):
         try:
             r = requests.post(url, json=data, headers=headers)
-            break
-        except requests.RequestException as e:
-            _LOGGER.error(f'处理异常，原因：{e}')
+            r.raise_for_status()
+            response = r.json()
+            error_code = response['errcode']
+            if error_code == 0:
+                _LOGGER.info(f'「{site_name}」通过设置的微信参数推送消息成功')
+                return response
+            else:
+                _LOGGER.error(f'「{site_name}」通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
+                result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+                return result
+        except Exception as e:
+            _LOGGER.error(f'{site_name}第 {i+1} 次尝试，请求【推送接口】异常，原因：{e}')
             time.sleep(2)
-    if r is None:
-        _LOGGER.error(f'「{site_name}」请求「推送接口」失败，将采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
-        return result
-    elif r.json()['errcode'] != 0:
-        _LOGGER.error(f'「{site_name}」通过设置的微信参数推送失败，采用 MR 默认通知通道推送')
-        result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
-        return result
-    elif r.json()['errcode'] == 0:
-        _LOGGER.info(f'「{site_name}」通过设置的微信参数推送消息成功')
-        return r.json()
+    _LOGGER.error(f'「{site_name}」3 次尝试请求「推送接口」都失败，将采用 MR 默认通知通道推送')
+    result = push_msg_mr(wecom_title, wecom_digest, pic_url, content_source_url)
+    return result
 
 def push_msg_mr(msg_title, message, pic_url, link_url):
     try:
