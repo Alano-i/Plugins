@@ -59,11 +59,11 @@ def config_changed(config: Dict[str, Any]):
     if not message_to_uid:
         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
-@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 1-23 * * *')
+@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 8-18 * * *')
 def task():
     time.sleep(random.randint(1, 600))
     _LOGGER.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
-    if datetime.now().time().hour == 1:
+    if datetime.now().time().hour == 8:
         server.common.set_cache('is_get_news', 'daily_news', False)
     if main():
         _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成并已推送消息')
@@ -415,10 +415,10 @@ def generate_image():
     cond_width = draw.textlength(cond, text_font)
     draw.text((width - 105 - cond_width + 18, day_y + 270), cond, fill=weather_desc_color, font=text_font)
     # 保存图片
-    image1 = Image.alpha_composite(square,image)
-    image1.save(f"{plugins_path}/weather.png")
-    image1 = image1.convert("RGB")
-    image1.save(f"{plugins_path}/weather.jpg", quality=97)
+    image_output = Image.alpha_composite(square,image)
+    image_output.save(f"{plugins_path}/weather.png")
+    image_output = image_output.convert("RGB")
+    image_output.save(f"{plugins_path}/weather.jpg", quality=97)
     image_path = f'{plugins_path}/weather.jpg'
     try:
         if not os.path.exists(image_path):
