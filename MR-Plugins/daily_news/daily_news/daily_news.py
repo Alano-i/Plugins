@@ -65,8 +65,9 @@ def task():
     _LOGGER.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
     if datetime.now().time().hour == 8:
         server.common.set_cache('is_get_news', 'daily_news', False)
+        server.common.set_cache('is_get_news', 'entertainment', False)
     if main():
-        _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成并已推送消息')
+        _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成！')
 
 # 热点新闻
 def get_daily_news():
@@ -124,10 +125,10 @@ def get_daily_news():
             server.common.set_cache('is_get_news', 'daily_news',True)
             # news_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{img_url}" alt="封面"></div>{news_content}'
     else:
-        news_content = '热点新闻'
-        news_digest = '热点新闻'
+        news_content = '获取热点新闻内容失败，请检查网络！'
+        news_digest = '获取热点新闻内容失败，请检查网络！'
         news_url = 'https://www.zhihu.com/people/mt36501'
-        _LOGGER.error('热点新闻获取失败')
+        _LOGGER.error('热点新闻获取失败，请检查网络！')
     # _LOGGER.error(f"运行后获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
     return wecom_title, news_digest, news_content, news_url, exit_falg
 
@@ -239,6 +240,8 @@ def get_lunar_date(today_day,today_month,today_year):
     lunar_date = re.search(r'年(.*?) ', lunar_date)
     if lunar_date:
         lunar_date = lunar_date.group(1)
+        pattern = re.compile(r"二十([一二三四五六七八九])")
+        lunar_date = pattern.sub(lambda m: f"廿{m.group(1)}", lunar_date)
     else:
         lunar_date = ''
     return lunar_date
@@ -427,10 +430,6 @@ def generate_image():
         _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
     return image_path, lunar_date, weekday
 
-def push_msg(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url):
-    result = push_msg_mr(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url)
-    _LOGGER.info(f'{plugins_name}消息推送结果: {result}')
-
 def upload_image_to_mr(image_path):
     pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/daily_news/daily_news/logo.jpg'
     for i in range(3):
@@ -442,61 +441,67 @@ def upload_image_to_mr(image_path):
             _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
     return pic_url
 
-def push_msg_mr(msg_title, msg_digest, msg_content, author, link_url, image_path, pic_url):
-    result = ''
+def push_msg_mr(msg_title, msg_digest, msg_content, author, link_url, image_path, pic_url, news):
+    news_name = {
+        'daily':'热点新闻',
+        'entertainment':'热点影视快讯'
+    }
+    msg_data = {
+        'title': msg_title,
+        'a': msg_digest,
+        'pic_url': pic_url,
+        'link_url': link_url,
+        'msgtype': 'mpnews',
+        'mpnews': {
+            "articles": [
+                {
+                    "title" : msg_title,
+                    "thumb_media_id" : image_path,
+                    "author" : author,
+                    "content_source_url" : link_url,
+                    "digest" : msg_digest,
+                    "content" : msg_content
+                }
+            ]
+        }
+    }
     try:
         if message_to_uid:
             for _ in message_to_uid:
-                server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
-                    'title': msg_title,
-                    'a': msg_digest,
-                    'pic_url': pic_url,
-                    'link_url': link_url,
-                    'msgtype': 'mpnews',
-                    'mpnews': {
-                        "articles": [
-                            {
-                                "title" : msg_title,
-                                "thumb_media_id" : image_path,
-                                "author" : author,
-                                "content_source_url" : link_url,
-                                "digest" : msg_digest,
-                                "content" : msg_content
-                            }
-                        ]
-                    }
-                }, to_uid=_, to_channel_name = channel)
+                server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data, to_uid=_, to_channel_name = channel)
         else:
-            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
-                'title': msg_title,
-                'a': msg_digest,
-                'pic_url': pic_url,
-                'link_url': link_url
-            })
-        result = f'已推送消息通知'
+            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data)
+        _LOGGER.info(f'{plugins_name}已推送「{news_name[news]}」消息')
+        return
     except Exception as e:
-        result = f'消息推送异常，原因: {e}'
-    return result
+        _LOGGER.error(f'{plugins_name}推送「{news_name[news]}」消息异常，原因: {e}')
+    return
 
 def main():
+    _LOGGER.info(f'{plugins_name}消息推送通道「{channel}」')
     exit_falg = False
-    if server.common.get_cache('is_get_news', 'hour'):
-        hour = server.common.get_cache('is_get_news', 'hour')
-    else:
-        hour = datetime.now().time().hour
-    if news_type == 'entertainment' and hour != 8 and server.common.get_cache('is_get_news', 'entertainment'):
-        _LOGGER.info(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
+    hour = server.common.get_cache('is_get_news', 'hour') or datetime.now().time().hour
+    get_news_flag = True
+    generate_image_flag = False
+    if not news_type:
+        _LOGGER.error(f'{plugins_name}未设置新闻类型，请先设置！')
         return False
-    if news_type == 'daily': 
-        wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
-    if exit_falg: return False
-
-    # 绘图并返回天气封面路径
-    image_path, lunar_date, weekday = generate_image()
-    pic_url = upload_image_to_mr(image_path)
-
-    if news_type == 'entertainment':
-        wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
-    author = f'农历{lunar_date} 星期{weekday}'
-    push_msg(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url)
-    return True
+    for news in news_type:
+        if news == 'entertainment' and hour != 8 and server.common.get_cache('is_get_news', 'entertainment'):
+            _LOGGER.info(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
+            get_news_flag = False
+            break
+        if news == 'daily': 
+            wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
+        if exit_falg:
+            get_news_flag = False
+            break
+        if not generate_image_flag:
+            image_path, lunar_date, weekday = generate_image()
+            generate_image_flag = True
+            pic_url = upload_image_to_mr(image_path)
+        if news == 'entertainment':
+            wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
+        author = f'农历{lunar_date} 星期{weekday}'
+        push_msg_mr(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url, news)
+    return get_news_flag
