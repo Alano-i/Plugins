@@ -3,7 +3,7 @@
   "title": "每天60秒读懂世界",
   "author": "Alano",
   "description": "获取每日新闻（可选【每日新闻】或【影视资讯】）和天气，封面跟随当天天气情况，实时变化。",
-  "version": "0.6",
+  "version": "0.7",
   "requirements": [],
   "configField": [
     {
@@ -39,7 +39,7 @@
     {
       "fieldName": "news_type",
       "fieldType": "Enum",
-      "label": "每日新闻类型",
+      "label": "选择每日新闻类型（可多选）",
       "helperText": "",
       "enumValues": [
         {
@@ -52,7 +52,7 @@
         }
       ],
       "defaultValue": "1",
-      "multiValue": false
+      "multiValue": true
     }
   ],
   "logoUrl": "/plugins/daily_news/logo.jpg",
