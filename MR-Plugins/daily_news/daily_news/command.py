@@ -16,7 +16,7 @@ def daily_news_echo(ctx: PluginCommandContext):
         # server.common.set_cache('is_get_news', 'entertainment', True)
         # server.common.set_cache('is_get_news', 'hour', '')
         if main():
-            _LOGGER.info('「每天60秒读懂世界」手动运行，获取每日新闻和天气完成,并已推送消息')
+            _LOGGER.info('「每天60秒读懂世界」手动运行，获取每日新闻和天气完成！')
         return PluginCommandResponse(True, f'「每天60秒读懂世界」手动运行，执行完成')
     except Exception as e:
         _LOGGER.error(f'出错了,{e}')
