@@ -19,8 +19,13 @@ from datetime import datetime
 server = mbot_api
 _LOGGER = logging.getLogger(__name__)
 site_list = server.site.list()
-message_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares', 'iptorrents','rarbg']
-notice_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'ttg', 'filelist', 'hares','iptorrents', 'rarbg']
+message_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares', 'iptorrents', 'rarbg','U2']
+notice_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares','iptorrents', 'rarbg', 'U2']
+
+session = requests.Session()
+retry = Retry(connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('https://', adapter)
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
@@ -222,10 +227,7 @@ def get_nexusphp_message(site_name, site_url, cookie, proxies, user_agent):
         'user-agent': user_agent,
     }
     # session_x = httpx.Client(retries=3, backoff_factor=0.5)
-    session = requests.Session()
-    retry = Retry(connect=3, backoff_factor=0.5)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('https://', adapter)
+
     if 'totheglory' in site_url:
         response = httpx.get(messages_url, headers=headers, proxies=proxies, timeout=30).text
         # response = session_x.get(messages_url, headers=headers, proxies=proxies, timeout=30).text
@@ -246,7 +248,8 @@ def get_nexusphp_message(site_name, site_url, cookie, proxies, user_agent):
             message_res = httpx.get(messages_item_url, headers=headers, proxies=proxies, timeout=30).text
             # message_res = session_x.get(messages_item_url, headers=headers, proxies=proxies, timeout=30).text
         else:
-            message_res = requests.request("GET", messages_item_url, headers=headers, proxies=proxies, timeout=30).text
+            # message_res = requests.request("GET", messages_item_url, headers=headers, proxies=proxies, timeout=30).text
+            message_res = session.request("GET", messages_item_url, headers=headers, proxies=proxies, timeout=30).text
         message_soup_tmp = SoupStrainer("td", {"colspan": "2"})
         message_soup = BeautifulSoup(message_res, 'html.parser', parse_only=message_soup_tmp)
         element_body = message_soup.select(body_selector)[0].text.strip()
@@ -288,11 +291,18 @@ def get_nexusphp_notice(site_name, site_id, site_url, cookie, proxies, user_agen
             'notice_content_selector': 'td.text > div > div',
         }
     }
-    if site_id not in sites_notice_selector.keys(): site_id = 'nexusphp'
-    notice_box_selector = sites_notice_selector[site_id].get('notice_box_selector')
-    notice_box_attributes = sites_notice_selector[site_id].get('notice_box_attributes')
-    notice_title_selector = sites_notice_selector[site_id].get('notice_title_selector')
-    notice_content_selector = sites_notice_selector[site_id].get('notice_content_selector')
+    # if site_id not in sites_notice_selector.keys(): site_id = 'nexusphp'
+    # notice_box_selector = sites_notice_selector[site_id].get('notice_box_selector')
+    # notice_box_attributes = sites_notice_selector[site_id].get('notice_box_attributes')
+    # notice_title_selector = sites_notice_selector[site_id].get('notice_title_selector')
+    # notice_content_selector = sites_notice_selector[site_id].get('notice_content_selector')
+
+    site_config = sites_notice_selector.setdefault(site_id, sites_notice_selector['nexusphp'])
+    notice_box_selector = site_config['notice_box_selector']
+    notice_box_attributes = site_config['notice_box_attributes']
+    notice_title_selector = site_config['notice_title_selector']
+    notice_content_selector = site_config['notice_content_selector']
+
     notice_list = []
     xxx = ''
     notice_date_title = ''
@@ -316,10 +326,6 @@ def get_nexusphp_notice(site_name, site_id, site_url, cookie, proxies, user_agen
             }
     else:
         proxies = None
-    session = requests.Session()
-    retry = Retry(connect=3, backoff_factor=0.5)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('https://', adapter)
     response = session.request("GET", notice_url, headers=headers, proxies=proxies, timeout=30).text  
     soup_tmp = SoupStrainer(notice_box_selector, notice_box_attributes)
     soup = BeautifulSoup(response, 'html.parser', parse_only=soup_tmp)
@@ -451,7 +457,7 @@ def getToken(corpid, corpsecret, wecom_api_url):
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            r = requests.get(url, headers=headers)
+            r = requests.get(url, headers=headers, timeout=30)
             r.raise_for_status()
             response = r.json()
             if response['errcode'] == 0:
@@ -462,7 +468,6 @@ def getToken(corpid, corpsecret, wecom_api_url):
                 return False, ''
         except Exception as e:
             _LOGGER.error(f'第 {i+1} 次尝试，请求「获取token接口」异常，原因：{e}')
-            _LOGGER.error(f'处理异常，原因：{e}')
             time.sleep(2)
     _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
     _LOGGER.error('默认消息通道推送：每个站点封面图无法一站一图，都是统一的')
@@ -514,7 +519,7 @@ def upload_image_and_get_media_id(site_name, access_token, image_path, wecom_api
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            r = requests.request("POST", url, params=querystring, files=files, headers=headers)
+            r = requests.request("POST", url, params=querystring, files=files, headers=headers, timeout=30)
             r.raise_for_status()
             response = r.json()
             error_code = response['errcode']
@@ -524,7 +529,7 @@ def upload_image_and_get_media_id(site_name, access_token, image_path, wecom_api
                 return media_id
             else:
                 _LOGGER.error(f'「{site_name}」上传封面失败，状态码：{error_code}')
-        except requests.RequestException as e:
+        except Exception as e:
             _LOGGER.error(f'{site_name}第 {i+1} 次尝试，请求【上传封面接口】异常，原因：{e}')
             time.sleep(2)
     _LOGGER.error('请求企业微信「access_token」失败,请检查企业微信各个参数是否设置正确，将采用默认消息通道推送！')
@@ -560,7 +565,7 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
     MAX_RETRIES = 3
     for i in range(MAX_RETRIES):
         try:
-            r = requests.post(url, json=data, headers=headers)
+            r = requests.post(url, json=data, headers=headers, timeout=30)
             r.raise_for_status()
             response = r.json()
             error_code = response['errcode']
@@ -579,29 +584,26 @@ def push_msg_wx(access_token, touser, agentid, wecom_title, thumb_media_id, cont
     return result
 
 def push_msg_mr(msg_title, message, pic_url, link_url):
-    try:
-        if message_to_uid:
-            for _ in message_to_uid:
-                try:
-                    server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
-                        'title': msg_title,
-                        'a': message,
-                        'pic_url': pic_url,
-                        'link_url': link_url
-                    }, to_uid=_)
-                    return '已通过 MR 默认通道推送消息通知'
-                except Exception as e:
-                    return f'通过 MR 默认通道推送消息异常，原因: {e}'
-        else:
-            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
-                'title': msg_title,
-                'a': message,
-                'pic_url': pic_url,
-                'link_url': link_url
-            })
+    msg_data = {
+        'title': msg_title,
+        'a': message,
+        'pic_url': pic_url,
+        'link_url': link_url,
+    }
+    if message_to_uid:
+        for _ in message_to_uid:
+            try:
+                server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data, to_uid=_)
+                return '已通过 MR 默认通道推送消息通知'
+            except Exception as e:
+                return f'通过 MR 默认通道推送消息异常，原因: {e}'
+    else:
+        try:
+            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data)
             return '已通过 MR 默认通道推送消息通知'
-    except Exception as e:
-        return f'通过 MR 默认通道推送消息异常，原因: {e}'
+        except Exception as e:
+            return f'通过 MR 默认通道推送消息异常，原因: {e}'
+
 
 def main():
     push_wx, access_token, agentid, touser, wecom_api_url = is_push_to_wx()
