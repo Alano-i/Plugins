@@ -8,6 +8,8 @@ MR插件，定时获取站点最新站内信与公告
 基于NaNaKo_大佬的插件二次开发的微信通知特供版，感谢大佬！本人能力有限，各位可帮助一起完善提PR即可！
 
 
+## 效果预览
+![git封面](https://user-images.githubusercontent.com/68833595/211461063-975400c0-eb6e-4ca1-a26a-eb903b885349.png)
 
 ## 使用说明
 - 将 `sites_message_wx` 文件夹放到 `Plugins` 文件夹，`设置好推送人保存后一定要重启MR`，配置才会生效。
@@ -25,11 +27,6 @@ MR插件，定时获取站点最新站内信与公告
 - 在设置-设置企业微信页设置：`agentid` `corpid` `corpsecret`
 - 在用户管理页设置 `微信账号`
 - 如果这些参数你不知道怎么获取，可参见 [企业微信参数获取方法](https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb)
-
-
-
-## 效果预览
-![git封面](https://user-images.githubusercontent.com/68833595/211461063-975400c0-eb6e-4ca1-a26a-eb903b885349.png)
 
 
 
