@@ -1,9 +1,10 @@
 {
+  "id": 1,
   "name": "daily_news",
   "title": "每天60秒读懂世界",
   "author": "Alano",
   "description": "获取每日新闻（可选【每日新闻】或【影视资讯】）和天气，封面跟随当天天气情况，实时变化。",
-  "version": "0.7",
+  "version": "0.8",
   "requirements": [],
   "configField": [
     {
@@ -17,8 +18,8 @@
     {
       "fieldName": "channel",
       "fieldType": "Enum",
-      "label": "推送通道",
-      "helperText": "选择推送通道，可选择独立的微信应用通知（需先在设置中添加额外的微信通道）",
+      "label": "选择消息推送通道",
+      "helperText": "微信通道必须是老应用或自建代理并添加可信IP（在MR应用设置中可添加多个微信推送通道）",
       "enumValuesRef": "ChannelNameList",
       "multiValue": false
     },
