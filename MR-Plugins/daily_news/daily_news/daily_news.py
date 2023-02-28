@@ -5,6 +5,7 @@ from mbot.openapi import mbot_api
 from typing import Dict, Any
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup, SoupStrainer
+# from pyquery import PyQuery as pq
 from PIL import Image, ImageDraw, ImageFont
 import time
 import json
@@ -59,15 +60,16 @@ def config_changed(config: Dict[str, Any]):
     if not message_to_uid:
         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
-@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 8-18 * * *')
+@plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 8-18,23 * * *')
 def task():
     time.sleep(random.randint(1, 600))
     _LOGGER.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
-    if datetime.now().time().hour == 8:
+    if datetime.now().time().hour in [8, 23]:
         server.common.set_cache('is_get_news', 'daily_news', False)
         server.common.set_cache('is_get_news', 'entertainment', False)
-    if main():
-        _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成！')
+    if datetime.now().time().hour != 23:
+        if main():
+            _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成！')
 
 # 热点新闻
 def get_daily_news():
@@ -98,15 +100,21 @@ def get_daily_news():
             exit_falg = True
             return '', '', '', '', exit_falg
         elif server.common.get_cache('is_get_news', 'daily_news'):
-            _LOGGER.info(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天再次获取！')
+            _LOGGER.info(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天 8:00 再次获取！')
             exit_falg = True
             return '', '', '', '', exit_falg
         else:
             news_url = data[0]["url"]
             news_content = data[0]["content"]
+            # 使用BeautifulSoup解析网页源代码
             soup = BeautifulSoup(news_content, 'html.parser')
             p_tags = soup.find_all('p')[2:]
             news_digest = '\n\n'.join([p.text for p in p_tags])
+            
+            # 使用pyquery解析网页源代码
+            # doc = pq(news_content)
+            # news_digest = '\n\n'.join([i.text() for i in doc('p').items()[2:]])
+
             news_digest = news_digest.replace('在这里，每天60秒读懂世界！', '')
             news_digest = news_digest.strip()
             if (len(news_digest)>1000):
@@ -146,9 +154,15 @@ def get_entertainment_news(pic_url):
         res = session.request("GET", url, timeout=30)
         res.encoding = "utf-8"
         html = res.text
+        
+        # # 使用pyquery解析网页源代码
+        # doc = pq(html)
+        # h_tags = doc('h2, h3')
+
         # 使用BeautifulSoup解析网页源代码
         soup = BeautifulSoup(html, 'html.parser')
         h_tags = soup.find_all(["h2", "h3"])
+
         result = []
         for h_tag in h_tags:
             if h_tag.text not in result:
@@ -481,7 +495,8 @@ def main():
     _LOGGER.info(f'{plugins_name}消息推送通道「{channel}」')
     exit_falg = False
     hour = server.common.get_cache('is_get_news', 'hour') or datetime.now().time().hour
-    get_news_flag = True
+    get_news_flag_entertainment = True
+    get_news_flag_daily = True
     generate_image_flag = False
     if not news_type:
         _LOGGER.error(f'{plugins_name}未设置新闻类型，请先设置！')
@@ -489,19 +504,20 @@ def main():
     for news in news_type:
         if news == 'entertainment' and hour != 8 and server.common.get_cache('is_get_news', 'entertainment'):
             _LOGGER.info(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
-            get_news_flag = False
-            break
+            get_news_flag_entertainment = False
+            continue
         if news == 'daily': 
             wecom_title, wecom_digest, wecom_content, news_url, exit_falg = get_daily_news()
-        if exit_falg:
-            get_news_flag = False
-            break
+            if exit_falg:
+                get_news_flag_daily = False
+                continue
         if not generate_image_flag:
             image_path, lunar_date, weekday = generate_image()
             generate_image_flag = True
             pic_url = upload_image_to_mr(image_path)
+            author = f'农历{lunar_date} 星期{weekday}'
         if news == 'entertainment':
             wecom_title, wecom_digest, wecom_content, news_url = get_entertainment_news(pic_url)
-        author = f'农历{lunar_date} 星期{weekday}'
         push_msg_mr(wecom_title, wecom_digest, wecom_content, author, news_url, image_path, pic_url, news)
-    return get_news_flag
+
+    return get_news_flag_entertainment or get_news_flag_daily
