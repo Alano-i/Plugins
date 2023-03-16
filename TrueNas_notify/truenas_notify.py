@@ -112,6 +112,7 @@ def get_truenas_alert():
                 'ZpoolCapacityNotice': '存储池容量提醒',
                 'NTPHealthCheck': 'NTP 健康检查',
                 'UPSOnline': 'UPS 恢复供电',
+                'UPSCommbad': 'UPS 断开连接',
                 'SMART': 'SMART异常'
             }
             if dif_alerts_num > 1:
@@ -123,21 +124,32 @@ def get_truenas_alert():
                     alert_text = alert.get('alert_text', '')
 
                     if 'UPS' in alert_type:
-                        alert_text =progress_ups_text(alert_text)
+                        if alert_type == 'UPSCommbad':
+                            alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                        else:
+                            alert_text =progress_ups_text(alert_text)
                     else:
                         alert_text =progress_text(alert_text)
                         
                     alert_time = alert.get('alert_time', '')
                     msg_digest += f"{alert_level} {alert_type}\n{alert_text}\n{alert_time}\n\n"
                 msg_digest = msg_digest.strip()
+            
             else:
+                dif_alerts = []
+                if not dif_alerts:
+                    print('没有获取到新通知')
+                    return
                 dif_alert = dif_alerts[0]
                 msg_title = f"{level_list.get(dif_alert.get('alert_level',''),'')} {type_list.get(dif_alert.get('alert_type',''),'') }"
                 alert_type = dif_alert.get('alert_type', '')
                 alert_text = dif_alert.get('alert_text', '')
                 
                 if 'UPS' in alert_type:
-                    alert_text =progress_ups_text(alert_text)
+                    if alert_type == 'UPSCommbad':
+                        alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                    else:
+                        alert_text =progress_ups_text(alert_text)
                 else:
                     alert_text =progress_text(alert_text)
 
