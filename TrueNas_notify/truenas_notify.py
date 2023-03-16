@@ -27,7 +27,7 @@ corpsecret = ''
 #企业微信 agentid
 agentid = ''
 #微信推送封面
-pic_url = ''
+pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/truenas_notify_logo.jpg'
 ##################################### 设置 #####################################
 
 def get_truenas_alert():
