@@ -47,7 +47,7 @@
   ],
   "logoUrl": "/plugins/truenas_notify/logo.jpg",
   "githubUrl": "",
-  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/truenas_notify",
   "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
   "dependencies": {
     "appVersion": ">=1.9.30"
