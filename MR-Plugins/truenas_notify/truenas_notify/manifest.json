@@ -42,7 +42,7 @@
       "fieldType": "String",
       "label": "推送通知封面图 URL",
       "helperText": "",
-      "defaultValue": ""
+      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/truenas_notify/truenas_notify/logo.jpg"
     }
   ],
   "logoUrl": "/plugins/truenas_notify/logo.jpg",
