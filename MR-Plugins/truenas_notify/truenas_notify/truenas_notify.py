@@ -49,6 +49,20 @@ def config_changed(config: Dict[str, Any]):
 @plugin.task('truenas_nofity', 'TrueNas Scale 系统通知', cron_expression='*/1 * * * *')
 def task():
     get_truenas_alert()
+
+def progress_ups_text(alert_text):
+    battery_charge = re.search(r"battery\.charge:\s*(\d+)", alert_text)
+    battery_charge_low = re.search(r"battery\.charge\.low:\s*(\d+)", alert_text)
+    battery_runtime = re.search(r"battery\.runtime:\s*(\d+)", alert_text)
+    battery_runtime_low = re.search(r"battery\.runtime\.low:\s*(\d+)", alert_text)
+    alert_text = f"电池总电量：{battery_charge.group(1)}%\n电池可运行：{battery_runtime.group(1)} 秒\n切换到低电量临界电量：{battery_charge_low.group(1)}%\n切换到低电量等待时间：{battery_runtime_low.group(1)}秒"
+    return alert_text
+
+def progress_text(alert_text):
+    alert_text = alert_text.replace('NTP health check failed', 'NTP 健康检查失败').replace('Scrub of pool', '存储池').replace('finished', '检查完成').replace('Space usage for pool', 'ZFS 存储池').replace('is', '的空间使用率为').replace('Optimal pool performance requires used space remain below 80%', '为保证最佳池性能，使用空间应保持在 80% 以下')
+    alert_text = alert_text.replace('Device:', '设备:').replace('ATA error count increased from', 'ATA 错误计数从').replace(' to ', ' 增加到 ').replace('REJECT', '无法连接')
+    alert_text = alert_text.replace('Currently unreadable (pending) sectors', '个当前无法读取的（待处理）扇区').replace('No Active NTP peers', '没有活动的NTP服务器')
+    return alert_text
   
 def get_truenas_alert():
     # TrueNA Scale的IP地址和端口
@@ -96,15 +110,16 @@ def get_truenas_alert():
                     dif_alerts.append(alert)
             dif_alerts_num = len(dif_alerts)
             level_list = {
-                'CRITICAL': '‼️ 严重',
-                'WARNING':'⚠️ 警告',
-                'NOTICE':'✉️ 通知',
-                'INFO':'ℹ️ 信息'
+                'CRITICAL': '‼️',
+                'WARNING':'⚠️',
+                'NOTICE':'✉️',
+                'INFO':'ℹ️'
             }
             type_list = {
                 'ScrubFinished': '磁盘检修完成',
                 'ZpoolCapacityNotice': '存储池容量提醒',
                 'NTPHealthCheck': 'NTP 健康检查',
+                'UPSOnline': 'UPS 恢复供电',
                 'SMART': 'SMART异常'
             }
             if dif_alerts_num > 1:
@@ -113,23 +128,30 @@ def get_truenas_alert():
                 for alert in dif_alerts:
                     alert_level = level_list.get(alert.get('alert_level',''),'')
                     alert_type = type_list.get(alert.get('alert_type', ''),'')
+                    alert_text = alert.get('alert_text', '')
 
-                    alert_text = alert.get('alert_text', '').replace('NTP health check failed', 'NTP 健康检查失败').replace('Scrub of pool', '存储池').replace('finished', '检查完成').replace('Space usage for pool', 'ZFS 存储池').replace('is', '的空间使用率为').replace('Optimal pool performance requires used space remain below 80%', '为保证最佳池性能，使用空间应保持在 80% 以下')
-                    alert_text = alert_text.replace('Device:', '设备:').replace('ATA error count increased from', 'ATA 错误计数从').replace(' to ', ' 增加到 ').replace('REJECT', '无法连接')
-                    alert_text = alert_text.replace('Currently unreadable (pending) sectors', '个当前无法读取的（待处理）扇区').replace('No Active NTP peers', '没有活动的NTP服务器')
-                    
+                    if 'UPS' in alert_type:
+                        alert_text =progress_ups_text(alert_text)
+                    else:
+                        alert_text =progress_text(alert_text)
+                        
                     alert_time = alert.get('alert_time', '')
                     msg_digest += f"{alert_level} {alert_type}\n{alert_text}\n{alert_time}\n\n"
                 msg_digest = msg_digest.strip()
             else:
                 dif_alert = dif_alerts[0]
                 msg_title = f"{level_list.get(dif_alert.get('alert_level',''),'')} {type_list.get(dif_alert.get('alert_type',''),'') }"
+                alert_type = dif_alert.get('alert_type', '')
+                alert_text = dif_alert.get('alert_text', '')
                 
-                alert_text = dif_alert.get('alert_text', '').replace('NTP health check failed', 'NTP 健康检查失败').replace('Scrub of pool', '存储池').replace('finished', '检查完成').replace('Space usage for pool', 'ZFS 存储池').replace('is', '的空间使用率为').replace('Optimal pool performance requires used space remain below 80%', '为保证最佳池性能，使用空间应保持在 80% 以下')
-                alert_text = alert_text.replace('Device:', '设备:').replace('ATA error count increased from', 'ATA 错误计数从').replace(' to ', ' 增加到 ').replace('REJECT', '无法连接')
-                alert_text = alert_text.replace('Currently unreadable (pending) sectors', '个当前无法读取的（待处理）扇区').replace('No Active NTP peers', '没有活动的NTP服务器')
+                if 'UPS' in alert_type:
+                    alert_text =progress_ups_text(alert_text)
+                else:
+                    alert_text =progress_text(alert_text)
+
                 msg_digest = f"{alert_text}\n{dif_alert.get('alert_time','')}"
-            _LOGGER.info(f'{plugins_name}获取的新系统通知如下:{msg_title}\n{msg_digest}')
+
+            _LOGGER.info(f'{plugins_name}获取到的系统新通知如下:\n{msg_title}\n{msg_digest}')
             push_msg(msg_title, msg_digest)
             return True
         else:
