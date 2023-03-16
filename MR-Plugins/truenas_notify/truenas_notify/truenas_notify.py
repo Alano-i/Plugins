@@ -50,12 +50,20 @@ def config_changed(config: Dict[str, Any]):
 def task():
     get_truenas_alert()
 
+def convert_seconds_to_mmss(seconds):
+    """
+    将秒数转换为 mm:ss 的格式。
+    """
+    minutes = seconds // 60
+    seconds = seconds % 60
+    return "{:02d} 分 {:02d} 秒".format(minutes, seconds)
+
 def progress_ups_text(alert_text):
     battery_charge = re.search(r"battery\.charge:\s*(\d+)", alert_text)
     battery_charge_low = re.search(r"battery\.charge\.low:\s*(\d+)", alert_text)
     battery_runtime = re.search(r"battery\.runtime:\s*(\d+)", alert_text)
     battery_runtime_low = re.search(r"battery\.runtime\.low:\s*(\d+)", alert_text)
-    alert_text = f"电池总电量：{battery_charge.group(1)}%\n电池可运行：{battery_runtime.group(1)} 秒\n切换到低电量临界电量：{battery_charge_low.group(1)}%\n切换到低电量等待时间：{battery_runtime_low.group(1)}秒"
+    alert_text = f"电池总电量：{battery_charge.group(1)}%\n电池可运行：{convert_seconds_to_mmss(battery_runtime.group(1))}\n切换到低电量临界电量：{battery_charge_low.group(1)}%\n切换到低电量等待时间：{battery_runtime_low.group(1)}秒"
     return alert_text
 
 def progress_text(alert_text):
