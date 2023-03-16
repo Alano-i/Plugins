@@ -136,7 +136,6 @@ def get_truenas_alert():
                 msg_digest = msg_digest.strip()
             
             else:
-                dif_alerts = []
                 if not dif_alerts:
                     print('没有获取到新通知')
                     return
