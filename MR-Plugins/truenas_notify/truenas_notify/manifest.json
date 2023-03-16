@@ -1,0 +1,55 @@
+{
+  "id": 1,
+  "name": "truenas_nofity",
+  "title": "TrueNas Scale 系统通知",
+  "author": "Alano",
+  "description": "获取 TrueNas Scale 系统通知并推送到自己的通知通道中",
+  "version": "0.1",
+  "requirements": [],
+  "configField": [
+    {
+      "fieldName": "uid",
+      "fieldType": "Enum",
+      "label": "推送用户",
+      "helperText": "",
+      "enumValuesRef": "UserList",
+      "multiValue": true
+    },
+    {
+      "fieldName": "channel",
+      "fieldType": "Enum",
+      "label": "选择消息推送通道",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "truenas_server",
+      "fieldType": "String",
+      "label": "TrueNas Scale 服务器IP地址或域名，示例：http://10.0.0.1:8080",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "api_token",
+      "fieldType": "String",
+      "label": "TrueNas Scale 服务器 API KEY",
+      "helperText": "TrueNA Scale WEB管理页右上角，点击用户头像 - API密钥",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "pic_url",
+      "fieldType": "String",
+      "label": "推送通知封面图 URL",
+      "helperText": "",
+      "defaultValue": ""
+    }
+  ],
+  "logoUrl": "/plugins/truenas_notify/logo.jpg",
+  "githubUrl": "",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins",
+  "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
+  "dependencies": {
+    "appVersion": ">=1.9.30"
+  }
+}
