@@ -29,7 +29,7 @@ corpsecret = ''
 #企业微信 agentid
 agentid = ''
 #微信推送封面
-pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/truenas_notify_logo.jpg'
+default_pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/truenas_notify_logo.jpg'
 ##################################### 设置 #####################################
 
 def convert_seconds_to_mmss(seconds):
@@ -129,6 +129,7 @@ def progress_text(alert_text):
     return alert_text
 
 def get_truenas_alert():
+    pic_url = default_pic_url
     truenas_alert_api_url = f"{truenas_server}/api/v2.0/alert/list"
     # 构建请求头
     headers = {
@@ -187,6 +188,7 @@ def get_truenas_alert():
                     dif_alerts.append(alert)
             # dif_alerts = [{'alert_time': '2023-03-17 11:22:58', 'alert_level': 'CRITICAL', 'alert_type': 'UPSOnBattery', 'alert_text': "UPS ups is on battery power.<br><br>UPS Statistics: 'ups'<br><br>Statistics recovered:<br><br>1) Battery charge (percent)<br> &nbsp;&nbsp;&nbsp; battery.charge: 100<br><br>2) Battery level remaining (percent) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.charge.low: 10<br><br>3) Battery runtime (seconds)<br> &nbsp;&nbsp;&nbsp; battery.runtime: 642<br><br>4) Battery runtime remaining (seconds) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.runtime.low: 120<br><br>"}]
             # dif_alerts = [{'alert_time': '2023-03-17 11:23:13', 'alert_level': 'INFO', 'alert_type': 'UPSOnline', 'alert_text': "UPS ups is on line power.<br><br>UPS Statistics: 'ups'<br><br>Statistics recovered:<br><br>1) Battery charge (percent)<br> &nbsp;&nbsp;&nbsp; battery.charge: 99<br><br>2) Battery level remaining (percent) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.charge.low: 10<br><br>3) Battery runtime (seconds)<br> &nbsp;&nbsp;&nbsp; battery.runtime: 629<br><br>4) Battery runtime remaining (seconds) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.runtime.low: 120<br><br>"}]
+            # dif_alerts = [{'alert_time': '2023-03-15 18:56:24', 'alert_level': 'WARNING', 'alert_type': 'NTPHealthCheck', 'alert_text': "NTP health check failed - No Active NTP peers: [{'203.107.6.88': 'REJECT'}, {'120.25.115.20': 'REJECT'}, {'202.118.1.81': 'REJECT'}]"}]
             dif_alerts_num = len(dif_alerts)
             level_list = {
                 'CRITICAL': '‼️',
@@ -203,24 +205,37 @@ def get_truenas_alert():
                 'UPSOnBattery': 'UPS 进入电池供电',
                 'SMART': 'SMART异常'
             }
+            pic_url_list = {
+                'ScrubFinished': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/scrub.png',
+                'ZpoolCapacityNotice': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/space.png',
+                'NTPHealthCheck': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ntp.png',
+                'UPSOnline': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_on.png',
+                'UPSOnBattery': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_battery.png',
+                'UPSCommbad': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_lost.png',
+                'SMART': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/smart.png',
+                'default': pic_url
+            }
             if dif_alerts_num > 1:
                 msg_title = f'💌 {dif_alerts_num} 条系统通知'
                 msg_digest = ""
                 for dif_alert in dif_alerts:
-                    alert_level = level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))
-                    alert_type = type_list.get(dif_alert.get('alert_type', ''), dif_alert.get('alert_type', ''))
-                    alert_text = dif_alert.get('alert_text', '')
+                    dif_alert_type_en = dif_alert.get('alert_type', '')
 
-                    if 'UPS' in alert_type:
-                        if alert_type == 'UPSCommbad':
-                            alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                    dif_alert_level = level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))
+                    dif_alert_type = type_list.get(dif_alert.get('alert_type', ''), dif_alert_type_en)
+
+                    dif_alert_text = dif_alert.get('alert_text', '')
+
+                    if 'UPS' in dif_alert_type_en:
+                        if dif_alert_type_en == 'UPSCommbad':
+                            dif_alert_text = '与 UPS 通信丢失，无法获取电池数据'
                         else:
-                            alert_text =progress_ups_text(alert_text)
+                            dif_alert_text =progress_ups_text(dif_alert_text)
                     else:
-                        alert_text =progress_text(alert_text)
+                        dif_alert_text =progress_text(dif_alert_text)
                         
                     alert_time = dif_alert.get('alert_time', '')
-                    msg_digest += f"{alert_level} {alert_type}\n{alert_text}\n{alert_time}\n\n"
+                    msg_digest += f"{dif_alert_level} {dif_alert_type}\n{dif_alert_text}\n{alert_time}\n\n"
                 msg_digest = msg_digest.strip()
             
             else:
@@ -228,20 +243,21 @@ def get_truenas_alert():
                     print('没有获取到新通知')
                     return
                 dif_alert = dif_alerts[0]
+                pic_url = pic_url_list.get(dif_alert.get('alert_type', ''), pic_url_list.get('default'))
                 msg_title = f"{level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), dif_alert.get('alert_type', ''))}"
-                alert_type = dif_alert.get('alert_type', '')
-                alert_text = dif_alert.get('alert_text', '')
+                dif_alert_type = dif_alert.get('alert_type', '')
+                dif_alert_text = dif_alert.get('alert_text', '')
                 
-                if 'UPS' in alert_type:
-                    if alert_type == 'UPSCommbad':
-                        alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                if 'UPS' in dif_alert_type:
+                    if dif_alert_type == 'UPSCommbad':
+                        dif_alert_text = '与 UPS 通信丢失，无法获取电池数据'
                     else:
-                        alert_text =progress_ups_text(alert_text)
+                        dif_alert_text =progress_ups_text(dif_alert_text)
                 else:
-                    alert_text =progress_text(alert_text)
+                    dif_alert_text =progress_text(dif_alert_text)
 
-                msg_digest = f"{alert_text}\n{dif_alert.get('alert_time','')}"
-            push_msg_wx(msg_title, msg_digest)
+                msg_digest = f"{dif_alert_text}\n{dif_alert.get('alert_time','')}"
+            push_msg_wx(msg_title, msg_digest, pic_url)
             print(f"{msg_title}\n{msg_digest}")
         else:
             print('获取到的通知与相同，不发送通知')
@@ -266,7 +282,7 @@ def getToken(corpid, corpsecret, wecom_api_url):
         return ''
 
                 
-def push_msg_wx(msg_title, msg_digest):
+def push_msg_wx(msg_title, msg_digest, pic_url):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36 Edg/110.0.1587.50'}
     wecom_api_url = 'https://qyapi.weixin.qq.com'
     if wecom_proxy_url:
