@@ -9,6 +9,7 @@ import json
 import time
 import os
 import re
+import ast
 
 ##################################### 设置 #####################################
 # server = mbot_api
@@ -39,6 +40,41 @@ def convert_seconds_to_mmss(seconds):
     seconds = seconds % 60
     return "{:02d} 分 {:02d} 秒".format(minutes, seconds)
 
+def progress_device_text(text):
+    # 构造正则表达式 'Device: /dev/sdg [SAT], 2 Currently unreadable (pending) sectors.'
+    patterns = {
+        r"Device: (/dev/sd[a-z]+) \[SAT\], ATA error count increased from (\d+) to (\d+)":
+            "设备: {0}, ATA 错误计数从{1}增加到{2}",
+        r"Device: (/dev/sd[a-z]+) \[SAT\], (\d+) Currently unreadable \(pending\) sectors\.":
+            "设备: {0}, {1}个扇区当前无法读取（挂起）"
+    }
+    # 使用循环遍历字典中的正则表达式模式
+    for pattern, format_str in patterns.items():
+        match = re.search(pattern, text)
+        if match:
+            # 提取设备名和数字
+            groups = match.groups()
+            # 使用 format 函数将变量插入到字符串模板中
+            result = format_str.format(*groups)
+            return result
+    # 如果没有匹配到，则返回原字符串
+    return text
+
+def progress_scrub_text(text):
+    # 构造正则表达式
+    pattern = r"Scrub of pool '(.+)' finished\."
+    # 使用正则表达式匹配字符串
+    match = re.search(pattern, text)
+    if match:
+        # 提取池名
+        pool_name = match.group(1)
+        # 重新组合字符串
+        result = f"存储池'{pool_name}'检查完成"
+    else:
+        # 没有匹配到，直接返回原字符串
+        result = text
+    return result
+
 def progress_ups_text(alert_text):
     battery_charge = re.search(r"battery\.charge:\s*(\d+)", alert_text)
     battery_charge_low = re.search(r"battery\.charge\.low:\s*(\d+)", alert_text)
@@ -47,10 +83,48 @@ def progress_ups_text(alert_text):
     alert_text = f"电池总电量：{battery_charge.group(1)}%\n电池可运行：{convert_seconds_to_mmss(battery_runtime.group(1))}\n切换到低电量临界电量：{battery_charge_low.group(1)}%\n切换到低电量等待时间：{battery_runtime_low.group(1)}秒"
     return alert_text
 
+def progress_space_text(text):
+    # 构造正则表达式
+    pattern = r'Space usage for pool (["\'])(.+)\1 is (\d+)%\. Optimal pool performance requires used space remain below 80%\.'
+
+    # 使用正则表达式匹配字符串
+    match = re.search(pattern, text)
+
+    if match:
+        # 提取池名和空间使用率
+        pool_name = match.group(2)
+        usage_percent = match.group(3)
+
+        # 重新组合字符串
+        result = f'ZFS 存储池 "{pool_name}" 的空间使用达到 {usage_percent}%. 为保证最佳池性能，使用空间应保持在 80% 以下.'
+    else:
+        # 没有匹配到，直接返回原字符串
+        result = text
+
+    return result
+
+def progress_ntp_text(text):
+    # 构造正则表达式
+    pattern = r"NTP health check failed - No Active NTP peers: (\[.*\])"
+    match = re.search(pattern, text)
+    if match:
+        peers_str = match.group(1)
+        peers = ast.literal_eval(peers_str)
+        try:
+            ip_list = [list(peer.keys())[0] for peer in peers]
+            return "NTP 健康检查失败，以下 NTP 都无法连接：\n" + ", ".join(ip_list)
+        except Exception as e:
+            result = text.replace("NTP health check failed - No Active NTP peers:", 'NTP 健康检查失败 - 没有活动的NTP服务器')
+    else:
+        # 没有匹配到，直接返回原字符串
+        result = text
+    return result
+
 def progress_text(alert_text):
-    alert_text = alert_text.replace('NTP health check failed', 'NTP 健康检查失败').replace('Scrub of pool', '存储池').replace('finished', '检查完成').replace('Space usage for pool', 'ZFS 存储池').replace('is', '的空间使用率为').replace('Optimal pool performance requires used space remain below 80%', '为保证最佳池性能，使用空间应保持在 80% 以下')
-    alert_text = alert_text.replace('Device:', '设备:').replace('ATA error count increased from', 'ATA 错误计数从').replace(' to ', ' 增加到 ').replace('REJECT', '无法连接')
-    alert_text = alert_text.replace('Currently unreadable (pending) sectors', '个当前无法读取的（待处理）扇区').replace('No Active NTP peers', '没有活动的NTP服务器')
+    alert_text = progress_scrub_text(alert_text)
+    alert_text = progress_space_text(alert_text)
+    alert_text = progress_device_text(alert_text)
+    alert_text = progress_ntp_text(alert_text)
     return alert_text
 
 def get_truenas_alert():
