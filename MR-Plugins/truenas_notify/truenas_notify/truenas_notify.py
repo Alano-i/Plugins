@@ -209,8 +209,8 @@ def get_truenas_alert():
                 msg_title = f'💌 {dif_alerts_num} 条系统通知'
                 msg_digest = ""
                 for alert in dif_alerts:
-                    alert_level = level_list.get(alert.get('alert_level',''),'')
-                    alert_type = type_list.get(alert.get('alert_type', ''),'')
+                    alert_level = level_list.get(alert.get('alert_level',''), alert.get('alert_level',''))
+                    alert_type = type_list.get(alert.get('alert_type', ''), alert.get('alert_type', ''))
                     alert_text = alert.get('alert_text', '')
 
                     if 'UPS' in alert_type:
@@ -230,7 +230,7 @@ def get_truenas_alert():
                     # print('没有获取到新通知')
                     return False
                 dif_alert = dif_alerts[0]
-                msg_title = f"{level_list.get(dif_alert.get('alert_level',''),'')} {type_list.get(dif_alert.get('alert_type',''),'') }"
+                msg_title = f"{level_list.get(dif_alert.get('alert_level',''), alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), alert.get('alert_type', '')) }"
                 alert_type = dif_alert.get('alert_type', '')
                 alert_text = dif_alert.get('alert_text', '')
                 
