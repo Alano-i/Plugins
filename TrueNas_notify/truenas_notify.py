@@ -36,6 +36,7 @@ def convert_seconds_to_mmss(seconds):
     """
     将秒数转换为 mm:ss 的格式。
     """
+    seconds = int(seconds)
     minutes = seconds // 60
     seconds = seconds % 60
     return "{:02d} 分 {:02d} 秒".format(minutes, seconds)
@@ -69,7 +70,7 @@ def progress_scrub_text(text):
         # 提取池名
         pool_name = match.group(1)
         # 重新组合字符串
-        result = f"存储池'{pool_name}'检查完成"
+        result = f"存储池 '{pool_name}' 检查完成"
     else:
         # 没有匹配到，直接返回原字符串
         result = text
@@ -168,6 +169,9 @@ def get_truenas_alert():
                 'alert_text': alert_text,
             }
             alerts.append(nofity_content)
+        
+        # alerts = [{"alert_time": "2022-08-22 00:02:54", "alert_level": "CRITICALss", "alert_type": "SMART", "alert_text": "sfaasfsfsfasfasfasfasfasfsfsf."}]
+
         if old_alerts != alerts:
             # server.common.set_cache('notify', 'alerts', alerts)
             try:
@@ -181,6 +185,8 @@ def get_truenas_alert():
             for alert in alerts:
                 if alert not in old_alerts:
                     dif_alerts.append(alert)
+            # dif_alerts = [{'alert_time': '2023-03-17 11:22:58', 'alert_level': 'CRITICAL', 'alert_type': 'UPSOnBattery', 'alert_text': "UPS ups is on battery power.<br><br>UPS Statistics: 'ups'<br><br>Statistics recovered:<br><br>1) Battery charge (percent)<br> &nbsp;&nbsp;&nbsp; battery.charge: 100<br><br>2) Battery level remaining (percent) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.charge.low: 10<br><br>3) Battery runtime (seconds)<br> &nbsp;&nbsp;&nbsp; battery.runtime: 642<br><br>4) Battery runtime remaining (seconds) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.runtime.low: 120<br><br>"}]
+            # dif_alerts = [{'alert_time': '2023-03-17 11:23:13', 'alert_level': 'INFO', 'alert_type': 'UPSOnline', 'alert_text': "UPS ups is on line power.<br><br>UPS Statistics: 'ups'<br><br>Statistics recovered:<br><br>1) Battery charge (percent)<br> &nbsp;&nbsp;&nbsp; battery.charge: 99<br><br>2) Battery level remaining (percent) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.charge.low: 10<br><br>3) Battery runtime (seconds)<br> &nbsp;&nbsp;&nbsp; battery.runtime: 629<br><br>4) Battery runtime remaining (seconds) when UPS switches to Low Battery (LB)<br> &nbsp;&nbsp;&nbsp; battery.runtime.low: 120<br><br>"}]
             dif_alerts_num = len(dif_alerts)
             level_list = {
                 'CRITICAL': '‼️',
@@ -194,15 +200,16 @@ def get_truenas_alert():
                 'NTPHealthCheck': 'NTP 健康检查',
                 'UPSOnline': 'UPS 恢复供电',
                 'UPSCommbad': 'UPS 断开连接',
+                'UPSOnBattery': 'UPS 进入电池供电',
                 'SMART': 'SMART异常'
             }
             if dif_alerts_num > 1:
                 msg_title = f'💌 {dif_alerts_num} 条系统通知'
                 msg_digest = ""
-                for alert in dif_alerts:
-                    alert_level = level_list.get(alert.get('alert_level',''), alert.get('alert_level',''))
-                    alert_type = type_list.get(alert.get('alert_type', ''), alert.get('alert_type', ''))
-                    alert_text = alert.get('alert_text', '')
+                for dif_alert in dif_alerts:
+                    alert_level = level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))
+                    alert_type = type_list.get(dif_alert.get('alert_type', ''), dif_alert.get('alert_type', ''))
+                    alert_text = dif_alert.get('alert_text', '')
 
                     if 'UPS' in alert_type:
                         if alert_type == 'UPSCommbad':
@@ -212,7 +219,7 @@ def get_truenas_alert():
                     else:
                         alert_text =progress_text(alert_text)
                         
-                    alert_time = alert.get('alert_time', '')
+                    alert_time = dif_alert.get('alert_time', '')
                     msg_digest += f"{alert_level} {alert_type}\n{alert_text}\n{alert_time}\n\n"
                 msg_digest = msg_digest.strip()
             
@@ -221,7 +228,7 @@ def get_truenas_alert():
                     print('没有获取到新通知')
                     return
                 dif_alert = dif_alerts[0]
-                msg_title = f"{level_list.get(dif_alert.get('alert_level',''), alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), alert.get('alert_type', '')) }"
+                msg_title = f"{level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), dif_alert.get('alert_type', ''))}"
                 alert_type = dif_alert.get('alert_type', '')
                 alert_text = dif_alert.get('alert_text', '')
                 
