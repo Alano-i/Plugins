@@ -19,7 +19,7 @@ plugins_path = '/data/plugins/truenas_notify'
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global message_to_uid, channel, truenas_server, api_token, pic_url
+    global message_to_uid, channel, truenas_server, api_token, default_pic_url
     message_to_uid = config.get('uid')
     if config.get('channel'):
         channel = config.get('channel')
@@ -28,13 +28,14 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
         channel = 'qywx'
     truenas_server = config.get('truenas_server')
     api_token = config.get('api_token')
-    pic_url = config.get('pic_url')
+    default_pic_url = config.get('default_pic_url')
+    _LOGGER.info(f'{plugins_name}默认封面图：{default_pic_url}')
     if not message_to_uid:
         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global message_to_uid, channel, truenas_server, api_token, pic_url
+    global message_to_uid, channel, truenas_server, api_token, default_pic_url
     message_to_uid = config.get('uid')
     if config.get('channel'):
         channel = config.get('channel')
@@ -43,7 +44,8 @@ def config_changed(config: Dict[str, Any]):
         channel = 'qywx'
     truenas_server = config.get('truenas_server')
     api_token = config.get('api_token')
-    pic_url = config.get('pic_url')
+    default_pic_url = config.get('default_pic_url')
+    _LOGGER.info(f'{plugins_name}默认封面图：{default_pic_url}')
     if not message_to_uid:
         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
@@ -55,6 +57,7 @@ def convert_seconds_to_mmss(seconds):
     """
     将秒数转换为 mm:ss 的格式。
     """
+    seconds = int(seconds)
     minutes = seconds // 60
     seconds = seconds % 60
     return "{:02d} 分 {:02d} 秒".format(minutes, seconds)
@@ -88,7 +91,7 @@ def progress_scrub_text(text):
         # 提取池名
         pool_name = match.group(1)
         # 重新组合字符串
-        result = f"存储池'{pool_name}'检查完成"
+        result = f"存储池 '{pool_name}' 检查完成"
     else:
         # 没有匹配到，直接返回原字符串
         result = text
@@ -147,6 +150,10 @@ def progress_text(alert_text):
     return alert_text
   
 def get_truenas_alert():
+    # pic_url = 'https://walkcs.com/notification/img/truenas.jpg'
+    # _LOGGER.info(f'api_token:{api_token}')
+    # _LOGGER.info(f'default_pic_url:{default_pic_url}')
+    pic_url = default_pic_url
     # TrueNA Scale的IP地址和端口
     # truenas_server = 'http://10.10.10.10:9999'
     truenas_alert_api_url = f"{truenas_server}/api/v2.0/alert/list"
@@ -190,7 +197,10 @@ def get_truenas_alert():
             for alert in alerts:
                 if alert not in old_alerts:
                     dif_alerts.append(alert)
+            # dif_alerts = [{'alert_time': '2023-03-17 11:47:08', 'alert_level': 'CRITICAL', 'alert_type': 'UPSCommbad', 'alert_text': "Communication with UPS ups lost.<br><br>UPS Statistics: 'ups'<br><br>Statistics could not be recovered<br>"}]
             dif_alerts_num = len(dif_alerts)
+            _LOGGER.info(f'dif_alerts:{dif_alerts}')
+            
             level_list = {
                 'CRITICAL': '‼️',
                 'WARNING':'⚠️',
@@ -202,27 +212,42 @@ def get_truenas_alert():
                 'ZpoolCapacityNotice': '存储池容量提醒',
                 'NTPHealthCheck': 'NTP 健康检查',
                 'UPSOnline': 'UPS 恢复供电',
+                'UPSOnBattery': 'UPS 进入电池供电',
                 'UPSCommbad': 'UPS 断开连接',
                 'SMART': 'SMART异常'
             }
+            pic_url_list = {
+                'ScrubFinished': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/scrub.png',
+                'ZpoolCapacityNotice': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/space.png',
+                'NTPHealthCheck': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ntp.png',
+                'UPSOnline': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_on.png',
+                'UPSOnBattery': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_battery.png',
+                'UPSCommbad': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_lost.png',
+                'SMART': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/smart.png',
+                'default': pic_url
+            }
             if dif_alerts_num > 1:
+                # pic_url = pic_url_list.get('default')
                 msg_title = f'💌 {dif_alerts_num} 条系统通知'
                 msg_digest = ""
-                for alert in dif_alerts:
-                    alert_level = level_list.get(alert.get('alert_level',''), alert.get('alert_level',''))
-                    alert_type = type_list.get(alert.get('alert_type', ''), alert.get('alert_type', ''))
-                    alert_text = alert.get('alert_text', '')
+                for dif_alert in dif_alerts:
+                    dif_alert_type_en = dif_alert.get('alert_type', '')
 
-                    if 'UPS' in alert_type:
-                        if alert_type == 'UPSCommbad':
-                            alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                    dif_alert_level = level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))
+                    dif_alert_type = type_list.get(dif_alert.get('alert_type', ''), dif_alert_type_en)
+
+                    dif_alert_text = dif_alert.get('alert_text', '')
+
+                    if 'UPS' in dif_alert_type_en:
+                        if dif_alert_type_en == 'UPSCommbad':
+                            dif_alert_text = '与 UPS 通信丢失，无法获取电池数据'
                         else:
-                            alert_text =progress_ups_text(alert_text)
+                            dif_alert_text =progress_ups_text(dif_alert_text)
                     else:
-                        alert_text =progress_text(alert_text)
+                        dif_alert_text =progress_text(dif_alert_text)
                         
-                    alert_time = alert.get('alert_time', '')
-                    msg_digest += f"{alert_level} {alert_type}\n{alert_text}\n{alert_time}\n\n"
+                    alert_time = dif_alert.get('alert_time', '')
+                    msg_digest += f"{dif_alert_level} {dif_alert_type}\n{dif_alert_text}\n{alert_time}\n\n"
                 msg_digest = msg_digest.strip()
             
             else:
@@ -230,27 +255,28 @@ def get_truenas_alert():
                     # print('没有获取到新通知')
                     return False
                 dif_alert = dif_alerts[0]
-                msg_title = f"{level_list.get(dif_alert.get('alert_level',''), alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), alert.get('alert_type', '')) }"
-                alert_type = dif_alert.get('alert_type', '')
-                alert_text = dif_alert.get('alert_text', '')
+                pic_url = pic_url_list.get(dif_alert.get('alert_type', ''), pic_url_list.get('default'))
+                msg_title = f"{level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), dif_alert.get('alert_type', ''))}"
+                dif_alert_type = dif_alert.get('alert_type', '')
+                dif_alert_text = dif_alert.get('alert_text', '')
                 
-                if 'UPS' in alert_type:
-                    if alert_type == 'UPSCommbad':
-                        alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                if 'UPS' in dif_alert_type:
+                    if dif_alert_type == 'UPSCommbad':
+                        dif_alert_text = '与 UPS 通信丢失，无法获取电池数据'
                     else:
-                        alert_text =progress_ups_text(alert_text)
+                        dif_alert_text =progress_ups_text(dif_alert_text)
                 else:
-                    alert_text =progress_text(alert_text)
+                    dif_alert_text =progress_text(dif_alert_text)
 
-                msg_digest = f"{alert_text}\n{dif_alert.get('alert_time','')}"
+                msg_digest = f"{dif_alert_text}\n{dif_alert.get('alert_time','')}"
 
             _LOGGER.info(f'{plugins_name}获取到的系统新通知如下:\n{msg_title}\n{msg_digest}')
-            push_msg(msg_title, msg_digest)
+            push_msg_to_mbot(msg_title, msg_digest, pic_url)
             return True
         else:
             # _LOGGER.info(f'没有新通知')
             return False
-def push_msg(msg_title, msg_digest):
+def push_msg_to_mbot(msg_title, msg_digest, pic_url):
     msg_data = {
         'title': msg_title,
         'a': msg_digest,
