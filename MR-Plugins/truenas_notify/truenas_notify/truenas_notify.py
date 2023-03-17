@@ -2,6 +2,7 @@ import requests
 import datetime
 import re
 import json
+import ast
 from mbot.core.plugins import plugin
 from mbot.core.plugins import PluginContext, PluginMeta
 from mbot.openapi import mbot_api
