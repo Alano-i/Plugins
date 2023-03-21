@@ -1,6 +1,8 @@
 # 💌 TrueNAS 系统通知
 - MR插件，获取 TrueNAS Scale 系统通知并推送到 MR 指定的通知通道（微信效果最佳）
-- 如果没有安装 MR,可以使用本项目上一级目录的通用脚本
+- 通过 websocket 实时获取通知
+- 如果没有安装MR，可以使用本项目上一级目录的通用脚本，该脚本是通过 API 轮询的方式获取，有兴趣的朋友可以基于此插件修改为 WS 的方式
+
 
 ## 效果预览
 ![truenas通知预览](https://user-images.githubusercontent.com/68833595/226232441-5b4c63b1-9220-4a41-8df9-72ca94865814.png)
