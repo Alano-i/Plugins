@@ -37,11 +37,11 @@
       "defaultValue": ""
     },
     {
-      "fieldName": "default_pic_url",
+      "fieldName": "pic_url_base",
       "fieldType": "String",
-      "label": "推送通知默认封面图 URL",
+      "label": "推送通知封面图 URL前缀",
       "helperText": "",
-      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/truenas_notify/truenas_notify/logo.jpg"
+      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img"
     }
   ],
   "logoUrl": "/plugins/truenas_notify/logo.jpg",
