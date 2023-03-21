@@ -1,0 +1,295 @@
+import requests
+import datetime
+import re
+import json
+import ast
+from mbot.core.plugins import plugin
+from mbot.core.plugins import PluginContext, PluginMeta
+from mbot.openapi import mbot_api
+from typing import Dict, Any
+import logging
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+_LOGGER = logging.getLogger(__name__)
+server = mbot_api
+
+plugins_name = '「TrueNas Scale 系统通知」'
+plugins_path = '/data/plugins/truenas_notify'
+
+
+@plugin.after_setup
+def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
+    global message_to_uid, channel, truenas_server, api_token, default_pic_url
+    message_to_uid = config.get('uid')
+    if config.get('channel'):
+        channel = config.get('channel')
+        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+    else:
+        channel = 'qywx'
+    truenas_server = config.get('truenas_server')
+    api_token = config.get('api_token')
+    default_pic_url = config.get('default_pic_url')
+    _LOGGER.info(f'{plugins_name}默认封面图：{default_pic_url}')
+    if not message_to_uid:
+        _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
+
+@plugin.config_changed
+def config_changed(config: Dict[str, Any]):
+    global message_to_uid, channel, truenas_server, api_token, default_pic_url
+    message_to_uid = config.get('uid')
+    if config.get('channel'):
+        channel = config.get('channel')
+        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+    else:
+        channel = 'qywx'
+    truenas_server = config.get('truenas_server')
+    api_token = config.get('api_token')
+    default_pic_url = config.get('default_pic_url')
+    _LOGGER.info(f'{plugins_name}默认封面图：{default_pic_url}')
+    if not message_to_uid:
+        _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
+
+@plugin.task('truenas_nofity', 'TrueNas Scale 系统通知', cron_expression='*/1 * * * *')
+def task():
+    get_truenas_alert()
+
+def convert_seconds_to_mmss(seconds):
+    """
+    将秒数转换为 mm:ss 的格式。
+    """
+    seconds = int(seconds)
+    minutes = seconds // 60
+    seconds = seconds % 60
+    return "{:02d} 分 {:02d} 秒".format(minutes, seconds)
+
+def progress_device_text(text):
+    # 构造正则表达式 'Device: /dev/sdg [SAT], 2 Currently unreadable (pending) sectors.'
+    patterns = {
+        r"Device: (/dev/sd[a-z]+) \[SAT\], ATA error count increased from (\d+) to (\d+)":
+            "设备: {0}, ATA 错误计数从{1}增加到{2}",
+        r"Device: (/dev/sd[a-z]+) \[SAT\], (\d+) Currently unreadable \(pending\) sectors\.":
+            "设备: {0}, {1}个扇区当前无法读取（挂起）"
+    }
+    # 使用循环遍历字典中的正则表达式模式
+    for pattern, format_str in patterns.items():
+        match = re.search(pattern, text)
+        if match:
+            # 提取设备名和数字
+            groups = match.groups()
+            # 使用 format 函数将变量插入到字符串模板中
+            result = format_str.format(*groups)
+            return result
+    # 如果没有匹配到，则返回原字符串
+    return text
+
+def progress_scrub_text(text):
+    # 构造正则表达式
+    pattern = r"Scrub of pool '(.+)' finished\."
+    # 使用正则表达式匹配字符串
+    match = re.search(pattern, text)
+    if match:
+        # 提取池名
+        pool_name = match.group(1)
+        # 重新组合字符串
+        result = f"存储池 '{pool_name}' 检查完成"
+    else:
+        # 没有匹配到，直接返回原字符串
+        result = text
+    return result
+
+def progress_ups_text(alert_text):
+    battery_charge = re.search(r"battery\.charge:\s*(\d+)", alert_text)
+    battery_charge_low = re.search(r"battery\.charge\.low:\s*(\d+)", alert_text)
+    battery_runtime = re.search(r"battery\.runtime:\s*(\d+)", alert_text)
+    battery_runtime_low = re.search(r"battery\.runtime\.low:\s*(\d+)", alert_text)
+    alert_text = f"电池总电量：{battery_charge.group(1)}%\n电池可运行：{convert_seconds_to_mmss(battery_runtime.group(1))}\n切换到低电量临界电量：{battery_charge_low.group(1)}%\n切换到低电量等待时间：{battery_runtime_low.group(1)}秒"
+    return alert_text
+
+def progress_space_text(text):
+    # 构造正则表达式
+    pattern = r'Space usage for pool (["\'])(.+)\1 is (\d+)%\. Optimal pool performance requires used space remain below 80%\.'
+
+    # 使用正则表达式匹配字符串
+    match = re.search(pattern, text)
+
+    if match:
+        # 提取池名和空间使用率
+        pool_name = match.group(2)
+        usage_percent = match.group(3)
+
+        # 重新组合字符串
+        result = f'ZFS 存储池 "{pool_name}" 的空间使用达到 {usage_percent}%. 为保证最佳池性能，使用空间应保持在 80% 以下.'
+    else:
+        # 没有匹配到，直接返回原字符串
+        result = text
+
+    return result
+
+def progress_ntp_text(text):
+    # 构造正则表达式
+    pattern = r"NTP health check failed - No Active NTP peers: (\[.*\])"
+    match = re.search(pattern, text)
+    if match:
+        peers_str = match.group(1)
+        peers = ast.literal_eval(peers_str)
+        try:
+            ip_list = [list(peer.keys())[0] for peer in peers]
+            return "NTP 健康检查失败，以下 NTP 都无法连接：\n" + ", ".join(ip_list)
+        except Exception as e:
+            result = text.replace("NTP health check failed - No Active NTP peers:", 'NTP 健康检查失败 - 没有活动的NTP服务器')
+    else:
+        # 没有匹配到，直接返回原字符串
+        result = text
+    return result
+
+def progress_text(alert_text):
+    alert_text = progress_scrub_text(alert_text)
+    alert_text = progress_space_text(alert_text)
+    alert_text = progress_device_text(alert_text)
+    alert_text = progress_ntp_text(alert_text)
+    return alert_text
+  
+def get_truenas_alert():
+    # pic_url = 'https://walkcs.com/notification/img/truenas.jpg'
+    # _LOGGER.info(f'api_token:{api_token}')
+    # _LOGGER.info(f'default_pic_url:{default_pic_url}')
+    pic_url = default_pic_url
+    # TrueNA Scale的IP地址和端口
+    # truenas_server = 'http://10.10.10.10:9999'
+    truenas_alert_api_url = f"{truenas_server}/api/v2.0/alert/list"
+    # 构建请求头
+    headers = {
+        'Content-Type': 'application/json',
+        "Authorization": f"Bearer {api_token}"
+    }
+    # 请求系统通知
+    response = requests.get(truenas_alert_api_url, headers=headers, timeout=10)
+    # 解析请求返回
+    json_data = json.loads(response.text)
+    
+    if json_data:
+        alert_num = len(json_data)
+        # 遍历所有alert并按alert_time倒序排序
+        json_data = sorted(json_data, key=lambda x: x['datetime']['$date'], reverse=True)
+        if server.common.get_cache('notify', 'alerts'):
+            old_alerts = server.common.get_cache('notify', 'alerts')
+        else:
+            old_alerts = []
+        alerts = []
+        for alert in json_data:
+            alert_level = alert['level']
+            alert_type = alert['klass']
+            alert_text = alert['formatted']
+            alert_time = datetime.datetime.fromtimestamp(alert['datetime']['$date']/1000).strftime("%Y-%m-%d %H:%M:%S")
+            nofity_content = {
+                'alert_time': alert_time,
+                'alert_level': alert_level,
+                'alert_type': alert_type,
+                'alert_text': alert_text,
+            }
+            alerts.append(nofity_content)
+        # _LOGGER.info(f'alerts:{alerts}')
+
+        # _LOGGER.info(f'old_alerts:{old_alerts}')
+        if old_alerts != alerts:
+            server.common.set_cache('notify', 'alerts', alerts)
+            dif_alerts = []
+            for alert in alerts:
+                if alert not in old_alerts:
+                    dif_alerts.append(alert)
+            # dif_alerts = [{'alert_time': '2023-03-17 11:47:08', 'alert_level': 'CRITICAL', 'alert_type': 'UPSCommbad', 'alert_text': "Communication with UPS ups lost.<br><br>UPS Statistics: 'ups'<br><br>Statistics could not be recovered<br>"}]
+            dif_alerts_num = len(dif_alerts)
+            _LOGGER.info(f'dif_alerts:{dif_alerts}')
+            
+            level_list = {
+                'CRITICAL': '‼️',
+                'WARNING':'⚠️',
+                'NOTICE':'✉️',
+                'INFO':'ℹ️'
+            }
+            type_list = {
+                'ScrubFinished': '磁盘检修完成',
+                'ZpoolCapacityNotice': '存储池容量提醒',
+                'NTPHealthCheck': 'NTP 健康检查',
+                'UPSOnline': 'UPS 恢复供电',
+                'UPSOnBattery': 'UPS 进入电池供电',
+                'UPSCommbad': 'UPS 断开连接',
+                'SMART': 'SMART异常'
+            }
+            pic_url_list = {
+                'ScrubFinished': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/scrub.png',
+                'ZpoolCapacityNotice': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/space.png',
+                'NTPHealthCheck': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ntp.png',
+                'UPSOnline': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_on.png',
+                'UPSOnBattery': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_battery.png',
+                'UPSCommbad': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_lost.png',
+                'SMART': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/smart.png',
+                'default': pic_url
+            }
+            if dif_alerts_num > 1:
+                # pic_url = pic_url_list.get('default')
+                msg_title = f'💌 {dif_alerts_num} 条系统通知'
+                msg_digest = ""
+                for dif_alert in dif_alerts:
+                    dif_alert_type_en = dif_alert.get('alert_type', '')
+
+                    dif_alert_level = level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))
+                    dif_alert_type = type_list.get(dif_alert.get('alert_type', ''), dif_alert_type_en)
+
+                    dif_alert_text = dif_alert.get('alert_text', '')
+
+                    if 'UPS' in dif_alert_type_en:
+                        if dif_alert_type_en == 'UPSCommbad':
+                            dif_alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                        else:
+                            dif_alert_text =progress_ups_text(dif_alert_text)
+                    else:
+                        dif_alert_text =progress_text(dif_alert_text)
+                        
+                    alert_time = dif_alert.get('alert_time', '')
+                    msg_digest += f"{dif_alert_level} {dif_alert_type}\n{dif_alert_text}\n{alert_time}\n\n"
+                msg_digest = msg_digest.strip()
+            
+            else:
+                if not dif_alerts:
+                    # print('没有获取到新通知')
+                    return False
+                dif_alert = dif_alerts[0]
+                pic_url = pic_url_list.get(dif_alert.get('alert_type', ''), pic_url_list.get('default'))
+                msg_title = f"{level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), dif_alert.get('alert_type', ''))}"
+                dif_alert_type = dif_alert.get('alert_type', '')
+                dif_alert_text = dif_alert.get('alert_text', '')
+                
+                if 'UPS' in dif_alert_type:
+                    if dif_alert_type == 'UPSCommbad':
+                        dif_alert_text = '与 UPS 通信丢失，无法获取电池数据'
+                    else:
+                        dif_alert_text =progress_ups_text(dif_alert_text)
+                else:
+                    dif_alert_text =progress_text(dif_alert_text)
+
+                msg_digest = f"{dif_alert_text}\n{dif_alert.get('alert_time','')}"
+
+            _LOGGER.info(f'{plugins_name}获取到的系统新通知如下:\n{msg_title}\n{msg_digest}')
+            push_msg_to_mbot(msg_title, msg_digest, pic_url)
+            return True
+        else:
+            # _LOGGER.info(f'没有新通知')
+            return False
+def push_msg_to_mbot(msg_title, msg_digest, pic_url):
+    msg_data = {
+        'title': msg_title,
+        'a': msg_digest,
+        'pic_url': pic_url,
+        'link_url': '',
+    }
+    try:
+        if message_to_uid:
+            for _ in message_to_uid:
+                server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data, to_uid=_, to_channel_name = channel)
+        else:
+            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data)
+        _LOGGER.info(f'{plugins_name}已推送消息')
+        return
+    except Exception as e:
+        _LOGGER.error(f'{plugins_name}推送消息异常，原因: {e}')
