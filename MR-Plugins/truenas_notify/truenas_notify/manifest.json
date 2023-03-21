@@ -3,7 +3,7 @@
   "title": "TrueNAS 通知",
   "author": "Alano",
   "description": "获取 TrueNAS Scale 系统通知并推送到自己的通知通道中",
-  "version": "0.1",
+  "version": "1.0",
   "requirements": null,
   "configField": [
     {
@@ -27,7 +27,7 @@
       "fieldType": "String",
       "label": "TrueNas Scale 服务器IP地址或域名，示例：10.0.0.1:80，不含http",
       "helperText": "",
-      "defaultValue": ""
+      "defaultValue": "10.0.0.1:80"
     },
     {
       "fieldName": "api_key",
