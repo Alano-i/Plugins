@@ -1,8 +1,9 @@
 
 # TrueNas 企业微信通知
-![image](https://user-images.githubusercontent.com/68833595/225517017-f98bde08-2fdb-43af-9bc0-6041b30bf665.png)
 
-
+## 效果预览
+预览图是 Movie-bot 插件版本的与普通脚本版效果一致
+![truenas通知预览](https://user-images.githubusercontent.com/68833595/226232441-5b4c63b1-9220-4a41-8df9-72ca94865814.png)
 
 ## 使用方法
 - 将`truenas_notify.py` 放入存储池中，建立定时任务获取新通知并推送到微信
