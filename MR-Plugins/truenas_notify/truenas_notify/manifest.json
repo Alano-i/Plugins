@@ -1,8 +1,8 @@
 {
   "name": "truenas_nofity",
-  "title": "TrueNas Scale系统通知",
+  "title": "TrueNAS 通知",
   "author": "Alano",
-  "description": "获取 TrueNas Scale 系统通知并推送到自己的通知通道中",
+  "description": "获取 TrueNAS Scale 系统通知并推送到自己的通知通道中",
   "version": "0.1",
   "requirements": null,
   "configField": [
@@ -25,12 +25,12 @@
     {
       "fieldName": "truenas_server",
       "fieldType": "String",
-      "label": "TrueNas Scale 服务器IP地址或域名，示例：http://10.0.0.1:8080",
+      "label": "TrueNas Scale 服务器IP地址或域名，示例：10.0.0.1:80，不含http",
       "helperText": "",
       "defaultValue": ""
     },
     {
-      "fieldName": "api_token",
+      "fieldName": "api_key",
       "fieldType": "String",
       "label": "TrueNas Scale 服务器 API KEY",
       "helperText": "TrueNA Scale WEB管理页右上角，点击用户头像 - API密钥",
