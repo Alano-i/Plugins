@@ -23,7 +23,7 @@ plugins_path = '/data/plugins/truenas_notify'
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global message_to_uid, channel, truenas_server, api_key, default_pic_url
+    global message_to_uid, channel, truenas_server, api_key, pic_url_base
     message_to_uid = config.get('uid')
     if config.get('channel'):
         channel = config.get('channel')
@@ -32,8 +32,8 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
         channel = 'qywx'
     truenas_server = config.get('truenas_server')
     api_key = config.get('api_key')
-    default_pic_url = config.get('default_pic_url')
-    _LOGGER.info(f'{plugins_name}默认封面图：{default_pic_url}')
+    pic_url_base = config.get('pic_url_base')
+    _LOGGER.info(f'{plugins_name}封面图 URL 前缀：{pic_url_base}')
     if not message_to_uid:
         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
     # 启动 ws 线程
@@ -41,7 +41,7 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global message_to_uid, channel, truenas_server, api_key, default_pic_url
+    global message_to_uid, channel, truenas_server, api_key, pic_url_base
     message_to_uid = config.get('uid')
     if config.get('channel'):
         channel = config.get('channel')
@@ -50,8 +50,8 @@ def config_changed(config: Dict[str, Any]):
         channel = 'qywx'
     truenas_server = config.get('truenas_server')
     api_key = config.get('api_key')
-    default_pic_url = config.get('default_pic_url')
-    _LOGGER.info(f'{plugins_name}默认封面图：{default_pic_url}')
+    pic_url_base = config.get('pic_url_base')
+    _LOGGER.info(f'{plugins_name}封面图 URL 前缀：{pic_url_base}')
     if not message_to_uid:
         _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
     # 启动 ws 线程
@@ -178,7 +178,6 @@ def progress_text(alert_text, alert_type):
     return alert_text
 
 def progress_alert_text(alert):
-    pic_url = default_pic_url
     alert_level = alert['level']
     alert_type = alert['klass']
     alert_text = alert['formatted']
@@ -208,18 +207,18 @@ def progress_alert_text(alert):
         'SMART': 'SMART异常'
     }
     pic_url_list = {
-        'ScrubFinished': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/scrub.png',
-        'ZpoolCapacityNotice': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/space.png',
-        'NTPHealthCheck': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ntp.png',
-        'UPSOnline': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_on.png',
-        'UPSOnBattery': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_battery.png',
-        'UPSCommbad': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/ups_lost.png',
-        'SMART': 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/TrueNas_notify/img/smart.png',
-        'default': pic_url
+        'ScrubFinished': 'scrub.png',
+        'ScrubStarted': 'scrub.png',
+        'ZpoolCapacityNotice': 'space.png',
+        'NTPHealthCheck': 'ntp.png',
+        'UPSOnline': 'ups_on.png',
+        'UPSOnBattery': 'ups_battery.png',
+        'UPSCommbad': 'ups_lost.png',
+        'ChartReleaseUpdate': 'update.png',
+        'SMART': 'smart.png'
     }
-
     dif_alert = alert_content
-    pic_url = pic_url_list.get(dif_alert.get('alert_type', ''), pic_url_list.get('default'))
+    pic_url = f"{pic_url_base}/{pic_url_list.get(dif_alert.get('alert_type', ''), 'default.png')}"
     msg_title = f"{level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), dif_alert.get('alert_type', ''))}"
     dif_alert_type = dif_alert.get('alert_type', '')
     dif_alert_text = dif_alert.get('alert_text', '')
@@ -262,7 +261,9 @@ def on_message(ws, message):
     elif json_data['msg'] == 'result' and json_data['result'] == 'pong':
         heartbeat_result = json_data
         # 接收心跳返回结果
-        _LOGGER.info(f'{plugins_name}心跳: {heartbeat_result}')
+        if datetime.datetime.now().minute in [0, 15, 30, 45]:
+            _LOGGER.info(f'{plugins_name}心跳: {heartbeat_result}')
+            time.sleep(60)
     elif json_data['msg'] == 'result' and json_data['result'] == True:
         # _LOGGER.info(f'{plugins_name}websocket 身份认证成功')
         # 订阅报警事件
