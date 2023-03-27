@@ -23,22 +23,24 @@ ignore_torrents = []
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval
+    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval, update_plex_library_on
     qb_urls = config.get('qb_urls', '')
     qb_ports = config.get('qb_ports', '')
     usernames = config.get('usernames', '')
     passwords = config.get('passwords', '')
     add_tag = config.get('add_tag', False)
+    update_plex_library_on = config.get('update_plex_library_on', False)
     check_interval = config.get('check_interval', False)
     
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval
+    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval, update_plex_library_on
     qb_urls = config.get('qb_urls', '')
     qb_ports = config.get('qb_ports', '')
     usernames = config.get('usernames', '')
     passwords = config.get('passwords', '')
     add_tag = config.get('add_tag', False)
+    update_plex_library_on = config.get('update_plex_library_on', False)
     check_interval = config.get('check_interval', False)
     _LOGGER.warning(f"{plugins_name}已重新加载设置，将自动重启 Mbot，请等待重启完成")
     server.common.restart_app()
@@ -141,6 +143,12 @@ def monitor_clients(qb_urls, qb_ports, usernames, passwords):
         tag_torrent(client['host'], client['port'], client['username'], client['password'])
 
 scheduler = sched.scheduler(time.time, time.sleep)
+
+def update_library():
+    for library in plexserver.library.sections():
+        _LOGGER.error(f"{plugins_name}定时开始刷新媒体库：{library}")
+        library.update()
+
 def send_heartbeat():
     # _LOGGER.info(f"{plugins_name}开始检查")
     monitor_clients(qb_urls, qb_ports, usernames, passwords)
@@ -151,3 +159,8 @@ def task():
     if add_tag:
         scheduler.enter(0, 1, send_heartbeat)
         scheduler.run()
+
+@plugin.task('update_plex_library', '刷新 PLEX 全库', cron_expression='30 1 * * *')
+def update_plex_library_task():
+    if update_plex_library_on:
+        update_library()
