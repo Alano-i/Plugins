@@ -2,7 +2,7 @@
   "name": "qb_add_tag",
   "title": "QB 添加标签",
   "author": "Alano",
-  "description": "QB 自动为种子添加标签",
+  "description": "QB 自动为种子添加标签. 每天凌晨 1:30 PELX 扫全库",
   "version": "1.0",
   "requirements": null,
   "configField": [
@@ -10,6 +10,13 @@
       "fieldName": "add_tag",
       "fieldType": "Bool",
       "label": "开启自动添加标签 (需要重启)",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "update_plex_library_on",
+      "fieldType": "Bool",
+      "label": "开启自动在每天凌晨 1:30 扫全库",
       "helperText": "",
       "defaultValue": false
     },
