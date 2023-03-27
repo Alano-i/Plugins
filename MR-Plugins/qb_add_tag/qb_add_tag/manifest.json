@@ -1,0 +1,59 @@
+{
+  "name": "qb_add_tag",
+  "title": "QB 添加标签",
+  "author": "Alano",
+  "description": "QB 自动为种子添加标签",
+  "version": "1.0",
+  "requirements": null,
+  "configField": [
+    {
+      "fieldName": "add_tag",
+      "fieldType": "Bool",
+      "label": "开启自动添加标签 (需要重启)",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "check_interval",
+      "fieldType": "String",
+      "label": "检测间隔（单位：秒）",
+      "helperText": "",
+      "defaultValue": "10"
+    },
+    {
+      "fieldName": "qb_urls",
+      "fieldType": "String",
+      "label": "URL，支持多个，一行一个",
+      "helperText": "",
+      "defaultValue": "http://10.0.0.1"
+    },
+    {
+      "fieldName": "qb_ports",
+      "fieldType": "String",
+      "label": "端口，支持多个，一行一个",
+      "helperText": "",
+      "defaultValue": "8080"
+    },
+    {
+      "fieldName": "usernames",
+      "fieldType": "String",
+      "label": "用户名，支持多个，一行一个",
+      "helperText": "",
+      "defaultValue": "admin"
+    },
+    {
+      "fieldName": "passwords",
+      "fieldType": "String",
+      "label": "密码，支持多个，一行一个",
+      "helperText": "",
+      "defaultValue": "adminadmin"
+    }
+  ],
+  "logoUrl": "/plugins/qb_add_tag/logo.png",
+  "githubUrl": "",
+  "helpDocUrl": "",
+  "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
+  "dependencies": {
+    "appVersion": ">=1.9.30"
+  }
+}
