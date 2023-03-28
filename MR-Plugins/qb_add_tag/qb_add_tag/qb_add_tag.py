@@ -68,7 +68,7 @@ def plex_update_lib():
         code = 1
         result = {'state':'失败', 'reason':e}
         return api_result(code=code, message=result, data=plex_update_data)
-    time.sleep(400)
+#     time.sleep(400)
     for i in range(5):
         try:
             lib = plexserver.library.section(lib_name)
