@@ -22,7 +22,7 @@ add_tag_config_list = [
 
 @plugin.command(name='add_tag_ma', title='QB种子添加标签', desc='为指定文件夹添加标签', icon='HourglassFull',run_in_background=True)
 def add_tag_m_echo(ctx: PluginCommandContext,
-                progress_path: ArgSchema(ArgType.String, '指定种子保存路径', '', default_value='', required=True),
+                progress_path: ArgSchema(ArgType.String, '为以下保存路径的种子添加标签', '', default_value='', required=True),
                 add_tag_m_name: ArgSchema(ArgType.String, '添加的标签名称', '', default_value='', required=True),
                 add_tag_config: ArgSchema(ArgType.Enum, '是否启用，默认开启', '', enum_values=lambda: add_tag_config_list, default_value=True, multi_value=False, required=False)):
     
