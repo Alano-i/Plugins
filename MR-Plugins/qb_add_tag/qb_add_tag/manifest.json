@@ -14,46 +14,53 @@
       "defaultValue": false
     },
     {
-      "fieldName": "update_plex_library_on",
-      "fieldType": "Bool",
-      "label": "开启自动在每天凌晨 1:30 扫全库",
-      "helperText": "",
-      "defaultValue": false
-    },
-    {
       "fieldName": "check_interval",
       "fieldType": "String",
-      "label": "检测间隔（单位：秒）",
+      "label": "QB检测间隔（单位：秒）",
       "helperText": "",
       "defaultValue": "10"
     },
     {
       "fieldName": "qb_urls",
       "fieldType": "String",
-      "label": "URL，支持多个，一行一个",
+      "label": "QB URL，支持多个，一行一个",
       "helperText": "",
       "defaultValue": "http://10.0.0.1"
     },
     {
       "fieldName": "qb_ports",
       "fieldType": "String",
-      "label": "端口，支持多个，一行一个",
+      "label": "QB端口，支持多个，一行一个",
       "helperText": "",
       "defaultValue": "8080"
     },
     {
       "fieldName": "usernames",
       "fieldType": "String",
-      "label": "用户名，支持多个，一行一个",
+      "label": "QB用户名，支持多个，一行一个",
       "helperText": "",
       "defaultValue": "admin"
     },
     {
       "fieldName": "passwords",
       "fieldType": "String",
-      "label": "密码，支持多个，一行一个",
+      "label": "QB密码，支持多个，一行一个",
       "helperText": "",
       "defaultValue": "adminadmin"
+    },
+    {
+      "fieldName": "random_set",
+      "fieldType": "String",
+      "label": "通知 PLEX 局部刷新延时，英文逗号隔开。400,600：400到600秒随机延时，400,400：延时400秒",
+      "helperText": "",
+      "defaultValue": "400,600"
+    },
+    {
+      "fieldName": "update_plex_library_on",
+      "fieldType": "Bool",
+      "label": "开启自动在每天凌晨 1:30 扫全库",
+      "helperText": "",
+      "defaultValue": false
     }
   ],
   "logoUrl": "/plugins/qb_add_tag/logo.png",
