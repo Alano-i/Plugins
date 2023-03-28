@@ -1,13 +1,13 @@
 from mbot.core.plugins import plugin, PluginCommandContext, PluginCommandResponse,PluginMeta
 from mbot.openapi import mbot_api
 from mbot.core.params import ArgSchema, ArgType
-from .qb_add_tag import add_tag_m
+from .qb_tools import add_tag_m
 import logging
 
 server = mbot_api
 _LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-plugins_name = '「QB 添加标签」'
+plugins_name = '「QB 工具箱」'
 
 add_tag_config_list = [
     {
