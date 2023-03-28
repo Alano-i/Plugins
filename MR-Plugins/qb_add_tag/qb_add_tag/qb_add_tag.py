@@ -74,8 +74,6 @@ def plex_update_lib():
         code = 1
         result = {'state':'失败', 'reason':e}
         return api_result(code=code, message=result, data=plex_update_data)
-    # thread = threading.Thread(target=plex_update, args=(lib_name, filepath))
-    # thread.start()
     return api_result(code=code, message=result, data=plex_update_data)
 
 def plex_update(lib_name, filepath, delay_time):
@@ -103,20 +101,16 @@ def tag_torrent(qb_url, qb_port, username, password, add_tag, add_tag_m, progres
     except qbittorrentapi.LoginFailed as e:
         _LOGGER.error(f"{plugins_name}Qbittorrent: {qb_url}  登入失败!，原因：{e}")
         return
-    # 所有种子
-    # progress_torrent = qb.torrents.info()
-    # 正在下载的种子
     if add_tag:
+        # 正在下载的种子
         progress_torrent = qb.torrents.info(status_filter='downloading')
         for torrent in progress_torrent:
             if not torrent.tags:
-                # 获取种子名称
                 torrent_name = torrent.name
                 # _LOGGER.info(f"ignore_torrents: {ignore_torrents}")
                 if torrent_name not in ignore_torrents:
                     label = get_tmdbid(torrent_name)
                     if label:
-                        # 给种子打上标签
                         torrent.add_tags(label)
                     else:
                         _LOGGER.error(f"{plugins_name}['{torrent_name}'] 没有获取到该种子的 tmdbid，添加标签 tmdb=none")
@@ -176,7 +170,6 @@ def add_tag_m(add_tag_m, progress_path, add_tag_m_name):
     monitor_clients(qb_urls, qb_ports, usernames, passwords, add_tag, add_tag_m, progress_path, add_tag_m_name)
 
 def send_heartbeat():
-    # _LOGGER.info(f"{plugins_name}开始检查")
     monitor_clients(qb_urls, qb_ports, usernames, passwords, add_tag, False, '', '')
     scheduler.enter(int(check_interval), 1, send_heartbeat)
 
