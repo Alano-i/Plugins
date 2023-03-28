@@ -11,11 +11,11 @@ plugins_name = '「QB 工具箱」'
 
 add_tag_config_list = [
     {
-        "name": "开启",
+        "name": "✅ 开启",
         "value": True
     },
     {
-        "name": "关闭",
+        "name": "📴 关闭",
         "value": False
     }
 ]
