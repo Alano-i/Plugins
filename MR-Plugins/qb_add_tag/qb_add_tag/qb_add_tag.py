@@ -3,6 +3,7 @@ import requests
 import time
 import json
 import os
+import random
 import qbittorrentapi
 from mbot.core.plugins import plugin
 from mbot.core.plugins import PluginContext, PluginMeta
@@ -62,20 +63,23 @@ def plex_update_lib():
     try:
         lib_name = request.args.get('lib_name', plex_update_data.get('lib_name', request.form.get('lib_name', '空')))
         filepath = request.args.get('filepath', plex_update_data.get('filepath', request.form.get('filepath', '空')))
-        _LOGGER.info(f"「通知 PLEX 刷新媒体库」接收到更新数据 ['lib_name': '{lib_name}', 'filepath': '{filepath}']")
+        delay_time = random.randint(400, 600)
+        _LOGGER.info(f"「接收 PLEX 刷新路径」接收到更新数据 ['lib_name': '{lib_name}', 'filepath': '{filepath}']，等待 {delay_time} 秒后通知刷新")
         code = 0
         result = {'state':'接收更新数据成功'}
+        thread = threading.Thread(target=plex_update, args=(lib_name, filepath, delay_time))
+        thread.start()
     except Exception as e:
-        _LOGGER.error(f'「通知 PLEX 刷新媒体库」未接收到更新数据，传参错误，{e}')
+        _LOGGER.error(f'「接收 PLEX 刷新路径」未接收到更新数据，传参错误，{e}')
         code = 1
         result = {'state':'失败', 'reason':e}
         return api_result(code=code, message=result, data=plex_update_data)
-    thread = threading.Thread(target=plex_update, args=(lib_name, filepath))
-    thread.start()
+    # thread = threading.Thread(target=plex_update, args=(lib_name, filepath))
+    # thread.start()
     return api_result(code=code, message=result, data=plex_update_data)
 
-def plex_update(lib_name, filepath):
-    time.sleep(random.randint(400, 600))
+def plex_update(lib_name, filepath, delay_time):
+    time.sleep(delay_time)
     for i in range(5):
         try:
             lib = plexserver.library.section(lib_name)
