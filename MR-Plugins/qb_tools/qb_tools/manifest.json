@@ -65,7 +65,7 @@
   ],
   "logoUrl": "/plugins/qb_tools/logo.png",
   "githubUrl": "",
-  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/qb_add_tag",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/qb_tools",
   "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
   "dependencies": {
     "appVersion": ">=1.9.30"
