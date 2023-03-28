@@ -98,7 +98,7 @@ def plex_update(lib_name, filepath, delay_time):
             _LOGGER.info(f"「通知 PLEX 刷新媒体库」已通知 PLEX 刷新媒体库 ['{lib_name}'] 下的路径：['{filepath}']")
             break
         except Exception as e:
-            _LOGGER.error(f"「通知 PLEX 刷新媒体库」接收更新数据成功，通知 PLEX 局部更新失败，{e}")
+            _LOGGER.error(f"「通知 PLEX 刷新媒体库」第 {i+1}/5 次通知 PLEX 刷新媒体库 ['{lib_name}'] 下的路径：['{filepath}'] 失败，原因：{e}")
             continue
 
 def tag_torrent(qb_url, qb_port, username, password, add_tag, add_tag_m, progress_path, add_tag_m_name):
