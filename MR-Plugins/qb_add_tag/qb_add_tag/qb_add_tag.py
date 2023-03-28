@@ -26,22 +26,24 @@ ignore_torrents = []
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval, update_plex_library_on
+    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval, update_plex_library_on, random_set
     qb_urls = config.get('qb_urls', '')
     qb_ports = config.get('qb_ports', '')
     usernames = config.get('usernames', '')
     passwords = config.get('passwords', '')
+    random_set = config.get('random_set', '')
     add_tag = config.get('add_tag', False)
     update_plex_library_on = config.get('update_plex_library_on', False)
     check_interval = config.get('check_interval', False)
     
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval, update_plex_library_on
+    global qb_urls, qb_ports, usernames, passwords, add_tag, check_interval, update_plex_library_on, random_set
     qb_urls = config.get('qb_urls', '')
     qb_ports = config.get('qb_ports', '')
     usernames = config.get('usernames', '')
     passwords = config.get('passwords', '')
+    random_set = config.get('random_set', '')
     add_tag = config.get('add_tag', False)
     update_plex_library_on = config.get('update_plex_library_on', False)
     check_interval = config.get('check_interval', False)
@@ -63,7 +65,15 @@ def plex_update_lib():
     try:
         lib_name = request.args.get('lib_name', plex_update_data.get('lib_name', request.form.get('lib_name', '空')))
         filepath = request.args.get('filepath', plex_update_data.get('filepath', request.form.get('filepath', '空')))
-        delay_time = random.randint(400, 600)
+        if random_set:
+            try:
+                min_delay, max_delay = random_set.split(',')
+            except Exception as e:
+                min_delay = 400
+                max_delay = 600
+            delay_time = random.randint(int(min_delay), int(max_delay))
+        else:
+            delay_time = random.randint(400, 600)
         _LOGGER.info(f"「接收 PLEX 刷新路径」接收到更新数据 ['lib_name': '{lib_name}', 'filepath': '{filepath}']，等待 {delay_time} 秒后通知刷新")
         code = 0
         result = {'state':'接收更新数据成功'}
