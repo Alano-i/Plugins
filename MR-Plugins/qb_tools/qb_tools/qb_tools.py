@@ -20,8 +20,8 @@ from mbot.openapi import media_server_manager
 plexserver = media_server_manager.master_plex.plex
 _LOGGER = logging.getLogger(__name__)
 server = mbot_api
-plugins_name = '「QB 添加标签」'
-plugins_path = '/data/plugins/qb_add_tag'
+plugins_name = '「QB 工具箱」'
+plugins_path = '/data/plugins/qb_tools'
 ignore_torrents = []
 
 @plugin.after_setup
@@ -184,7 +184,7 @@ def send_heartbeat():
     monitor_clients(qb_urls, qb_ports, usernames, passwords, add_tag, False, '', '')
     scheduler.enter(int(check_interval), 1, send_heartbeat)
 
-@plugin.task('qb_add_tag', 'QB 添加标签', cron_expression='*/5 * * * *')
+@plugin.task('qb_tools', 'QB 添加标签', cron_expression='*/5 * * * *')
 def task():
     if add_tag:
         scheduler.enter(0, 1, send_heartbeat)
