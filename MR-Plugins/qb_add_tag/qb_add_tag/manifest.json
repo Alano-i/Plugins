@@ -3,7 +3,7 @@
   "title": "QB 添加标签",
   "author": "Alano",
   "description": "QB 自动为种子添加标签. 每天凌晨 1:30 PELX 扫全库",
-  "version": "1.0",
+  "version": "1.1",
   "requirements": null,
   "configField": [
     {
