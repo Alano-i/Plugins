@@ -1,9 +1,9 @@
 {
-  "name": "qb_add_tag",
-  "title": "QB 添加标签",
+  "name": "qb_tools",
+  "title": "QB 工具箱",
   "author": "Alano",
-  "description": "QB 自动为种子添加标签. 每天凌晨 1:30 PELX 扫全库",
-  "version": "1.2",
+  "description": "➊ 自动为QB种子添加标签 ➋ 接收 POST 事件，可指定 PLEX 服务器刷新局部目录 ➌ 每天凌晨 1:30 PELX 扫全库，详见帮助文档",
+  "version": "1.0",
   "requirements": null,
   "configField": [
     {
@@ -49,23 +49,23 @@
       "defaultValue": "adminadmin"
     },
     {
-      "fieldName": "random_set",
-      "fieldType": "String",
-      "label": "通知 PLEX 局部刷新延时，英文逗号隔开。400,600：400到600秒随机延时，400,400：延时400秒",
-      "helperText": "",
-      "defaultValue": "400,600"
-    },
-    {
       "fieldName": "update_plex_library_on",
       "fieldType": "Bool",
       "label": "开启自动在每天凌晨 1:30 扫全库",
       "helperText": "",
       "defaultValue": false
+    },
+    {
+      "fieldName": "random_set",
+      "fieldType": "String",
+      "label": "通知 PLEX 局部刷新延时，英文逗号隔开。400,600：400到600秒随机延时，400,400：延时400秒",
+      "helperText": "",
+      "defaultValue": "400,600"
     }
   ],
-  "logoUrl": "/plugins/qb_add_tag/logo.png",
+  "logoUrl": "/plugins/qb_tools/logo.png",
   "githubUrl": "",
-  "helpDocUrl": "",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/qb_add_tag",
   "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
   "dependencies": {
     "appVersion": ">=1.9.30"
