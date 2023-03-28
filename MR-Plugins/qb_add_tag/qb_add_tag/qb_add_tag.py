@@ -2,12 +2,14 @@
 import requests
 import time
 import json
+import os
 import qbittorrentapi
 from mbot.core.plugins import plugin
 from mbot.core.plugins import PluginContext, PluginMeta
 from mbot.openapi import mbot_api
 from typing import Dict, Any
 import logging
+import threading
 import sched
 from flask import Blueprint, request
 from mbot.common.flaskutils import api_result
@@ -68,7 +70,12 @@ def plex_update_lib():
         code = 1
         result = {'state':'失败', 'reason':e}
         return api_result(code=code, message=result, data=plex_update_data)
-#     time.sleep(400)
+    thread = threading.Thread(target=plex_update, args=(lib_name, filepath))
+    thread.start()
+    return api_result(code=code, message=result, data=plex_update_data)
+
+def plex_update(lib_name, filepath):
+    time.sleep(random.randint(400, 600))
     for i in range(5):
         try:
             lib = plexserver.library.section(lib_name)
@@ -77,16 +84,12 @@ def plex_update_lib():
             else:
                 _LOGGER.error(f"没有找到媒体库：{lib_name}")
             _LOGGER.info(f"「通知 PLEX 刷新媒体库」已通知 PLEX 刷新媒体库 ['{lib_name}'] 下的路径：['{filepath}']")
-            result = {'state':'接收更新数据成功', 'update':'已通知 PLEX 局部更新'}
             break
         except Exception as e:
-            result = {'state':'接收更新数据成功', 'update':f'通知 PLEX 局部更新失败，{e}'}
             _LOGGER.error(f"「通知 PLEX 刷新媒体库」接收更新数据成功，通知 PLEX 局部更新失败，{e}")
             continue
-    return api_result(code=code, message=result, data=plex_update_data)
 
-
-def tag_torrent(qb_url, qb_port, username, password):
+def tag_torrent(qb_url, qb_port, username, password, add_tag, add_tag_m, progress_path, add_tag_m_name):
     if all([not qb_url, not qb_port, not username, not password]):
         return
     # 创建 qBittorrent 客户端
@@ -99,21 +102,35 @@ def tag_torrent(qb_url, qb_port, username, password):
     # 所有种子
     # progress_torrent = qb.torrents.info()
     # 正在下载的种子
-    progress_torrent = qb.torrents.info(status_filter='downloading')
-    for torrent in progress_torrent:
-        if not torrent.tags:
-            # 获取种子名称
-            torrent_name = torrent.name
-            # _LOGGER.info(f"ignore_torrents: {ignore_torrents}")
-            if torrent_name not in ignore_torrents:
-                label = get_tmdbid(torrent_name)
-                if label:
-                    # 给种子打上标签
-                    torrent.add_tags(label)
-                else:
-                    _LOGGER.error(f"{plugins_name}['{torrent_name}'] 没有获取到该种子的 tmdbid，添加标签 tmdb=none")
-                    torrent.add_tags('[tmdb=none]')
-                    ignore_torrents.append(torrent_name)
+    if add_tag:
+        progress_torrent = qb.torrents.info(status_filter='downloading')
+        for torrent in progress_torrent:
+            if not torrent.tags:
+                # 获取种子名称
+                torrent_name = torrent.name
+                # _LOGGER.info(f"ignore_torrents: {ignore_torrents}")
+                if torrent_name not in ignore_torrents:
+                    label = get_tmdbid(torrent_name)
+                    if label:
+                        # 给种子打上标签
+                        torrent.add_tags(label)
+                    else:
+                        _LOGGER.error(f"{plugins_name}['{torrent_name}'] 没有获取到该种子的 tmdbid，添加标签 tmdb=none")
+                        torrent.add_tags('[tmdb=none]')
+                        ignore_torrents.append(torrent_name)
+    if add_tag_m:
+        if progress_path and add_tag_m and add_tag_m_name:
+            # 所有种子
+            all_torrent = qb.torrents.info()
+            for torrent in all_torrent:
+                if os.path.abspath(progress_path) == os.path.abspath(torrent.save_path):
+                    if not torrent.tags:
+                        # torrent.add_tags('PT刷流')
+                        torrent.add_tags(add_tag_m_name)
+                    else:
+                        _LOGGER.warning(f"{plugins_name}为种子 ['{torrent.name}'] 添加标签失败，因为已有标签：['{torrent.tags}']")
+        else:
+            _LOGGER.error(f"{plugins_name}手动添加标签 ['{add_tag_m_name}'] 失败，参数设置错误")
 
 def get_tmdbid(torrent_name):
     label = ''
@@ -132,7 +149,7 @@ def get_tmdbid(torrent_name):
             label = f'tmdb=tv-{media_tmdb_id}' if media_tmdb_id else ''
     return label
 
-def monitor_clients(qb_urls, qb_ports, usernames, passwords):
+def monitor_clients(qb_urls, qb_ports, usernames, passwords, add_tag, add_tag_m, progress_path, add_tag_m_name):
     qb_urls = qb_urls.split('\n') if '\n' in qb_urls else [qb_urls]
     qb_ports = qb_ports.split('\n') if '\n' in qb_ports else [qb_ports]
     usernames = usernames.split('\n') if '\n' in usernames else [usernames]
@@ -142,7 +159,7 @@ def monitor_clients(qb_urls, qb_ports, usernames, passwords):
         for i in range(len(qb_urls))
     ]
     for client in clients:
-        tag_torrent(client['host'], client['port'], client['username'], client['password'])
+        tag_torrent(client['host'], client['port'], client['username'], client['password'], add_tag, add_tag_m, progress_path, add_tag_m_name)
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
@@ -151,9 +168,12 @@ def update_library():
         _LOGGER.error(f"{plugins_name}定时开始刷新媒体库：{library}")
         library.update()
 
+def add_tag_m(add_tag_m, progress_path, add_tag_m_name):
+    monitor_clients(qb_urls, qb_ports, usernames, passwords, add_tag, add_tag_m, progress_path, add_tag_m_name)
+
 def send_heartbeat():
     # _LOGGER.info(f"{plugins_name}开始检查")
-    monitor_clients(qb_urls, qb_ports, usernames, passwords)
+    monitor_clients(qb_urls, qb_ports, usernames, passwords, add_tag, False, '', '')
     scheduler.enter(int(check_interval), 1, send_heartbeat)
 
 @plugin.task('qb_add_tag', 'QB 添加标签', cron_expression='*/5 * * * *')
