@@ -68,6 +68,7 @@ def plex_update_lib():
         code = 1
         result = {'state':'失败', 'reason':e}
         return api_result(code=code, message=result, data=plex_update_data)
+    time.sleep(400)
     for i in range(5):
         try:
             lib = plexserver.library.section(lib_name)
@@ -83,6 +84,7 @@ def plex_update_lib():
             _LOGGER.error(f"「通知 PLEX 刷新媒体库」接收更新数据成功，通知 PLEX 局部更新失败，{e}")
             continue
     return api_result(code=code, message=result, data=plex_update_data)
+
 
 def tag_torrent(qb_url, qb_port, username, password):
     if all([not qb_url, not qb_port, not username, not password]):
