@@ -98,7 +98,7 @@ def plex_update(lib_name, filepath, delay_time):
             _LOGGER.info(f"「通知 PLEX 刷新媒体库」已通知 PLEX 刷新媒体库 ['{lib_name}'] 下的路径：['{filepath}']")
             break
         except Exception as e:
-            _LOGGER.error(f"「通知 PLEX 刷新媒体库」第 {i+1}/5 次通知 PLEX 刷新媒体库 ['{lib_name}'] 下的路径：['{filepath}'] 失败，原因：{e}")
+            _LOGGER.error(f"「通知 PLEX 刷新媒体库」第 {i+1}/10 次通知 PLEX 刷新媒体库 ['{lib_name}'] 下的路径：['{filepath}'] 失败，原因：{e}")
             time.sleep(5)
             continue
 
@@ -174,7 +174,7 @@ scheduler = sched.scheduler(time.time, time.sleep)
 
 def update_library():
     for library in plexserver.library.sections():
-        _LOGGER.error(f"{plugins_name}定时开始刷新媒体库：{library}")
+        _LOGGER.info(f"{plugins_name}定时开始刷新媒体库：{library}")
         library.update()
 
 def add_tag_m(add_tag_m, progress_path, add_tag_m_name):
