@@ -1,5 +1,22 @@
+# 💌 通知服务器
+MR插件，通知服务器
+
+# 参数说明
+`title` 通知标题
+
+`description` 通知内容
+
+`channel_id` 通道 ID（0-9）
+
+`pic_url` 封面图
+
+`link_url` 跳转链接
+
+默认封面图
+
 ![dsm](https://user-images.githubusercontent.com/68833595/226601973-cbf1aa24-d11f-4345-9cae-a16159d0e5ee.png)
 
+# 示例（群晖系统通知）
 ```console
 http://10.10.10.33:1329/api/plugins/notify_server?access_key=改成你的&num=888&passwd=888&channel_id=0&link_url=改成你的群晖外网访问地址&pic_url=改成图片的url地址&title=标题&description=hello world
 ```
