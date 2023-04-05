@@ -103,6 +103,7 @@ def progress_app_text(text):
     return result
 
 def progress_scrub_text(text):
+    _LOGGER.error(f'alert_text进入函数后处理前：{text}')
     # 构造正则表达式 started
     pattern = r"Scrub of pool '(.+)' (started|finished)\."
     # 使用正则表达式匹配字符串
@@ -122,6 +123,8 @@ def progress_scrub_text(text):
     else:
         # 没有匹配到，直接返回原字符串
         result = text
+    _LOGGER.error(f'match：{match}')
+    _LOGGER.error(f'alert_text进入函数后处理后：{result}')
     return result
 
 def progress_ups_text(alert_text):
@@ -173,8 +176,10 @@ def progress_text(alert_text, alert_type):
         'NTPHealthCheck': progress_ntp_text,
         'ChartReleaseUpdate': progress_app_text,
     }
+    _LOGGER.error(f'alert_text处理前：{alert_text}')
     if alert_type in handlers:
         alert_text = handlers[alert_type](alert_text)
+    _LOGGER.error(f'alert_text处理后：{alert_text}')
     return alert_text
 
 def progress_alert_text(alert):
@@ -204,6 +209,7 @@ def progress_alert_text(alert):
         'UPSOnBattery': 'UPS 进入电池供电',
         'UPSCommbad': 'UPS 断开连接',
         'ChartReleaseUpdate': '应用有更新',
+        'CatalogSyncFailed': '应用目录同步失败',
         'SMART': 'SMART异常'
     }
     pic_url_list = {
@@ -215,6 +221,7 @@ def progress_alert_text(alert):
         'UPSOnBattery': 'ups_battery.png',
         'UPSCommbad': 'ups_lost.png',
         'ChartReleaseUpdate': 'update.png',
+        'CatalogSyncFailed': 'update.png',
         'SMART': 'smart.png'
     }
     dif_alert = alert_content
@@ -261,7 +268,7 @@ def on_message(ws, message):
     elif json_data['msg'] == 'result' and json_data['result'] == 'pong':
         heartbeat_result = json_data
         # 接收心跳返回结果
-        if datetime.datetime.now().minute in [0, 15, 30, 45]:
+        if datetime.datetime.now().minute in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:
             _LOGGER.info(f'{plugins_name}心跳: {heartbeat_result}')
             time.sleep(60)
     elif json_data['msg'] == 'result' and json_data['result'] == True:
@@ -281,15 +288,15 @@ def on_message(ws, message):
 
 
 def on_error(ws, error):
-    _LOGGER.error(f'出错了：{error} 关闭后重新连接')
+    _LOGGER.error(f'{plugins_name}连接 Websocket 出错了：{error} 关闭后重新连接')
     try:
         ws.close()
         ws.run_forever()
     except Exception as e:
-        _LOGGER.info(f"{plugins_name}重连失败, 原因：{e}")
+        _LOGGER.info(f"{plugins_name}重连 Websocket 失败, 原因：{e}")
 
 def on_close(ws, close_status_code, close_msg):
-    _LOGGER.info(f"关闭连接，close_status_code:{close_status_code}, close_msg:{close_msg}")
+    _LOGGER.info(f"{plugins_name}关闭 Websocket 连接，close_status_code:{close_status_code}, close_msg:{close_msg}")
 
 def push_msg_to_mbot(msg_title, msg_digest, pic_url):
     msg_data = {
@@ -314,7 +321,7 @@ def start_get_truenas_alert():
         ws.close()
         _LOGGER.info("get_truenas_alert 线程正在运行, 终止当前线程重新启动.")
     except Exception as e:
-        _LOGGER.info(f"{plugins_name}get_truenas_alert 线程没有运行, 启动新线程.{e}")
+        _LOGGER.error(f"{plugins_name}get_truenas_alert 线程没有运行, 等待定时任务，将重新启动新线程。原因：{e}")
     # 启动新线程
     thread = threading.Thread(target=get_truenas_alert)
     thread.start()
