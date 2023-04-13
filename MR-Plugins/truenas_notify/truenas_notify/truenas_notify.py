@@ -67,7 +67,7 @@ def convert_seconds_to_mmss(seconds):
     seconds = seconds % 60
     return "{:02d} 分 {:02d} 秒".format(minutes, seconds)
 
-def progress_device_text(text):
+def progress_device_text(alert_type, text):
     # 构造正则表达式 'Device: /dev/sdg [SAT], 2 Currently unreadable (pending) sectors.'
     patterns = {
         r"Device: (/dev/sd[a-z]+) \[SAT\], ATA error count increased from (\d+) to (\d+)":
@@ -87,22 +87,24 @@ def progress_device_text(text):
     # 如果没有匹配到，则返回原字符串
     return text
 
-def progress_app_text(text):
-    # 构造正则表达式
-    pattern = r"An update is available for ([\"'])(.+?)\1 application\."
-    # 使用正则表达式匹配字符串
-    match = re.search(pattern, text)
-    if match:
-        # 提取池名
-        app_name = match.group(2)
-        # 重新组合字符串
-        result = f"{app_name} 有更新"
-    else:
-        # 没有匹配到，直接返回原字符串
-        result = text
-    return result
+def progress_app_text(alert_type, text):
 
-def progress_scrub_text(text):
+    patterns = {
+        r'An update is available for ["\'](.+?)["\'] application.+':
+            "{0} 有更新",
+        r"Failed to sync (.+?) catalog:(.+)":
+            "同步 {0} 目录失败，原因：\n{1}"
+    }
+
+    for pattern, format_str in patterns.items():
+        match = re.search(pattern, text)
+        if match:
+            # 将匹配到的内容传递给模板字符串的format方法，并返回结果
+            result = format_str.format(*match.groups())
+            return result
+    return text
+
+def progress_scrub_text(alert_type, text):
     _LOGGER.error(f'alert_text进入函数后处理前：{text}')
     # 构造正则表达式 started
     pattern = r"Scrub of pool '(.+)' (started|finished)\."
@@ -112,12 +114,11 @@ def progress_scrub_text(text):
         # 提取池名
         pool_name = match.group(1)
         status = match.group(2)
-        if status == 'started':
-            status = '检查开始'
-        elif status == 'finished':
-            status = '检查完成'
-        else:
-            status = '检查状态未知'
+        statuss={
+            "started": "检查开始",
+            "finished": "检查完成"
+        }
+        status = statuss.get(status, "检查状态未知")
         # 重新组合字符串
         result = f"存储池 '{pool_name}' {status}"
     else:
@@ -127,31 +128,49 @@ def progress_scrub_text(text):
     _LOGGER.error(f'alert_text进入函数后处理后：{result}')
     return result
 
-def progress_ups_text(alert_text):
-    battery_charge = re.search(r"battery\.charge:\s*(\d+)", alert_text)
-    battery_charge_low = re.search(r"battery\.charge\.low:\s*(\d+)", alert_text)
-    battery_runtime = re.search(r"battery\.runtime:\s*(\d+)", alert_text)
-    battery_runtime_low = re.search(r"battery\.runtime\.low:\s*(\d+)", alert_text)
-    alert_text = f"电池总电量：{battery_charge.group(1)}%\n电池可运行：{convert_seconds_to_mmss(battery_runtime.group(1))}\n低电量模式临界电量：{battery_charge_low.group(1)}%\n低电量模式等待时间：{battery_runtime_low.group(1)}秒"
-    return alert_text
-
-def progress_space_text(text):
-    # 构造正则表达式
-    pattern = r'Space usage for pool (["\'])(.+)\1 is (\d+)%\. Optimal pool performance requires used space remain below 80%\.'
-    # 使用正则表达式匹配字符串
-    match = re.search(pattern, text)
-    if match:
-        # 提取池名和空间使用率
-        pool_name = match.group(2)
-        usage_percent = match.group(3)
-        # 重新组合字符串
-        result = f'ZFS 存储池 "{pool_name}" 的空间使用达到 {usage_percent}%. 为保证最佳池性能，使用空间应保持在 80% 以下.'
+def progress_ups_text(alert_type, text):
+    if alert_type == 'UPSCommbad':
+        text = '与 UPS 通信丢失，无法获取电池数据'
     else:
-        # 没有匹配到，直接返回原字符串
-        result = text
+        battery_charge = re.search(r"battery\.charge:\s*(\d+)", text)
+        battery_charge_low = re.search(r"battery\.charge\.low:\s*(\d+)", text)
+        battery_runtime = re.search(r"battery\.runtime:\s*(\d+)", text)
+        battery_runtime_low = re.search(r"battery\.runtime\.low:\s*(\d+)", text)
+        text = f"电池总电量：{battery_charge.group(1)}%\n电池可运行：{convert_seconds_to_mmss(battery_runtime.group(1))}\n低电量模式临界电量：{battery_charge_low.group(1)}%\n低电量模式等待时间：{battery_runtime_low.group(1)}秒"
+    return text
+
+def progress_space_text(alert_type, text):
+    patterns = {
+        r'Space usage for pool (["\'])(.+)\1 is (\d+)%\. Optimal pool performance requires used space remain below 80%\.':
+            'ZFS 存储池 "{1}" 的空间使用达到 {2}%. 为保证最佳池性能，使用空间应保持在 80% 以下.',
+        r"Failed to check for alert ZpoolCapacity:(.+)":
+            "检查存储池容量失败，原因：\n{0}"
+    }
+
+    for pattern, format_str in patterns.items():
+        match = re.search(pattern, text)
+        if match:
+            # 将匹配到的内容传递给模板字符串的format方法，并返回结果
+            result = format_str.format(*match.groups())
+            return result
     return result
 
-def progress_ntp_text(text):
+    # # 构造正则表达式
+    # pattern = r'Space usage for pool (["\'])(.+)\1 is (\d+)%\. Optimal pool performance requires used space remain below 80%\.'
+    # # 使用正则表达式匹配字符串
+    # match = re.search(pattern, text)
+    # if match:
+    #     # 提取池名和空间使用率
+    #     pool_name = match.group(2)
+    #     usage_percent = match.group(3)
+    #     # 重新组合字符串
+    #     result = f'ZFS 存储池 "{pool_name}" 的空间使用达到 {usage_percent}%. 为保证最佳池性能，使用空间应保持在 80% 以下.'
+    # else:
+    #     # 没有匹配到，直接返回原字符串
+    #     result = text
+    # return result
+
+def progress_ntp_text(alert_type, text):
     # 构造正则表达式
     pattern = r"NTP health check failed - No Active NTP peers: (\[.*\])"
     match = re.search(pattern, text)
@@ -168,17 +187,23 @@ def progress_ntp_text(text):
         result = text
     return result
 
-def progress_text(alert_text, alert_type):
-    handlers = {
+def progress_text(alert_type, alert_text):
+    handlers_type = {
         'ScrubFinished': progress_scrub_text,
+        'ScrubStarted': progress_scrub_text,
         'ZpoolCapacityNotice': progress_space_text,
-        'SMART': progress_device_text,
+        'ZpoolCapacityWarning': progress_space_text,
         'NTPHealthCheck': progress_ntp_text,
         'ChartReleaseUpdate': progress_app_text,
+        'CatalogSyncFailed': progress_app_text,
+        'SMART': progress_device_text,
+        'UPSOnline': progress_ups_text,
+        'UPSOnBattery': progress_ups_text,
+        'UPSCommbad': progress_ups_text,
     }
     _LOGGER.error(f'alert_text处理前：{alert_text}')
-    if alert_type in handlers:
-        alert_text = handlers[alert_type](alert_text)
+    if alert_type in handlers_type:
+        alert_text = handlers_type[alert_type](alert_type, alert_text)
     _LOGGER.error(f'alert_text处理后：{alert_text}')
     return alert_text
 
@@ -200,48 +225,106 @@ def progress_alert_text(alert):
         'NOTICE':'✉️',
         'INFO':'ℹ️'
     }
-    type_list = {
-        'ScrubFinished': '磁盘检修完成',
-        'ScrubStarted': '磁盘检修开始',
-        'ZpoolCapacityNotice': '存储池容量提醒',
-        'NTPHealthCheck': 'NTP 健康检查',
-        'UPSOnline': 'UPS 恢复供电',
-        'UPSOnBattery': 'UPS 进入电池供电',
-        'UPSCommbad': 'UPS 断开连接',
-        'ChartReleaseUpdate': '应用有更新',
-        'CatalogSyncFailed': '应用目录同步失败',
-        'SMART': 'SMART异常'
-    }
-    pic_url_list = {
-        'ScrubFinished': 'scrub.png',
-        'ScrubStarted': 'scrub.png',
-        'ZpoolCapacityNotice': 'space.png',
-        'NTPHealthCheck': 'ntp.png',
-        'UPSOnline': 'ups_on.png',
-        'UPSOnBattery': 'ups_battery.png',
-        'UPSCommbad': 'ups_lost.png',
-        'ChartReleaseUpdate': 'update.png',
-        'CatalogSyncFailed': 'update.png',
-        'SMART': 'smart.png'
-    }
-    dif_alert = alert_content
-    pic_url = f"{pic_url_base}/{pic_url_list.get(dif_alert.get('alert_type', ''), 'default.png')}"
-    msg_title = f"{level_list.get(dif_alert.get('alert_level',''), dif_alert.get('alert_level',''))} {type_list.get(dif_alert.get('alert_type',''), dif_alert.get('alert_type', ''))}"
-    dif_alert_type = dif_alert.get('alert_type', '')
-    dif_alert_text = dif_alert.get('alert_text', '')
+    # type_list = {
+    #     'ScrubFinished': '磁盘检修完成',
+    #     'ScrubStarted': '磁盘检修开始',
+    #     'ZpoolCapacityNotice': '存储池容量提醒',
+    #     'ZpoolCapacityWarning': '存储池容量警告',
+    #     'NTPHealthCheck': 'NTP 健康检查',
+    #     'UPSOnline': 'UPS 恢复供电',
+    #     'UPSOnBattery': 'UPS 进入电池供电',
+    #     'UPSCommbad': 'UPS 断开连接',
+    #     'ChartReleaseUpdate': '应用有更新',
+    #     'CatalogSyncFailed': '应用目录同步失败',
+    #     'SMART': 'SMART异常'
+    # }
+    # pic_url_list = {
+    #     'ScrubFinished': 'scrub.png',
+    #     'ScrubStarted': 'scrub.png',
+    #     'ZpoolCapacityNotice': 'space.png',
+    #     'ZpoolCapacityWarning': 'space.png',
+    #     'NTPHealthCheck': 'ntp.png',
+    #     'UPSOnline': 'ups_on.png',
+    #     'UPSOnBattery': 'ups_battery.png',
+    #     'UPSCommbad': 'ups_lost.png',
+    #     'ChartReleaseUpdate': 'update.png',
+    #     'CatalogSyncFailed': 'update.png',
+    #     'SMART': 'smart.png'
+    # }
+    # new_alert = alert_content
+    # pic_url = f"{pic_url_base}/{pic_url_list.get(new_alert.get('alert_type', ''), 'default.png')}"
     
-    if 'UPS' in dif_alert_type:
-        if dif_alert_type == 'UPSCommbad':
-            dif_alert_text = '与 UPS 通信丢失，无法获取电池数据'
-        else:
-            dif_alert_text =progress_ups_text(dif_alert_text)
-    else:
-        dif_alert_text =progress_text(dif_alert_text, dif_alert_type)
+    # msg_title = f"{level_list.get(new_alert.get('alert_level',''), new_alert.get('alert_level',''))} {type_list.get(new_alert.get('alert_type',''), new_alert.get('alert_type', ''))}"
+    # new_alert_type = new_alert.get('alert_type', '')
+    # new_alert_text = new_alert.get('alert_text', '')
 
-    msg_digest = f"{dif_alert_text}\n{dif_alert.get('alert_time','')}"
+    # 将type_list和pic_url_list合并为一个字典
+    alert_mapping = {
+        'ScrubFinished': {
+            'title': '磁盘检修完成',
+            'pic': 'scrub.png',
+        },
+        'ScrubStarted': {
+            'title': '磁盘检修开始',
+            'pic': 'scrub.png',
+        },
+        'ZpoolCapacityNotice': {
+            'title': '存储池容量提醒',
+            'pic': 'space.png',
+        },
+        'ZpoolCapacityWarning': {
+            'title': '存储池容量警告',
+            'pic': 'space.png',
+        },
+        'NTPHealthCheck': {
+            'title': 'NTP 健康检查',
+            'pic': 'ntp.png',
+        },
+        'UPSOnline': {
+            'title': 'UPS 恢复供电',
+            'pic': 'ups_on.png',
+        },
+        'UPSOnBattery': {
+            'title': 'UPS 进入电池供电',
+            'pic': 'ups_battery.png',
+        },
+        'UPSCommbad': {
+            'title': 'UPS 断开连接',
+            'pic': 'ups_lost.png',
+        },
+        'ChartReleaseUpdate': {
+            'title': '应用有更新',
+            'pic': 'update.png',
+        },
+        'CatalogSyncFailed': {
+            'title': '应用目录同步失败',
+            'pic': 'update.png',
+        },
+        'SMART': {
+            'title': 'SMART异常',
+            'pic': 'smart.png',
+        },
+        'AlertSourceRunFailed': {
+            'title': '警报源运行失败',
+            'pic': 'default.png',
+        },
+    }
+    new_alert = alert_content
+    new_alert_type = new_alert.get('alert_type', '')
+    new_alert_info = alert_mapping.get(new_alert_type, {})
+    pic_url = f"{pic_url_base}/{new_alert_info.get('pic', 'default.png')}"
+    msg_title = f"{level_list.get(new_alert.get('alert_level', new_alert.get('alert_level')))} {new_alert_info.get('title', new_alert_type)}"
+    new_alert_text = new_alert.get('alert_text', '')
+    
+    # if 'UPS' in new_alert_type:
+    #     new_alert_text =progress_ups_text(new_alert_type, new_alert_text)
+    # else:
+    #     new_alert_text =progress_text(new_alert_type, new_alert_text)
+    new_alert_text =progress_text(new_alert_type, new_alert_text)
+
+    msg_digest = f"{new_alert_text}\n{new_alert.get('alert_time','')}"
     _LOGGER.info(f'{plugins_name}获取到的系统新通知如下:\n{msg_title}\n{msg_digest}')
     push_msg_to_mbot(msg_title, msg_digest, pic_url)
-
 
 def on_open(ws):
     # 发送连接请求到服务器
@@ -268,7 +351,8 @@ def on_message(ws, message):
     elif json_data['msg'] == 'result' and json_data['result'] == 'pong':
         heartbeat_result = json_data
         # 接收心跳返回结果
-        if datetime.datetime.now().minute in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:
+        # if datetime.datetime.now().minute in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:
+        if datetime.datetime.now().minute % 5 == 0:
             _LOGGER.info(f'{plugins_name}心跳: {heartbeat_result}')
             time.sleep(60)
     elif json_data['msg'] == 'result' and json_data['result'] == True:
