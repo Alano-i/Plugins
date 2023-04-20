@@ -12,3 +12,6 @@
 ## 获取企业微信和 TrueNas API TOKEN 几个参数的方法
 <div align=center><img src="https://github.com/Alano-i/wecom-notification/blob/main/Plex/pic/guide-wecom.png" width="1000" /></div>
 <img width="775" alt="image" src="https://user-images.githubusercontent.com/68833595/225512596-c33ac529-a0c8-4405-9782-83ea3237e100.png">
+
+# 如果觉得好用的话可以请我喝杯咖啡
+<img width="188" alt="image" src="https://user-images.githubusercontent.com/68833595/233236971-e59d4eef-b0af-49ea-9ad7-8c4ce479c623.png">
