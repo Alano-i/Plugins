@@ -29,5 +29,6 @@ MR插件，定时获取站点最新站内信与公告
 - 如果这些参数你不知道怎么获取，可参见 [企业微信参数获取方法](https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb)
 
 
-
+# 如果觉得好用的话可以请我喝杯咖啡
+<img width="188" alt="image" src="https://user-images.githubusercontent.com/68833595/233236971-e59d4eef-b0af-49ea-9ad7-8c4ce479c623.png">
 
