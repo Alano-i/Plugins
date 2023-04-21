@@ -1,65 +1,75 @@
-#!/usr/bin/env python3
 from mbot.core.plugins import plugin
 from mbot.core.plugins import PluginContext, PluginMeta
 from mbot.openapi import mbot_api
 from typing import Dict, Any
+
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup, SoupStrainer
 import time
 import random
-import re
-import os
 import requests
 import logging
-import yaml
 import httpx
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-from datetime import datetime
+
 server = mbot_api
 _LOGGER = logging.getLogger(__name__)
-
-plugins_name = '「PT站信息」'
 site_list = server.site.list()
-message_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares', 'iptorrents', 'rarbg','U2']
-notice_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares','iptorrents', 'rarbg', 'U2']
-session = requests.Session()
-retry = Retry(connect=3, backoff_factor=0.5)
-adapter = HTTPAdapter(max_retries=retry)
-session.mount('https://', adapter)
+message_skip_list = ['mteam', 'pttime', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist', 'hares', 'iptorrents',
+                     'rarbg']
+announcement_skip_list = ['mteam', 'U2', 'pttime', 'ttg', 'mikanani', 'acgrip', 'sukebei', 'exoticaz', 'filelist',
+                          'hares',
+                          'iptorrents', 'rarbg']
+site_pic = {
+    "audiences": "https://s2.loli.net/2023/02/07/vxzLD4O62mJKcu5.gif",
+    "chdbits": "https://s2.loli.net/2023/02/07/V7mFSig19e3RO2a.gif",
+    "hares": "https://s2.loli.net/2023/02/07/8RsCJmpthMlaPDS.gif",
+    "hdchina": "https://s2.loli.net/2023/02/07/1e7v9crskN3hCqw.gif",
+    "HDHome": "https://s2.loli.net/2023/02/07/hHbu4qyeO2x3wBG.gif",
+    "hdsky": "https://s2.loli.net/2023/02/07/HXkWuKgz8ACeEGQ.gif",
+    "hhan": "https://s2.loli.net/2023/02/07/oLHMi9N7QTpj2Yd.gif",
+    "keepfrds": "https://s2.loli.net/2023/02/07/t9ljcArROxf41Do.gif",
+    "lemonhd": "https://s2.loli.net/2023/02/07/vH3NyV6b1irDF5W.gif",
+    "msg_default": "https://s2.loli.net/2023/02/07/IrlaNtgLXWh8b7Q.gif",
+    "mteam": "https://s2.loli.net/2023/02/07/UnmKgS1pGjkeDP5.gif",
+    "notice_default": "https://s2.loli.net/2023/02/07/9Fu6wADRKzqMOcx.gif",
+    "opencd": "https://s2.loli.net/2023/02/07/8CjIHqJbhtV2cdL.gif",
+    "outbits": "https://s2.loli.net/2023/02/07/7WU51fKyRBGA8En.gif",
+    "pterclub": "https://s2.loli.net/2023/02/07/ECOLMon7Xm9TWGy.gif",
+    "ssd": "https://s2.loli.net/2023/02/07/dB5HoA8gyk1qwQv.gif",
+    "tjupt": "https://s2.loli.net/2023/02/07/pADHXnNoErxOJtY.gif",
+    "ultrahd": "https://s2.loli.net/2023/02/07/sGxvjEy8g9aYDwV.gif",
+}
+
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global words,message_to_uid,channel
+    global message_to_uid
     message_to_uid = config.get('uid')
+    global words
     words = config.get('word_ignore')
-    channel = config.get('channel')
-    if config.get('channel'):
-        channel = config.get('channel')
-        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
-    else:
-        channel = 'qywx'
+    global img_api
+    img_api = config.get('img_api')
+    if not img_api:
+        img_api = "https://api.r10086.com/img-api.php?type=P%E7%AB%99%E7%B3%BB%E5%88%974"
+
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global words,message_to_uid,channel
-    _LOGGER.info('「PT站内信和公告推送」配置发生变更，加载新设置！')
+    global message_to_uid
     message_to_uid = config.get('uid')
+    global words
     words = config.get('word_ignore')
-    channel = config.get('channel')
-    if config.get('channel'):
-        channel = config.get('channel')
-        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
-    else:
-        channel = 'qywx'
+    global img_api
+    img_api = config.get('img_api')
+    if not img_api:
+        img_api = "https://api.r10086.com/img-api.php?type=P%E7%AB%99%E7%B3%BB%E5%88%974"
 
-@plugin.task('sites_message_wx', '定时获取站内信和公告', cron_expression='0 9,19 * * *')
-def task():
+
+@plugin.task('site_messages', '定时获取站点公告', cron_expression='0 0 * * *')
+def site_messages_task():
     time.sleep(random.randint(1, 600))
-    _LOGGER.info('开始获取站内信和公告')
-    # site_notice()
-    main()
-    _LOGGER.info('所有站点站内信和公告获取完成')
+    site_announcement()
+
 
 @plugin.on_event(
     bind_event=['SiteSearchComplete', 'SiteListComplete'], order=1)
@@ -72,6 +82,8 @@ def on_site_search_complete(ctx: PluginContext, event_type: str, data: Dict):
         return
     if site_id == 'ssd':
         message_notify_box = 'a[style^="display"]'
+    elif site_id == 'U2':
+        message_notify_box = 'a[style^="color"]'
     else:
         message_notify_box = 'a[href="messages.php"] > font'
     soup_tmp = SoupStrainer("a", href="messages.php")
@@ -82,8 +94,9 @@ def on_site_search_complete(ctx: PluginContext, event_type: str, data: Dict):
                 site_cookie = site.cookie
                 site_proxies = site.proxies
                 site_user_agent = site.user_agent
-                sites_message(site_domain, site_name, site_cookie, site_proxies, site_user_agent, site_id)
+                sites_message(site_domain, site_id, site_name, site_cookie, site_proxies, site_user_agent)
                 break
+
 
 def sites_message_by_manual():
     for site in site_list:
@@ -95,93 +108,66 @@ def sites_message_by_manual():
         site_cookie = site.cookie
         site_proxies = site.proxies
         site_user_agent = site.user_agent
-        sites_message(site_domain, site_name, site_cookie, site_proxies, site_user_agent, site_id)
+        sites_message(site_domain, site_id, site_name, site_cookie, site_proxies, site_user_agent)
 
-def sites_message(site_domain, site_name, site_cookie, site_proxies, site_user_agent, site_id):
+
+def sites_message(site_domain, site_id, site_name, site_cookie, site_proxies, site_user_agent):
     _LOGGER.info(f'开始获取「{site_name}」站内信')
     try:
-        message_list, messages_url, messages_item_url, count = get_nexusphp_message(site_name, site_domain, site_cookie, site_proxies, site_user_agent)
+        message_list, message_item_url = get_nexusphp_message(
+            site_domain, site_cookie, site_proxies, site_user_agent)
         if message_list:
-            image_path = f'/data/plugins/sites_message_wx/pic/{site_id}.gif'
-            try:
-                if not os.path.exists(image_path):
-                    image_path = f'/data/plugins/sites_message_wx/pic/msg_default.gif'
-            except Exception as e:
-                _LOGGER.error(f'检查文件是否存在时发生异常，原因：{e}')
-            if count > 1:
-                wecom_title = f'💌 {site_name}: {count} 条站内新信息'
-                wecom_content_m = ''.join(message_list)
-                wecom_content_m = wecom_content_m.replace('<line>', '')
-                wecom_content_m = wecom_content_m.strip('\n')
-                wecom_content = wecom_content_m.replace('\n', '<br/>')
-                wecom_digest = re.sub(r'<.*?>', '', wecom_content_m) 
-                content_source_url = messages_url
-            else:
-                wecom_title = message_list[0].split('<line>\n')[0]
-                wecom_content = message_list[0].split('<line>\n')[1]
-                wecom_content = wecom_content.strip('\n')
-                wecom_title = wecom_title.replace('\n', '')
-                wecom_title = re.sub(r'<.*?>', '', wecom_title)
-                wecom_title = f'💌 {site_name}: {wecom_title}'
-                wecom_title = wecom_title.replace('💬 ', '')
-                wecom_title = wecom_title.replace('你的种子/帖子收到魔力值奖励', '收到魔力值奖励')
-                wecom_title = wecom_title.replace('您正在下载或做种的种子被删除', '种子被删除')
-                content_source_url = messages_item_url
-                wecom_digest = re.sub(r'<.*?>', '', wecom_content)
-            wecom_content = wecom_content.replace('\n', '<br/>')
-            author = 'PT站内信'
-            pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/sites_message_wx/sites_message_wx/pic/msg_default.gif'
-            result = push_msg_mr(wecom_title, wecom_digest, wecom_content, author, content_source_url, image_path, pic_url)
-            _LOGGER.info(f'「{site_name}」💌 有新站内信，推送结果: {result}')
+            message_after = word_ignore(site_name, message_list)
+            count = len(message_after)
+            result_message = ''.join(message_after)
+            if result_message:
+                if count == 1:
+                    title = f'💌{site_name}:{result_message.splitlines()[0].replace("💬 ", "")}'
+                    content = result_message.split('\n', 1)[1]
+                    link_url = message_item_url
+                else:
+                    title = f'💌{site_name}:{count}条站内新消息'
+                    content = result_message
+                    link_url = urljoin(site_domain, '/messages.php?action=viewmailbox&box=1')
+                pic = site_pic[site_id] if site_id in site_pic else site_pic["msg_default"]
+                sent_notify(title, content, link_url, pic)
+            _LOGGER.info(f'「{site_name}」站点共{count}条新消息已发送通知')
         else:
-            _LOGGER.info(f'「{site_name}」无未读站内信，或通过关键词过滤后没有需要推送的新消息')
+            _LOGGER.info(f'「{site_name}」无未读站内信')
     except Exception as e:
         _LOGGER.error(f'获取「{site_name}」站内信失败，原因：{e}')
         return
 
-def site_notice():
+
+def site_announcement():
     for site in site_list:
         site_id = site.site_id
-        site_name = site.site_name
-        site_url = site.domain
         if not site_id:
             continue
-        if site_id in notice_skip_list:
+        if site_id in announcement_skip_list:
             continue
-        _LOGGER.info(f'开始获取「{site_name}」站点公告')
+        _LOGGER.info(f'开始获取「{site.site_name}」站点公告')
         try:
-            notice_list = get_nexusphp_notice(site_name, site_id, site_url, site.cookie, site.proxies, site.user_agent)
-            if notice_list:
-                image_path = f'/data/plugins/sites_message_wx/pic/{site_id}.gif'
-                try:
-                    if not os.path.exists(image_path):
-                        image_path = f'/data/plugins/sites_message_wx/pic/notice_default.gif'
-                except Exception as e:
-                    _LOGGER.error(f'检查文件是否存在时发生异常，原因：{e}')
-                wecom_title = f'📢 {site_name}: {notice_list[1]}'
-                wecom_content_m = f'<b><big>{notice_list[0]}</b></big>\n<small>{notice_list[2]}</small>'
-                wecom_content = wecom_content_m.replace('\n', '<br/>')
-                wecom_digest = re.sub(r'<.*?>', '', wecom_content_m)
-                content_source_url = f'{site_url}'
-                author = 'PT站公告'
-                pic_url = 'https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/sites_message_wx/sites_message_wx/pic/notice_default.gif'
-                result = push_msg_mr(wecom_title, wecom_digest, wecom_content, author, content_source_url, image_path, pic_url)
-                _LOGGER.info(f'「{site_name}」📢 有新公告，推送结果: {result}')
+            gonggao_date, anouncement_title, anouncement_content, flag = get_nexusphp_announcement(
+                site.site_name, site.site_id, site.domain, site.cookie, site.proxies, site.user_agent)
+            if flag:
+                title = f'📢{site.site_name}: {anouncement_title}'
+                content = f'日期：{gonggao_date}\n内容：{anouncement_content}' if anouncement_content else ''
+                link_url = urljoin(site.domain, '/index.php')
+                pic = site_pic[site_id] if site_id in site_pic else site_pic["notice_default"]
+                sent_notify(title, content, link_url, pic)
+                _LOGGER.info(f'「{site.site_name}」站点公告已发送通知')
             else:
-                _LOGGER.info(f'「{site_name}」无新公告')
+                _LOGGER.info(f'{site.site_name}没有新公告')
         except Exception as e:
-            _LOGGER.error(f'获取「{site_name}」站点公告失败，原因：{e}')
+            _LOGGER.error(f'获取「{site.site_name}」站点公告失败，原因：{e}')
             continue
 
-def get_nexusphp_message(site_name, site_url, cookie, proxies, user_agent):
-    message_list = []
-    sms_title = ''
-    element_body = ''
-    messages_item_url = ''
-    message_url = ''
-    count = 0
+
+def get_nexusphp_message(site_url, cookie, proxies, user_agent):
     unread_selector = 'td > img[alt="Unread"]'
     body_selector = 'td[colspan*="2"]'
+    caption_list = []
     if proxies:
         if proxies.startswith('http'):
             proxies = {
@@ -199,81 +185,68 @@ def get_nexusphp_message(site_name, site_url, cookie, proxies, user_agent):
         'cookie': cookie,
         'user-agent': user_agent,
     }
-
     if 'totheglory' in site_url:
         response = httpx.get(messages_url, headers=headers, proxies=proxies, timeout=30).text
     else:
-        response = session.request("GET", messages_url, headers=headers, proxies=proxies, timeout=30).text
+        response = requests.request("GET", messages_url, headers=headers, proxies=proxies, timeout=30).text
     soup_tmp = SoupStrainer("form", {"action": "messages.php"})
     soup = BeautifulSoup(response, 'html.parser', parse_only=soup_tmp)
     unread_list = soup.select(unread_selector)
     messages_item_url = ''
     for unread_item in unread_list:
         td = unread_item.parent.next_sibling.next_sibling
-        sms_title = td.text
-        sms_title = f'💬 {sms_title}'
+        title = td.text
         href = td.a['href']
         messages_item_url = urljoin(site_url, href)
         if 'totheglory' in site_url:
             message_res = httpx.get(messages_item_url, headers=headers, proxies=proxies, timeout=30).text
         else:
-            message_res = session.request("GET", messages_item_url, headers=headers, proxies=proxies, timeout=30).text
+            message_res = requests.request("GET", messages_item_url, headers=headers, proxies=proxies, timeout=30).text
         message_soup_tmp = SoupStrainer("td", {"colspan": "2"})
         message_soup = BeautifulSoup(message_res, 'html.parser', parse_only=message_soup_tmp)
         element_body = message_soup.select(body_selector)[0].text.strip()
-        element_body = re.sub(r'[\n\r]+', '\n', element_body)
-        element_body = re.sub(r'\[.*?\]', '', element_body)
-        count = count + 1
-        caption_content = f'<b><big>{sms_title.strip()}</b></big><line>\n<small>{element_body}</small>\n\n'
-        message_list.append(caption_content)
-    if message_list:
-        _LOGGER.info(f'「关键字过滤前，未读站内信数量」{count}')
-        message_list,count = word_ignore(site_name, message_list,count)
-        _LOGGER.info(f'「关键字过滤后，未读站内信数量」{count}')
-    return message_list, messages_url, messages_item_url, count
+        caption = f'💬 {title.strip()}\n{element_body.strip()}\n\n'
+        caption_list.append(caption)
+    return caption_list, messages_item_url
 
-def get_nexusphp_notice(site_name, site_id, site_url, cookie, proxies, user_agent):
-    sites_notice_selector = {
-        'putao': {
-            'notice_box_selector': 'td',
-            'notice_box_attributes': {'class': 'text'},
-            'notice_title_selector': 'td.text > ul > a',
-            'notice_content_selector': 'td.text > ul > div',
-        },
-        'ssd': {
-            'notice_box_selector': 'td',
-            'notice_box_attributes': {'class': 'text'},
-            'notice_title_selector': 'td.text > div > div:nth-child(1) > a',
-            'notice_content_selector': 'td.text > div > div:nth-child(1) > div',
-        },
-        'hdchina': {
-            'notice_box_selector': 'div',
-            'notice_box_attributes': {'class': 'announcebox'},
-            'notice_title_selector': 'div.announcebox > div.announce > h4',
-            'notice_content_selector': 'div.announcebox > div.announce > h3',
-        },
-        'nexusphp': {
-            'notice_box_selector': 'td',
-            'notice_box_attributes': {'class': 'text'},
-            'notice_title_selector': 'td.text > div > a',
-            'notice_content_selector': 'td.text > div > div',
-        }
+
+sites_announcement_selector = {
+    'putao': {
+        'gonggao_box_selector': 'td',
+        'gonggao_box_attributes': {'class': 'text'},
+        'gonggao_title_selector': 'td.text > ul > a',
+        'gonggao_content_selector': 'td.text > ul > div',
+    },
+    'ssd': {
+        'gonggao_box_selector': 'td',
+        'gonggao_box_attributes': {'class': 'text'},
+        'gonggao_title_selector': 'td.text > div > div:nth-child(1) > a',
+        'gonggao_content_selector': 'td.text > div > div:nth-child(1) > div',
+    },
+    'hdchina': {
+        'gonggao_box_selector': 'div',
+        'gonggao_box_attributes': {'class': 'announcebox'},
+        'gonggao_title_selector': 'div.announcebox > div.announce > h4',
+        'gonggao_content_selector': 'div.announcebox > div.announce > h3',
+    },
+    'nexusphp': {
+        'gonggao_box_selector': 'td',
+        'gonggao_box_attributes': {'class': 'text'},
+        'gonggao_title_selector': 'td.text > div > a',
+        'gonggao_content_selector': 'td.text > div > div',
     }
+}
 
-    site_config = sites_notice_selector.setdefault(site_id, sites_notice_selector['nexusphp'])
-    notice_box_selector = site_config['notice_box_selector']
-    notice_box_attributes = site_config['notice_box_attributes']
-    notice_title_selector = site_config['notice_title_selector']
-    notice_content_selector = site_config['notice_content_selector']
 
-    notice_list = []
-    xxx = ''
-    notice_date_title = ''
-    notice_content = ''
-    notice_title = ''
-    notice_date = ''
-    notice_url = 'index.php'
-    notice_url = urljoin(site_url, notice_url)
+def get_nexusphp_announcement(site_name, site_id, site_url, cookie, proxies, user_agent):
+    if site_id not in sites_announcement_selector.keys():
+        site_id = 'nexusphp'
+    gonggao_box_selector = sites_announcement_selector[site_id].get('gonggao_box_selector')
+    gonggao_box_attributes = sites_announcement_selector[site_id].get('gonggao_box_attributes')
+    gonggao_title_selector = sites_announcement_selector[site_id].get('gonggao_title_selector')
+    gonggao_content_selector = sites_announcement_selector[site_id].get('gonggao_content_selector')
+    gonggao_url = 'index.php'
+    gonggao_url = urljoin(site_url, gonggao_url)
     headers = {
         'cookie': cookie,
         'user-agent': user_agent,
@@ -289,48 +262,28 @@ def get_nexusphp_notice(site_name, site_id, site_url, cookie, proxies, user_agen
             }
     else:
         proxies = None
-    response = session.request("GET", notice_url, headers=headers, proxies=proxies, timeout=30).text  
-    soup_tmp = SoupStrainer(notice_box_selector, notice_box_attributes)
+    response = requests.request("GET", gonggao_url, headers=headers, proxies=proxies, timeout=30).text
+    soup_tmp = SoupStrainer(gonggao_box_selector, gonggao_box_attributes)
     soup = BeautifulSoup(response, 'html.parser', parse_only=soup_tmp)
-    notice_date_title = soup.select(notice_title_selector)
-    if notice_date_title:
-        notice_date_title = notice_date_title[0].text.strip()
-        try:
-            notice_date, notice_title = notice_date_title.split(' - ')
-        except Exception as e:
-            notice_date, notice_title = notice_date_title.split(' -')
-        notice_date = notice_date.replace('.', '-')
-        notice_date = f'{notice_date} 公告'
-    notice_content = soup.select(notice_content_selector)
-    if notice_content:
-        notice_content = notice_content[0].text.strip()
-        notice_content = notice_content.strip()
-        notice_content = re.sub(r'[\n\r]+', '\n', notice_content)
-        notice_content = re.sub(r'\[.*?\]', '', notice_content)
-    
-    if notice_date and not notice_content:
-        notice_content = '无文字内容，可能是图片公告！'
+    announcement_title = soup.select(gonggao_title_selector)
+    announcement_content = soup.select(gonggao_content_selector)[0].text.strip()
+    gonggao_date = announcement_title[0].text.strip().split(' -', 1)[0].replace('.', '-')
+    announcement_title = announcement_title[0].text.strip().split(' -', 1)[1]
+    gonggao_cache = get_cache(site_name, gonggao_date)
+    flag = False
+    if not gonggao_cache:
+        server.common.set_cache(site_name, gonggao_date, announcement_content)
+        flag = True
+    if gonggao_cache != announcement_content:
+        server.common.set_cache(site_name, gonggao_date, announcement_content)
+        flag = True
+    return gonggao_date, announcement_title, announcement_content, flag
 
-    if notice_date or notice_title or notice_content:
-        notice_list = [notice_date, notice_title, notice_content]
-        new_notice = {'date':notice_date, 'title':notice_title, 'content':notice_content}
-        # new_notice = {'date':'notice_date', 'title':'notice_title', 'content':'notice_content'}
-        if new_notice != server.common.get_cache('site_notice', site_name):
-            server.common.set_cache('site_notice', site_name, new_notice)
-            new_cache = server.common.get_cache('site_notice', site_name)
-            _LOGGER.info(f'「{site_name}」公告的最新缓存为{new_cache}')
-        else:
-            _LOGGER.info(f'「{site_name}」获取到的「最新公告」和「缓存公告」相同，不推送')
-            notice_list = ''
-    else:
-        notice_list = ''
-    return notice_list
 
-def word_ignore(site_name, message_list, count):
+def word_ignore(site_name, message_list: list):
     word, hit = [], []
     if words:
         word = words.split(',')
-        _LOGGER.info(f'「设定过滤关键词」{word}')
         for item in message_list:
             for i in word:
                 if i in item:
@@ -338,82 +291,35 @@ def word_ignore(site_name, message_list, count):
                     break
         for hit_item in hit:
             message_list.remove(hit_item)
-            count = count - 1
-            _LOGGER.error(f'「{site_name}」未读站内信触发关键词过滤，将屏蔽此条消息，相关消息不会推送！')
-        if not hit:
-            _LOGGER.info(f'「{site_name}」未读站内信未触发关键词过滤')
-    else:
-        _LOGGER.info(f'未设定过滤关键词')
-    return message_list,count
-
-
-
-def get_media_id(site_name, access_token, image_path, wecom_api_url):
-    media_id_info_new = {}
-    current_time = time.time()
-    if server.common.get_cache('media_id_info', site_name):
-        stored_time = server.common.get_cache('media_id_info', site_name)['stored_time']
-        stored_time_datetime = datetime.fromtimestamp(stored_time)
-        stored_time_str = stored_time_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        media_id = server.common.get_cache('media_id_info', site_name)['media_id']
-        stored_modify_time = server.common.get_cache('media_id_info', site_name)['stored_modify_time']
-        _LOGGER.info(f'「{site_name}」缓存的封面图片修改时间: {stored_modify_time}')
-        _LOGGER.info(f'「{site_name}」上次传图到素材库的时间: {stored_time_str}, 3天有效, 过期自动再次上传获取新的 media_id')
-        media_id_dict = {media_id}
-        _LOGGER.info(f'「{site_name}」当前正在使用(缓存)的 「media_id」: {media_id_dict}')
-    else:
-        _LOGGER.info(f'「{site_name}」缓存的封面图片修改时间: 还未缓存')
-        _LOGGER.info(f'「{site_name}」上次传图到素材库的时间: 还未上传过, 3天有效, 过期自动再次上传获取新的 media_id')
-        stored_time = current_time
-        stored_modify_time = '2022-02-02 22:22:22'
-        media_id = ''
-    current_modify_time = os.stat(image_path).st_mtime
-    current_modify_time = datetime.fromtimestamp(current_modify_time)
-    current_modify_time = current_modify_time.strftime("%Y-%m-%d %H:%M:%S")
-    if current_time - stored_time > 3 * 24 * 60 * 60 or not media_id or current_modify_time != stored_modify_time:
-        _LOGGER.info(f'「{site_name}」上传的封面图片过期或有了新封面，将重新上传并获取新的「media_id」')
-        media_id = upload_image_and_get_media_id(site_name, access_token, image_path, wecom_api_url)
-        media_id_dict = {media_id}
-        _LOGGER.info(f'「{site_name}」上传封面图片后获得的最新「media_id」: {media_id_dict}')
-        media_id_info_new = {'media_id':media_id, 'stored_time':current_time, 'stored_modify_time':current_modify_time}
-        server.common.set_cache('media_id_info', site_name, media_id_info_new)
+            _LOGGER.info(f'「{site_name}」站内信「{hit_item.strip()}」触发关键词，已屏蔽！')
     else:
         pass
-    stored_media_id_info = server.common.get_cache('media_id_info', site_name)
-    _LOGGER.info(f'「{site_name}」已缓存的 「media_id 信息」: {stored_media_id_info}')
-    return media_id
+    return message_list
 
-def push_msg_mr(msg_title, msg_digest, msg_content, author, link_url, image_path, pic_url):
-    msg_data = {
-        'title': msg_title,
-        'a': msg_digest,
-        'pic_url': pic_url,
-        'link_url': link_url,
-        'msgtype': 'mpnews',
-        'mpnews': {
-            "articles": [
-                {
-                    "title" : msg_title,
-                    "thumb_media_id" : image_path,
-                    "author" : author,
-                    "content_source_url" : link_url,
-                    "digest" : msg_digest,
-                    "content" : msg_content
-                }
-            ]
-        }
-    }
-    try:
-        if message_to_uid:
-            for _ in message_to_uid:
-                server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data, to_uid=_, to_channel_name = channel)
-        else:
-            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data)
-        return '已推送消息'
-    except Exception as e:
-        _LOGGER.error(f'「{site_name}」推送消息异常，原因: {e}')
-    return '未成功推送消息'
+
+def get_cache(site_name, gonggao_date):
+    comm = server.common.get_cache(site_name, gonggao_date)
+    return comm
+
+
+def sent_notify(title, content, link_url, pic):
+    if message_to_uid:
+        for _ in message_to_uid:
+            server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
+                'title': title,
+                'a': content,
+                'link_url': link_url,
+                'pic_url': pic
+            }, to_uid=_)
+    else:
+        server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
+            'title': title,
+            'a': content,
+            'link_url': link_url,
+            'pic_url': pic
+        })
+
 
 def main():
     sites_message_by_manual()
-    site_notice()
+    site_announcement()
