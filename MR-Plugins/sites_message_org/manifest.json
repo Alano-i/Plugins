@@ -1,0 +1,37 @@
+{
+  "id": 13,
+  "name": "sites_message",
+  "title": "站点信息推送",
+  "author": "NaNaKo_",
+  "description": "推送PT站内信及站点公告",
+  "version": "0.4",
+  "requirements": null,
+  "configField": [
+    {
+      "fieldName": "uid",
+      "fieldType": "Enum",
+      "label": "推送用户",
+      "helperText": "选择接收推送的用户,用户管理要独立设置推送配置才生效",
+      "enumValuesRef": "UserList",
+      "multiValue": true
+    },
+    {
+      "fieldName": "word_ignore",
+      "fieldType": "String",
+      "label": "屏蔽关键词",
+      "helperText": "设置站内信推送屏蔽关键词，含有关键词的站内信将不会推送，多个关键词用英文逗号分隔。站点公告不验证关键词屏蔽。",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "img_url",
+      "fieldType": "String",
+      "label": "推送图片",
+      "helperText": "设定推送的图片，默认为https://api.r10086.com/img-api.php?type=P%E7%AB%99%E7%B3%BB%E5%88%974",
+      "defaultValue": ""
+    }
+  ],
+  "logoUrl": "/plugins/sites_message/logo.jpg",
+  "githubUrl": null,
+  "helpDocUrl": null,
+  "dependencies": null
+}
