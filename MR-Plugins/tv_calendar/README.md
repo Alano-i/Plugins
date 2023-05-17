@@ -16,7 +16,9 @@ MR插件，根据 or3ki 大佬的版本修改版，WEB 页面全部加载本地�
 - 本地媒体库需要是 PLEX
 
 ## 效果预览
-<img width="911" alt="组 3" src="https://github.com/Alano-i/wecom-notification/assets/68833595/a973c4b4-7653-47c7-8a9f-5e2a0696c808">
+<img width="1089" alt="sfaf3s" src="https://github.com/Alano-i/wecom-notification/assets/68833595/6a810132-f472-413c-bf52-a9f0d7d017c2">
+
+
 
 
 下面的图是占位图，是另一个插件的，本插件的预览图后面补
