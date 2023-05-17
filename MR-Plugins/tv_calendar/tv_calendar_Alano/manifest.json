@@ -19,7 +19,7 @@
       "fieldType": "String",
       "label": "封面图 URL 地址",
       "helperText": "自定义推送封面填写此项，不填写则随机二次元封面图，示例：http://img.com/a.png",
-      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/tv_calendar/tv_calendar/pic/logo.jpg"
+      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/tv_calendar/tv_calendar_Alano/logo.jpg"
     }
   ],
   "logoUrl": "/plugins/tv_calendar_Alano/logo.jpg",
