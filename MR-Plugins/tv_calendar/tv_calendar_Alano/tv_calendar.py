@@ -105,21 +105,31 @@ def config_changed(config: Dict[str, Any]):
 @plugin.on_event(
     bind_event=['SubMedia'], order=1)
 def on_subscribe_new_media(ctx: PluginContext, event_type: str, data: Dict):
+    time.sleep(30)
     media_type = data.get('type','')
     if media_type == 'TV':
         sub_info = get_sub_info(data)
         _LOGGER.info(f'{plugins_name}新订阅剧集{sub_info}，更新追剧日历数据')
+        time.sleep(30)
         save_json()
+    else:
+        cn_name = data.get('cn_name','')
+        _LOGGER.info(f'{plugins_name}新订阅媒体{cn_name}，不是剧集，不更新追剧日历数据')
     
 # 删除剧集订阅，重新生成日历数据
 @plugin.on_event(
     bind_event=['DeleteSubMedia'], order=2)
 def on_subscribe_delete_media(ctx: PluginContext, event_type: str, data: Dict):
+    time.sleep(30)
     media_type = data.get('type','')
     if media_type == 'TV':
         sub_info = get_sub_info(data)
         _LOGGER.info(f'{plugins_name}退订剧集{sub_info}，更新追剧日历数据')
+        time.sleep(30)
         save_json()
+    else:
+        cn_name = data.get('cn_name','')
+        _LOGGER.info(f'{plugins_name}退订媒体{cn_name}，不是剧集，不更新追剧日历数据')
 
 # 每天重新生成日历数据
 @plugin.task('save_json', '剧集更新', cron_expression='30 0 * * *')
