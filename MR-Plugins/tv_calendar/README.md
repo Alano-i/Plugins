@@ -18,8 +18,3 @@ MR插件，根据 or3ki 大佬的版本修改版，WEB 页面全部加载本地�
 ## 效果预览
 <img width="1089" alt="sfaf3s" src="https://github.com/Alano-i/wecom-notification/assets/68833595/6a810132-f472-413c-bf52-a9f0d7d017c2">
 
-
-
-
-下面的图是占位图，是另一个插件的，本插件的预览图后面补
-![git封面](https://user-images.githubusercontent.com/68833595/211461063-975400c0-eb6e-4ca1-a26a-eb903b885349.png)
