@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>追剧日历</title>
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vant@4.0/lib/index.css"> -->
+    <link rel="stylesheet" href="/static/tv_calendar/index.css">
+
+    <!--iOS 添加到主屏幕时始终全屏-->
+    <link rel="manifest" href="/static/tv_calendar/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/tv_calendar/icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <!-- <link rel="apple-touch-startup-image" href="/static/img/launch.png"> -->
+    <!-- <link rel="apple-touch-icon" href="/static/tv_calendar/icon/iphone.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/static/tv_calendar/icon/ipad.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/tv_calendar/icon/iphone.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/static/tv_calendar/icon/ipad-retina.png"> -->
+    <style>
+          /* 禁用双击放大 */
+        html, body {
+            touch-action: manipulation;
+            -ms-content-zooming: none;
+            -ms-touch-action: manipulation;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        }
+        /*选中文字*/
+        ::selection {
+            background: rgba(255, 162, 0, 0.4) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        img {
+            user-select: none;
+        }
+        :root {
+            --van-background-2: #00ff0000;
+        }
+        .van-theme-dark body {
+            color: white;
+            background-color: #171717;
+            text-align: center;
+        }
+        .van-grid-item__content{
+            padding: 0;
+        }
+        .van-grid-item__content--center {
+            align-items: center;
+            justify-content: start;
+        }
+        [v-cloak] {
+            display: none;
+        }
+        .text-ellipsis {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-line-clamp: 1;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+        }
+
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fade-in-up 0.325s ease-out forwards;
+        }
+
+        @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        }
+
+        
+    </style>
+</head>
+<body style="background-color: #171717;">
+<!-- 头部背景 -->
+<div id="bg-div" style="margin-top: 0px; height: 120px; width: 100%; position: relative; overflow: hidden;">
+    <img id="bg-img" alt="背景图片" src="/static/tv_calendar/bg.png" style="width: 100%; height: 100%; object-fit: fill; position: absolute; top: 0; left: 0;">
+    <div id="content-container" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: -5px;">
+      <img alt="图片加载中" src="/static/tv_calendar/title.png" style="width: 200px; margin-bottom: 5px;" />
+      <div style="text-align: center; font-size: 17px; color: #effaff; opacity: 0.45; padding-top: 0px;">最近7天即将更新的电视剧</div>
+    </div>
+</div>
+<div id="app" v-cloak style="background-color: #171717;">
+    <van-config-provider theme="dark">
+        <template v-if="status==false">
+            <van-empty   image="https://fastly.jsdelivr.net/npm/@vant/assets/custom-empty-image.png"  image-size="120" description="怎么肥事!!怎么肥事!!" />
+        </template>
+        <template v-else>
+            <template v-for="(val,key,i) in date_dict" :key="i">
+                <van-divider :style="{ fontSize:'22px' ,color: '#ffffff', borderColor: '#3e3e3e', padding: '5px 16px 1px 16px' }" class="font-num text-center">
+                    <span style="opacity: 0.8">{{dateFormat(key)}}</span>
+                    <span style="opacity: 0.8; padding-left: 10px">{{getWeek(key)}}</span>
+                    <span v-if="key == formatDate(new Date())" style="opacity: 0.8; padding-left: 3px">·</span>
+                    <span v-if="key == formatDate(new Date())" style="opacity: 0.8; padding-left: 3px">今天</span>
+                    <!-- <span v-if="key == formatDate(new Date(new Date().setDate(new Date().getDate()-1)))" style="opacity: 0.8; padding-left: 3px">·</span>
+                    <span v-if="key == formatDate(new Date(new Date().setDate(new Date().getDate()-1)))" style="opacity: 0.8; padding-left: 3px">昨天</span> -->
+                </van-divider>
+                <!-- <div :class="['fade-in-up0', { 'fade-in-up': applyAnimation }]"> -->
+                <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="isSmallScreen ? 3 : 9">
+                    <van-grid-item class="img_card" v-for="(list,key2,j) in val" :key="j" text="文字" style="border-radius: 10px;">
+                        <!-- <van-image  点击图片跳转-->
+                            <!-- @click="openPlexApp()" -->
+                            <!-- @click="toDetail(list[0].show_id,list[0].season_number)" -->
+                        <img
+                            @click="toDetail(list[0].show_id,list[0].season_number)"
+                            style="width: 100%; height: 87%; border-radius: 10px; overflow: hidden; cursor: pointer;"
+                            lazy-load
+                            :src="list[0].season_poster!=null?imageBaseUrl+list[0].season_poster:imageBaseUrl+list[0].tv_poster"
+                        ></img>
+                        <h5 class="text-ellipsis" style="font-weight: bold; opacity: 0.95; margin-bottom: 2px; margin-top: 6px;">{{list[0].tv_name?list[0].tv_name:tv_original_name}}</h5>
+                        <p v-if="list.length>1" style="font-weight: normal; opacity: 0.8; margin-bottom: 0px; margin-top: 3px; font-size: 12px;">第{{list[0].season_number}}季 第{{list[0].episode_number}}-{{list[list.length-1].episode_number}}集</p>
+                        <p v-else style="font-weight: normal; opacity: 0.8; margin-bottom: 0px; margin-top: 3px; font-size: 12px;">第{{list[0].season_number}}季 第{{list[0].episode_number}}集</p>
+                        <p v-if="list[0].episode_local_num!=null" style="font-weight: normal; opacity: 0.8; margin-bottom: 5px; margin-top: 0px; font-size: 12px;"><span v-if="list[0].episode_local_updated && key == formatDate(new Date())" style="font-size: 10px; padding-right: 3px">✅</span>{{list[0].episode_local_num}} / {{list[0].episodes_all_num}}</p>
+
+                    </van-grid-item>
+                </van-grid>
+                <!-- </div> -->
+            </template>
+            <div style="height: 80px;"></div>
+            <van-back-top />
+        </template>
+    </van-config-provider>
+    <van-number-keyboard safe-area-inset-bottom></van-number-keyboard>
+</div>
+
+<style>
+    :root {
+        --van-background-2: #00ff0000;
+        --isSmallScreen: false;
+    }
+    @media screen and (max-width: 400px) {
+        :root {
+            --isSmallScreen: true;
+        }
+    }
+    @font-face {
+        font-family: 'num';
+        src: url('/static/tv_calendar/ALIBABA-Font-Bold.otf') format('truetype');
+    }
+    /* 使用 num 字体 */
+    .font-num {
+        font-family: 'num';
+    }
+    /* 左对齐 */
+    .text-left {
+        text-align: left;
+        font-weight: bold; /* 设置字体为粗体 */
+    }
+    /* 居中对齐 */
+    .text-center {
+        text-align: center;
+        font-weight: bold; /* 设置字体为粗体 */
+    }
+    /* 文字下面的灰色线 */
+    .line {
+        border-bottom: 1px solid #ffffff;
+        margin: 0px 16px 10px 16px;
+        opacity: 0.12;
+    }
+</style>
+
+<!-- <script src="https://fastly.jsdelivr.net/npm/vue@3"></script> -->
+<!-- <script src="https://fastly.jsdelivr.net/npm/vant@4/lib/vant.min.js"></script> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> -->
+<script src="/static/tv_calendar/vue@3.js"></script>
+<script src="/static/tv_calendar/vant.min.js"></script>
+<script src="/static/tv_calendar/axios.min.js"></script>
+
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                date_dict: [],
+                tmdb_imageBaseUrl: 'https://image.tmdb.org/t/p/w500',
+                imageBaseUrl: '/static/tv_calendar/img',
+                offset: 7,
+                status: true,
+                isSmallScreen: getComputedStyle(document.documentElement).getPropertyValue('--isSmallScreen') === 'true',
+            }
+        },
+        // created() {
+        //     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        //     this.applyAnimation = !isIOS; // 在 iOS 设备上禁用动画效果
+        //     console.log(this.applyAnimation)
+        // },
+        methods: {
+            getDate(strDate){
+               return new Date((strDate).replace(/-/g,"/"))
+            },
+            dateFormat(dateStr){
+                date = this.getDate(dateStr) //转换成Data();
+                // var y = date.getFullYear();
+                var m = date.getMonth() + 1;
+                m = m < 10 ? '0' + m : m;
+                var d = date.getDate();
+                d = d < 10 ? ('0' + d) : d;
+                return m + '月' + d + '日';
+            },
+            formatDate(date) {
+                var y = date.getFullYear();
+                var m = date.getMonth() + 1;
+                m = m < 10 ? '0' + m : m;
+                var d = date.getDate();
+                d = d < 10 ? ('0' + d) : d;
+                return y + '-' + m + '-' + d;
+            },
+            // 点击跳转
+            toDetail(showId, seasonNumber) {
+                location.href = 'episode.html?showId=' + showId + "&seasonNumber=" + seasonNumber
+            },
+            openPlexApp() {
+                // var ratingKey = '65771';
+                window.location.href = 'plex://';
+            },
+            getWeek(date) {
+                const weekArr = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+                return weekArr[new Date(date).getDay()]
+            },
+            getDateStr(addDayCount) {
+                var dd = new Date();
+                dd.setDate(dd.getDate() + addDayCount);//获取AddDayCount天后的日期
+                var y = dd.getFullYear();
+                var m = dd.getMonth() + 1;//获取当前月份的日期
+                var d = dd.getDate();
+                //判断 月
+                if (m < 10) {
+                    m = "0" + m;
+                } else {
+                    m = m;
+                }
+                //判断 日n
+                if (d < 10) {//如果天数<10
+                    d = "0" + d;
+                } else {
+                    d = d;
+                }
+                return y + "-" + m + "-" + d;
+            },
+            getEpisodes() {
+                let cachedTime = localStorage.getItem('originalJsonLastModifiedTime');
+                let cachedData = localStorage.getItem('originalJsonData');
+                // console.log("缓存json文件修改时间："+ cachedTime)
+                axios({
+                    method: 'get',
+                    url: '/static/tv_calendar/original.json',
+                    headers: { 'If-Modified-Since': cachedTime }
+                }).then(res => {
+                    if (res.status === 304) {
+                        // If the response status is 304 (Not Modified), use the cached data
+                        this.date_dict = JSON.parse(cachedData);
+                        this.status = (Object.keys(this.date_dict).length > 0);
+                    } else {
+                        // Otherwise, update the cache with the new data
+                        let yesterday = this.timestamp(this.getDateStr(0));
+                        let endDay = this.timestamp(this.getDateStr(this.offset));
+                        let episodes = res.data;
+                        let filterEpisodes = episodes.filter((episode) => {
+                            if (episode['air_date']) {
+                                return this.timestamp(episode['air_date']) >= yesterday && this.timestamp(episode['air_date']) <= endDay
+                            } else {
+                                return false;
+                            }
+                        });
+                        let sortEpisodes = filterEpisodes.sort((a, b) => {
+                            return this.timestamp(a['air_date']) - this.timestamp(b['air_date']);
+                        });
+                        let groupEpisodes = this.groupBy(sortEpisodes, episode => {
+                            return episode['air_date'];
+                        });
+                        let group = {};
+                        for (let key in groupEpisodes) {
+                            let list = groupEpisodes[key];
+                            let tvGroup = this.groupBy(list, episode => {
+                                return episode['show_id'];
+                            });
+                            group[key] = tvGroup;
+                        }
+                        this.date_dict = group;
+                        localStorage.setItem('originalJsonLastModifiedTime', res.headers['last-modified']);
+                        localStorage.setItem('originalJsonData', JSON.stringify(this.date_dict));
+                        // this.status = (episodes.length > 0);
+                        this.status = true;
+                        localStorage.setItem('cachedEpisodes', JSON.stringify(episodes));
+                    }
+                }).catch(e => {
+                    if (cachedData) {
+                        // If the axios request fails and there is cached data, use the cached data
+                        this.date_dict = JSON.parse(cachedData);
+                        // this.status = (Object.keys(this.date_dict).length > 0);
+                        this.status = true;
+                    } else {
+                        // If there is no cached data and the axios request fails, set status to false
+                        this.status = false;
+                    }
+                });
+            },
+            timestamp(date){
+                return date.replaceAll("-", "")
+            },
+            groupBy(list, fn) {
+                const groups = {};
+                list.forEach(function (o) {
+                    // const group = JSON.stringify(fn(o));
+                    const group = fn(o);
+                    groups[group] = groups[group] || [];
+                    groups[group].push(o);
+                });
+                return groups;
+            },
+            // 判断是否在iframe中
+            isInIframe() {
+                try {
+                    return window.self !== window.top;
+                } catch (e) {
+                    return true;
+                }
+            },
+            // 判断是否在主屏幕中
+            isAddedToHomeScreen() {
+                return window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+            },
+            adjustBgDivHeight() {
+                const bgDiv = document.getElementById('bg-div');
+                // const bgUrl = this.getBg(this.isSmallScreen);
+                if (this.isAddedToHomeScreen() && !this.isInIframe()) {
+                    const originalHeight = parseInt(bgDiv.style.height);
+                    const updatedHeight = originalHeight + 30;
+                    bgDiv.style.height = updatedHeight + 'px';
+                }
+                // bgDiv.style.background = `url(${bgUrl}) no-repeat center top`;
+                if (this.isSmallScreen) {
+                    document.getElementById('bg-img').style.filter = 'blur(0)';
+                } else {
+                    document.getElementById('bg-img').src = '/static/tv_calendar/bg_pc.png';
+                    document.getElementById('bg-img').style.filter = 'blur(5px)';
+                }
+
+            }
+
+        },
+        mounted() {
+            this.getEpisodes();
+            this.adjustBgDivHeight();
+        }
+    });
+    app.use(vant);
+    app.use(vant.Lazyload);
+    app.mount('#app');
+</script>
+</body>
+</html>
