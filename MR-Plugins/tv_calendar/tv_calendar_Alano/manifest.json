@@ -3,7 +3,7 @@
   "title": "追剧日历_Alano",
   "author": "oreki & Alano",
   "description": "根据已订阅剧集，查看未来7天更新计划。\n对于配置了MR访问地址的用户，点击微信推送内容可跳转到日历页面。\n点击左下角问号，进入日历。PS:媒体库需要是PLEX",
-  "version": "0.1",
+  "version": "1.1",
   "requirements": [],
   "configField": [
     {
