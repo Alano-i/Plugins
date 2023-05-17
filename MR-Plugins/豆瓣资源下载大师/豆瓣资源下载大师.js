@@ -262,21 +262,21 @@ function starBlock(source, source_link, _rating, _vote, max = 10) {
 function parseLdJson (raw) {
     return JSON.parse(raw.replace(/\n/ig,''));
 }
-//PLEX库查找开始---DIY
-function PlexFunc() {
-    // 页面匹配
-    function DocumentReady(imdb_id, unititle, douban_id, year, eng_title) {
-        const embyHost = "http://localhost:8096";
-        const embyApiKey = "47dd";
-        const plexHost = "https://plex.xxxx.com:32400";
-        const mrHost = "https://mr.xxxx.com:1329";
-        const mrHostSSL = "https://mr.xxxx.com:88";
-        const mrToken = "6GgDVexxxxxxxxxxxxdZ2nmY";
-        const tmdb = "https://www.themoviedb.org";
-        if (!embyHost || !embyApiKey || !mrHost || !mrToken || !tmdb || !plexHost || !mrHostSSL) return;
-        // 优先插入其他文字
-        // 订阅按钮添加ID方便监听
-        $("#content h1").after(`<a id="subscribe-btn" style="color:red;font-weight:bold;font-size:18px">订阅</a> | <a href='${mrHost}/movie/search?keyword=${imdb_id}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>精准搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}${year}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>年份搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>模糊搜索</a> | <a href=https://springsunday.net/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>不可说</a> | <a href=https://pt.keepfrds.com/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>月月</a> | <a href=https://chdbits.co/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>岛</a>
+ //PLEX库查找开始---DIY
+  function PlexFunc() {
+      // 页面匹配
+      function DocumentReady(imdb_id, unititle, douban_id, year, eng_title) {
+          const embyHost = "http://localhost:8096";
+          const embyApiKey = "47dd";
+          const plexHost = "http://127.0.0.1:32400";
+          const mrHost = "http://10.0.0.9:1329";
+          const mrHostSSL = "https://";
+          const mrToken = "A88888888888888888";
+          const tmdb = "https://www.themoviedb.org";
+          if (!embyHost || !embyApiKey || !mrHost || !mrToken || !tmdb || !plexHost || !mrHostSSL) return;
+          // 优先插入其他文字
+          // 订阅按钮添加ID方便监听
+          $("#content h1").after(`<a id="subscribe-btn" style="color:red;font-weight:bold;font-size:18px">订阅</a> | <a href='${mrHost}/movie/search?keyword=${imdb_id}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>精准搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}${year}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>年份搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>模糊搜索</a> | <a href=https://springsunday.net/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>不可说</a> | <a href=https://pt.keepfrds.com/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>月月</a> | <a href=https://chdbits.co/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>岛</a>
  | <a href='${tmdb}/search?query=${unititle}' target='_blank'>TMDB中文</a> | <a href='${tmdb}/search?query=${eng_title}' target='_blank'>TMDB英文</a> | <a href='http://zmk.pw/search?q=${unititle}' target='_blank'>字幕库</a> | <a href='${plexHost}/web/index.html#!/search?query=${unititle}' target='_blank'>PLEX搜索</a> | <a href='${mrHost}/api/media/search_by_keyword?access_key=${mrToken}&keyword=${imdb_id}' target='_blank'>库详情</a>`);
         // 监听请求按钮
         $("#subscribe-btn").click(function (event) {
@@ -296,45 +296,45 @@ function PlexFunc() {
                 "id": parseInt(douban_id)
             });
             xhr.send(requestBody);
-        };
+          };
         // 根据关键词查询
-        const checkMR = (keyword) => {
-            let checkUrl = `${mrHost}/api/media/search_by_keyword?keyword=${keyword}&access_key=${mrToken}`
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: checkUrl,
-                timeout: 45e3,
-                onload: function (resPlex) {
-                    let resText = resPlex.responseText;
-                    let parPlex = JSON.parse(resText);
-                    const returnCode = parPlex.code;
-                    if (returnCode != 0) {
-                        alert('根据名称查询机器人接口错误：' + parPlex.message);
-                    } else {
-                        const isFuzzyQuery = !imdb_id;
-                        if (parPlex.data.length> 0) {
-                            const text = isFuzzyQuery ? "媒体疑似存在" : "媒体存在";
-                            const textys = isFuzzyQuery ? "#00BFFF" : "green";
-                            $("#content").prepend(`<a href='${plexHost}/web/index.html#!/search?query=${unititle}' target='_blank' style="color:${textys};font-weight:bold;font-size:18px">★${text}★</a>`);
-                        } else {
-                            // 订阅按钮添加ID方便监听
+          const checkMR = (keyword) => {
+              let checkUrl = `${mrHost}/api/media/search_by_keyword?keyword=${keyword}&access_key=${mrToken}`
+              GM_xmlhttpRequest({
+                  method: "GET",
+                  url: checkUrl,
+                  timeout: 45e3,
+                  onload: function (resPlex) {
+                      let resText = resPlex.responseText;
+                      let parPlex = JSON.parse(resText);
+                      const returnCode = parPlex.code;
+                      if (returnCode != 0) {
+                          alert('根据名称查询机器人接口错误：' + parPlex.message);
+                      } else {
+                          const isFuzzyQuery = !imdb_id;
+                          if (parPlex.data.length> 0) {
+                              const text = isFuzzyQuery ? "媒体疑似存在" : "媒体存在";
+                              const textys = isFuzzyQuery ? "#00BFFF" : "green";
+                              $("#content").prepend(`<a href='${plexHost}/web/index.html#!/search?query=${unititle}' target='_blank' style="color:${textys};font-weight:bold;font-size:18px">★${text}★</a>`);
+                          } else {
+                             // 订阅按钮添加ID方便监听
                             $("#content").prepend(`<a id="subscribe-btn" style="color:red;font-weight:bold;font-size:18px";cursor: pointer;>★媒体不存在★</a>`)
                             //监听请求按钮
                             $("#subscribe-btn").click(function (event) {
                                 MRSubscribe(douban_id);
                             });
-                        }
-                    }
-                }
-            })
-        };
+                          }
+                      }
+                  }
+              })
+          };
         checkMR(imdb_id || unititle)
-    }
-    return {
-        DocumentReady
-    }
-}
-//PLEX库查找END
+      }
+      return {
+          DocumentReady
+      }
+  }
+  //PLEX库查找END
 
 $(document).ready(function () {
     let douban_link, douban_id;
@@ -369,7 +369,7 @@ $(document).ready(function () {
         let cache = CacheStorage(douban_id, 86400 * 7 * 1e3);
         let need_login_cache = CacheStorage("need_login", 86400 * 1e3);
 
-        $("#content div.aside").prepend(`<div id="drdm_req_status" style="color: #C65E24;background: #F4F4EC; padding: 10px; border-radius: 8px; margin-bottom: 20px; word-wrap: break-word;display: none;">
+        $("#content div.aside").prepend(`<div id="drdm_req_status" style="color: #C65E24;background: #F4F4EC; border-radius: 8px; padding: 10px; margin-bottom: 20px; word-wrap: break-word;display: none;">
 <div style="text-align: center;">豆瓣资源下载大师 - 资源搜索情况 <a href="javascript:void();" id="drdm_req_status_hide">(隐藏)</a> <hr></div>
 <p id="drdm_dep_notice" style="color: #C65E24;display:none;">脚本未完全加载，部分站点将受影响。请确保网络稳定或尝试重新刷新页面。</p>
 <table>
@@ -710,8 +710,8 @@ $(document).ready(function () {
 
                         // 流行度
                         let popularity_selector = is_new
-                            ? 'div[class^="TitleBlockButtonBase__ButtonContentWrap"]:has( > div[class^="TrendingButton__ContentWrap"])'
-                            : 'div:contains("Popularity") + div > span.subText';
+                        ? 'div[class^="TitleBlockButtonBase__ButtonContentWrap"]:has( > div[class^="TrendingButton__ContentWrap"])'
+                        : 'div:contains("Popularity") + div > span.subText';
                         if ($(popularity_selector, doc).length > 0) {
                             let popularity_another = $(popularity_selector, doc);
                             let pop_score, pop_delta, pop_up;
@@ -840,8 +840,8 @@ $(document).ready(function () {
                     $("#loading_more_rate").hide();
                 });
             } else {
-                //DIY
-                PlexFunc().DocumentReady(imdb_id, unititle, douban_id, eng_title);
+              //DIY
+              PlexFunc().DocumentReady(imdb_id, unititle, douban_id, eng_title);
             }
             if (GM_getValue("enable_blue_date", true)) { //蓝光发售日期显示功能
                 let ywm = eng_title.replace(/[:,!\-]/g, "").replace(/ /g,'-');
@@ -911,7 +911,7 @@ $(document).ready(function () {
 
                 // 简介 （首先检查是不是有隐藏的，如果有，则直接使用隐藏span的内容作为简介，不然则用 span[property="v:summary"] 的内容）
                 introduction = $('#link-report > span.all.hidden').length > 0 ? $('#link-report > span.all.hidden').text() : // 隐藏部分
-                    ($('[property="v:summary"]').length > 0 ? $('[property="v:summary"]').text() : '暂无相关剧情介绍');
+                ($('[property="v:summary"]').length > 0 ? $('[property="v:summary"]').text() : '暂无相关剧情介绍');
                 introduction = introduction.split('\n').map(function(a) {return a.trim()}).join('\n'); // 处理简介缩进
                 // 导演，编剧，演员 （只能获取到显示的，没API丰富）
                 let director_another = $('span > span:contains("导演")').parent('span'); // 往上回溯一级
