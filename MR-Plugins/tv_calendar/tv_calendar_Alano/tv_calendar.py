@@ -422,15 +422,19 @@ def save_json():
             pass
     # _LOGGER.info(f'img_list {img_list}')
     # 遍历删除不需要的图片
+    del_img_list = []
+    _LOGGER.info(f'{plugins_name}开始检查是否有完结剧集相关图片，如有将其删除！')
     all_img = os.listdir(os.path.join(src_base_path, 'img'))
     for img_file in all_img:
         if img_file not in img_list:
             try:
                 os.remove(os.path.join(src_base_path, 'img', img_file))
+                del_img_list.append(img_file)
             except Exception as e:
                     _LOGGER.error(f'删除 {img_file} 出错，原因: {e}')
                     continue
-            
+    if del_img_list:
+        _LOGGER.info(f'{plugins_name}已删除完结剧集相关图片: {del_img_list}')
     hlink(src_base_path, dst_base_path)
     _LOGGER.info(f'{plugins_name}剧集数据更新结束')
     push_message()
