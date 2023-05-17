@@ -268,12 +268,12 @@ function parseLdJson (raw) {
       function DocumentReady(imdb_id, unititle, douban_id, year, eng_title) {
           const embyHost = "http://localhost:8096";
           const embyApiKey = "47dd";
-          const plexHost = "http://127.0.0.1:32400";
-          const mrHost = "http://10.0.0.9:1329";
-          const mrHostSSL = "https://";
-          const mrToken = "A88888888888888888";
+          const plexHost = "https://plex.xxxx.com:1329";
+          const mrHost = "https://mr.xxxx.com:1329";
+          const mrHostSSL = "https://mr.xxxx.com:1329";
+          const mrToken = "6GgDVeqxxxxxxxxxdZ2nmY";
           const tmdb = "https://www.themoviedb.org";
-          if (!embyHost || !embyApiKey || !mrHost || !mrToken || !tmdb || !plexHost || !mrHostSSL) return;
+          if (!embyHost || !embyApiKey || !mrHost || !mrToken || !tmdb || !plexHost) return;
           // 优先插入其他文字
           // 订阅按钮添加ID方便监听
           $("#content h1").after(`<a id="subscribe-btn" style="color:red;font-weight:bold;font-size:18px">订阅</a> | <a href='${mrHost}/movie/search?keyword=${imdb_id}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>精准搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}${year}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>年份搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>模糊搜索</a> | <a href=https://springsunday.net/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>不可说</a> | <a href=https://pt.keepfrds.com/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>月月</a> | <a href=https://chdbits.co/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>岛</a>
