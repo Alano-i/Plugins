@@ -12,6 +12,7 @@ from moviebotapi.subscribe import SubStatus, Subscribe
 import json
 import os
 import shutil
+import xml.etree.ElementTree as ET
 import logging
 from mbot.openapi import mbot_api
 from mbot.openapi import media_server_manager
@@ -163,7 +164,7 @@ def set_plex():
             else:
                 _LOGGER.info(f"{plugins_name} PLEX 服务器 Webhook 列表中已添加此 Webhook 链接：{webhook_url}")
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}未 PLEX 服务器添加 Webhook 出错，原因: {e}')
+        _LOGGER.error(f'{plugins_name}为 PLEX 服务器添加 Webhook 出错，原因: {e}')
 
 def get_sub_info(data):
     try:
@@ -207,6 +208,22 @@ def create_hard_link(file_name):
     os.symlink(src_path, dst_path) # 创建软链接
     # shutil.copyfile(src_path, dst_path) # 复制文件
     # _LOGGER.info(f'「{src_path}」已软链接到「{src_path}」')
+
+def get_display_title(key):
+    plex_url = plexserver.url('')
+    plex_token = plexserver._token
+    url = plex_url + key + '?X-Plex-Token=' + plex_token
+    response = requests.get(url)
+    if response.status_code == 200:
+        # 解析XML
+        root = ET.fromstring(response.text)
+        # 使用XPath定位第一个streamType="1"的Stream元素
+        stream_element = root.find('.//Video/Media/Part/Stream[@streamType="1"]')
+        if stream_element is not None:
+            display_title = stream_element.get('displayTitle')
+            if display_title:
+                return display_title
+    return ''
 
 def get_tv_info(tv_id):
     time.sleep(1)
@@ -273,7 +290,7 @@ def get_local_info(tmdb_id, season_number, tv_name):
                 episode_local_arr_f = f"媒体库中还没有该剧集"
 
             if episode_list:
-                # 获取文件名
+                # 获取剧集在plex服务器的本地数据
                 try:
                     episode_local_child_rating_key = episode_list[0].id
                     episode = plexserver.fetchItem(int(episode_local_child_rating_key))
@@ -311,15 +328,21 @@ def get_local_info(tmdb_id, season_number, tv_name):
                             videoResolution = ''
                         # 动态范围
                         try:
-                            display_title = episode_item.media[0].parts[0].streams[0].displayTitle.lower(), #'4K DoVi (HEVC Main 10) 4K HDR10 (HEVC Main 10) 1080p (H.264)
-                            if 'dovi' in display_title:
-                                display_title = '杜比视界'
+                            key = episode_item.key # /library/metadata/33653
+                            display_title = get_display_title(key).lower()
+                            # display_title = episode_item.media[0].parts[0].streams[0].displayTitle.lower(), #'4K DoVi (HEVC Main 10) 4K HDR10 (HEVC Main 10) 1080p (H.264)
+                            if 'dovi' in display_title or 'dov' in display_title or 'dv' in display_title:
+                                display_title = 'DV'
                             elif 'hdr' in display_title:
                                 display_title = 'HDR'
                             else:
                                 display_title = 'SDR'
                         except Exception as e:
                             display_title = ''
+                        try:
+                            isPlayed = episode_item.isPlayed
+                        except Exception as e:
+                            isPlayed = False
                         local_info={
                             episode_item.episodeNumber: {
                                 'file_name': file_name, 
@@ -327,7 +350,8 @@ def get_local_info(tmdb_id, season_number, tv_name):
                                 'size': size,
                                 'videoResolution': videoResolution,
                                 'duration': duration,
-                                'bitrate': bitrate
+                                'bitrate': bitrate,
+                                'isPlayed': isPlayed
                         }}
                         local_info_list.update(local_info)
 
@@ -384,6 +408,7 @@ def update_json():
             episode['episode_local_display_title'] = local_info_list.get(episode_number, {}).get('display_title', '')
             episode['episode_local_bitrate'] = local_info_list.get(episode_number, {}).get('bitrate', '')
             episode['episode_local_duration'] = local_info_list.get(episode_number, {}).get('duration', '')
+            episode['episode_local_isPlayed'] = local_info_list.get(episode_number, {}).get('isPlayed', '')
             episode_data = {
                 tmdb_id: {
                     "episode_local_num": episode_local_num,
@@ -406,6 +431,7 @@ def update_json():
             episode['episode_local_display_title'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('display_title', '')
             episode['episode_local_bitrate'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('bitrate', '')
             episode['episode_local_duration'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('duration', '')
+            episode['episode_local_isPlayed'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('isPlayed', '')
         
     # _LOGGER.error(f'episode_data_list：{episode_data_list}')
     # 将更新后的数据写回到同一文件中
