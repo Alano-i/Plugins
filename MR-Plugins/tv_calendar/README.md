@@ -14,9 +14,9 @@ MR插件，根据 or3ki 大佬的版本修改版，WEB 页面全部加载本地�
 ## 使用方法
 - 将下面所有文件放到 `tv_calendar_Alano` 文件夹，然后将 `tv_calendar_Alano` 文件夹放入放到 `Plugins` 文件夹，重启MR。
 - 本地媒体库需要是 PLEX
-## PLEX 入库时同步本地媒体数据至追剧日历
+#### PLEX 入库时同步本地媒体数据至追剧日历
 ```console
-在 PLEX 服务器 设置 - webhooks,添加 http://10.10.10.10:1329/api/plugins/update_json?access_key=MR的token
+设置中添加MR的地址和Token,即可自动配置好。
 ```
 
 ## 效果预览
