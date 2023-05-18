@@ -21,5 +21,5 @@ MR插件，根据 or3ki 大佬的版本修改版，感谢大佬，WEB 页面全�
 ```
 
 ## 效果预览
-![dsfafa](https://github.com/Alano-i/wecom-notification/assets/68833595/7b4457b9-4729-4ecb-87a7-f7bba3624158)
+![image](https://github.com/Alano-i/wecom-notification/assets/68833595/7b4457b9-4729-4ecb-87a7-f7bba3624158)
 
