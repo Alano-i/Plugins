@@ -271,13 +271,13 @@ function parseLdJson (raw) {
         const plexHost = "https://plex.xxxx.com:32400";
         const mrHost = "https://mr.xxxx.com:1329";
         const mrHostSSL = "https://mr.xxxx.com:1329";
-        const mrToken = "6GgDVeqxxxxB5dZ2nmY";
+        const mrToken = "6GgDVeq7xxxxxxB5dZ2nmY";
         const tmdb = "https://www.themoviedb.org";
           if (!embyHost || !embyApiKey || !mrHost || !mrToken || !tmdb || !plexHost || !mrHostSSL) return;
           // 优先插入其他文字
           // 订阅按钮添加ID方便监听
           $("#content h1").after(`<a id="subscribe-btn" style="display:inline-block; background-color: #1d8b37; color: white; margin:0px 5px 5px 0px;font-weight: bold; font-size: 13px; padding: 3px 20px; border-radius: 5px; text-align: center;">订阅</a> | <a href='${mrHost}/movie/search?keyword=${imdb_id}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>精准搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}${year}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>年份搜索</a> | <a href='${mrHost}/movie/search?keyword=${unititle}&cates=Movie,TV,Documentary,Anime&searchMediaServer=true&searchSite=true&searchDouban=true' target='_blank'>模糊搜索</a> | <a href=https://springsunday.net/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>不可说</a> | <a href=https://pt.keepfrds.com/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>月月</a> | <a href=https://kp.m-team.cc/torrents.php?incldead=0&spstate=0&inclbookmarked=0&search=${unititle}&search_area=0&search_mode=0' target='_blank'>馒头</a> | <a href=https://chdbits.co/torrents.php?search=${imdb_id}&search_area=4&search_mode=0' target='_blank'>岛</a>
- | <a href='${tmdb}/search?query=${unititle}' target='_blank'>TMDB中文</a> | <a href='${tmdb}/search?query=${eng_title}' target='_blank'>TMDB英文</a> | <a href='https://so.zimuku.org/search?q=${unititle}' target='_blank'>字幕库</a> | <a href='${plexHost}/web/index.html#!/search?query=${unititle}' target='_blank'>PLEX搜索</a> | <a href='${mrHost}/api/media/search_by_keyword?access_key=${mrToken}&keyword=${imdb_id}' target='_blank'>库详情</a>`);
+ | <a href='${tmdb}/search?query=${unititle}' target='_blank'>TMDB中文</a> | <a href='${tmdb}/search?query=${eng_title}' target='_blank'>TMDB英文</a> | <a href='https://so.zimuku.org/search?q=${unititle}' target='_blank'>字幕库</a> | <a href='${plexHost}/web/index.html#!/search?query=${unititle}' target='_blank'>PLEX搜索</a> | <a href='${mrHost}/api/media/search_by_keyword?access_key=${mrToken}&keyword=${unititle}' target='_blank'>库详情</a>`);
         // 监听请求按钮
         $("#subscribe-btn").click(function (event) {
             MRSubscribe(douban_id);
@@ -314,11 +314,11 @@ function parseLdJson (raw) {
                           const isFuzzyQuery = !imdb_id;
                           if (parPlex.data.length> 0) {
                               const text = isFuzzyQuery ? "🎲 媒体疑似存在" : "✅ 媒体库中已存在";
-                              const textys = isFuzzyQuery ? "#00BFFF" : "#1d8b37";
-                              $("#content").prepend(`<a href='${plexHost}/web/index.html#!/search?query=${unititle}' target='_blank' style="margin:0px 2px 0px 5px; color:${textys};font-weight:bold;font-size:14px">${text}</a>`);
+                              const textys = isFuzzyQuery ? "#FFA228" : "#1d8b37";
+                              $("#content").prepend(`<a href='${plexHost}/web/index.html#!/search?query=${unititle}' target='_blank' style="background-color: rgba(1,1,1,0); margin:0px 2px 0px 5px; color:${textys};font-weight:bold;font-size:14px">${text}</a>`);
                           } else {
                              // 订阅按钮添加ID方便监听
-                            $("#content").prepend(`<a id="subscribe-btn" style="margin:0px 2px 5px 3px; color:#ff6c00;font-weight:bold;font-size:14px";cursor: pointer;>🔔 媒体库中不存在</a>`)
+                            $("#content").prepend(`<a id="subscribe-btn" style="background-color: rgba(1,1,1,0); margin:0px 2px 5px 3px; color:#ff6c00;font-weight:bold;font-size:14px";cursor: pointer;>🔔 媒体库中不存在</a>`)
                             //监听请求按钮
                             $("#subscribe-btn").click(function (event) {
                                 MRSubscribe(douban_id);
