@@ -64,10 +64,12 @@ def hlink(src_base_path, dst_base_path):
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global set_pic_url
+    global set_pic_url,mbot_url,mbot_api_key
     global message_to_uid
-    set_pic_url = config.get('set_pic_url')
-    message_to_uid = config.get('uid')
+    set_pic_url = config.get('set_pic_url','')
+    message_to_uid = config.get('uid','')
+    mbot_url = config.get('mbot_url','')
+    mbot_api_key = config.get('mbot_api_key','')
 
     hlink(src_base_path, dst_base_path)
 
@@ -90,16 +92,20 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
                 menu.pages.append(menu_item)
                 break
     server.common.save_menus(menus)
+    set_plex()
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global set_pic_url
+    global set_pic_url,mbot_url,mbot_api_key
     global message_to_uid
-    set_pic_url = config.get('set_pic_url')
-    message_to_uid = config.get('uid')
+    set_pic_url = config.get('set_pic_url','')
+    message_to_uid = config.get('uid','')
+    mbot_url = config.get('mbot_url','')
+    mbot_api_key = config.get('mbot_api_key','')
     # shutil.copy('/data/plugins/tv_calendar_Alano/frontend/tv_calendar.html', '/app/frontend/static')
     hlink(src_base_path, dst_base_path)
     _LOGGER.info('「追剧日历」已重新加载配置并重新链接资源到容器内')
+    set_plex()
 
 # 新增剧集订阅，重新生成日历数据
 @plugin.on_event(
@@ -140,6 +146,24 @@ def task():
 @plugin.task('update_json', '同步本地媒体库数据至追剧日历', cron_expression='0 * * * *')
 def update():
     update_json()
+
+
+def set_plex():
+    try:
+        # settings = plexserver.settings
+        if mbot_url and mbot_api_key:
+            webhook_url = f'{mbot_url}/api/plugins/update_json?access_key={mbot_api_key}'
+            # 自动设置 webhooks
+            account = plexserver.myPlexAccount()
+            webhooks = account.webhooks()
+            if webhook_url not in webhooks:
+                webhooks.append(webhook_url)
+                account.setWebhooks(webhooks)
+                _LOGGER.info(f"{plugins_name} 已向 PLEX 服务器添加 Webhook")
+            else:
+                _LOGGER.info(f"{plugins_name} PLEX 服务器 Webhook 列表中已添加此 Webhook 链接：{webhook_url}")
+    except Exception as e:
+        _LOGGER.error(f'{plugins_name}未 PLEX 服务器添加 Webhook 出错，原因: {e}')
 
 def get_sub_info(data):
     try:
@@ -208,11 +232,31 @@ def find_season_poster(seasons, season_number):
             return season['poster_path']
     return ''
 
+# 大小单位转换，输入Bytes
+def convert_bytes_to_gbm(bytes_value):
+    gb = bytes_value / (1024 ** 3)  # 转换为GB
+    if gb >= 1:
+        return f"{gb:.2f}GB"
+    else:
+        mb = bytes_value / (1024 ** 2)  # 转换为MB
+        return f"{mb:.2f}MB"
+
+def convert_milliseconds(milliseconds):
+    milliseconds = int(milliseconds)
+    minutes = milliseconds // 60000  # 毫秒转分钟
+    if minutes >= 60:
+        hours = minutes // 60
+        minutes %= 60
+        return f"{hours}小时{minutes}分钟"
+    else:
+        return f"{minutes}分钟"
+
+
 
 def get_local_info(tmdb_id, season_number, tv_name):
     episode_local_max = 0
-    file_name = {}
-    file_name_list = {}
+    local_info = {}
+    local_info_list = {}
     for i in range(3):
         try:
             # 获取媒体库中集的数据
@@ -221,7 +265,6 @@ def get_local_info(tmdb_id, season_number, tv_name):
             episode_local_arr = [int(x.index) for x in episode_list]
             # 有多少集 4
             episode_local_num = len(episode_local_arr)
-            # _LOGGER.info(f'「get_local_info」请求成功')
             if episode_local_arr:
                 episode_local_max = max(episode_local_arr)
                 episode_local_arr_f = format_episode_local_arr(episode_local_arr)
@@ -239,18 +282,59 @@ def get_local_info(tmdb_id, season_number, tv_name):
                     season = show.season(season_number)
                     episodes = season.episodes()
                     for episode_item in episodes:
+                        # 文件名
                         try:
-                            file_name_o = os.path.basename(episode_item.media[0].parts[0].file)
+                            file_name = os.path.basename(episode_item.locations[0])
                         except Exception as e:
-                            file_name_o = ''
-                        file_name={
-                            episode_item.episodeNumber: file_name_o
-                        }
-                        file_name_list.update(file_name)
+                            file_name = ''
+                        # 时长
+                        try:
+                            duration = convert_milliseconds(episode_item.duration)
+                        except Exception as e:
+                            duration = ''
+                        # 大小
+                        try:
+                            size = convert_bytes_to_gbm(episode_item.media[0].parts[0].size)
+                        except Exception as e:
+                            size = ''
+                        # bitrate
+                        try:
+                            bitrate = f"{round(episode_item.media[0].bitrate / 1000, 1)}Mbps"
+                        except Exception as e:
+                            bitrate = ''
+                        # 分辨率
+                        try:
+                            videoResolution = episode_item.media[0].videoResolution.lower() #480 720 1080 4k
+                            videoResolution = videoResolution if videoResolution == '4k' else f"{videoResolution}P"
+                            videoResolution = videoResolution.upper()
+                        except Exception as e:
+                            videoResolution = ''
+                        # 动态范围
+                        try:
+                            display_title = episode_item.media[0].parts[0].streams[0].displayTitle.lower(), #'4K DoVi (HEVC Main 10) 4K HDR10 (HEVC Main 10) 1080p (H.264)
+                            if 'dovi' in display_title:
+                                display_title = '杜比视界'
+                            elif 'hdr' in display_title:
+                                display_title = 'HDR'
+                            else:
+                                display_title = 'SDR'
+                        except Exception as e:
+                            display_title = ''
+                        local_info={
+                            episode_item.episodeNumber: {
+                                'file_name': file_name, 
+                                'display_title': display_title,
+                                'size': size,
+                                'videoResolution': videoResolution,
+                                'duration': duration,
+                                'bitrate': bitrate
+                        }}
+                        local_info_list.update(local_info)
+
                 except Exception as e:
                     _LOGGER.error(f'{plugins_name}读取「{tv_name}」{tmdb_id}-{season_number} 文件名出错，原因: {e}')
                     pass
-                return episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, file_name_list
+                return episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, local_info_list
         except Exception as e:
             _LOGGER.error(f'「get_local_info」{i+1}/3 次请求异常，原因：{e}')
             time.sleep(3)
@@ -285,7 +369,7 @@ def update_json():
         tv_name = episode.get('tv_name','')
         if tmdb_id not in tmdb_id_list:
             today_air_episode = episode['today_air_episode']
-            episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, file_name_list = get_local_info(tmdb_id, season_number,tv_name)
+            episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, local_info_list = get_local_info(tmdb_id, season_number,tv_name)
             if today_air_episode:
                 episode_local_updated = set(today_air_episode).issubset(set(episode_local_arr))
             else:
@@ -294,14 +378,19 @@ def update_json():
             episode['episode_local_max'] = episode_local_max
             episode['episode_local_arr_f'] = episode_local_arr_f
             episode['episode_local_updated'] = episode_local_updated
-            episode['episode_local_filename'] = file_name_list.get(episode_number,'')
+            episode['episode_local_filename'] = local_info_list.get(episode_number, {}).get('file_name', '')
+            episode['episode_local_size'] = local_info_list.get(episode_number, {}).get('size', '')
+            episode['episode_local_videoResolution'] = local_info_list.get(episode_number, {}).get('videoResolution', '')
+            episode['episode_local_display_title'] = local_info_list.get(episode_number, {}).get('display_title', '')
+            episode['episode_local_bitrate'] = local_info_list.get(episode_number, {}).get('bitrate', '')
+            episode['episode_local_duration'] = local_info_list.get(episode_number, {}).get('duration', '')
             episode_data = {
                 tmdb_id: {
                     "episode_local_num": episode_local_num,
                     "episode_local_max": episode_local_max,
                     "episode_local_updated": episode_local_updated,
                     "episode_local_arr_f": episode_local_arr_f,
-                    "file_name_list": file_name_list
+                    "local_info_list": local_info_list
                 }
             }
             episode_data_list.update(episode_data)
@@ -311,7 +400,12 @@ def update_json():
             episode['episode_local_max'] = episode_data_list[tmdb_id]["episode_local_max"]
             episode['episode_local_arr_f'] = episode_data_list[tmdb_id]["episode_local_arr_f"]
             episode['episode_local_updated'] = episode_data_list[tmdb_id]["episode_local_updated"]
-            episode['episode_local_filename'] = episode_data_list[tmdb_id]["file_name_list"].get(episode_number,'')
+            episode['episode_local_filename'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('file_name', '')
+            episode['episode_local_size'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('size', '')
+            episode['episode_local_videoResolution'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('videoResolution', '')
+            episode['episode_local_display_title'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('display_title', '')
+            episode['episode_local_bitrate'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('bitrate', '')
+            episode['episode_local_duration'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('duration', '')
         
     # _LOGGER.error(f'episode_data_list：{episode_data_list}')
     # 将更新后的数据写回到同一文件中
@@ -422,6 +516,13 @@ def save_json():
             pass
     # _LOGGER.info(f'img_list {img_list}')
     # 遍历删除不需要的图片
+    del_img(img_list)
+    hlink(src_base_path, dst_base_path)
+    _LOGGER.info(f'{plugins_name}剧集数据更新结束')
+    push_message()
+    _LOGGER.info(f'{plugins_name}数据更新进程全部完成')
+
+def del_img(img_list):
     del_img_list = []
     _LOGGER.info(f'{plugins_name}开始检查是否有完结剧集相关图片，如有将其删除！')
     all_img = os.listdir(os.path.join(src_base_path, 'img'))
@@ -431,14 +532,11 @@ def save_json():
                 os.remove(os.path.join(src_base_path, 'img', img_file))
                 del_img_list.append(img_file)
             except Exception as e:
-                    _LOGGER.error(f'删除 {img_file} 出错，原因: {e}')
+                    _LOGGER.error(f'{plugins_name}删除 {img_file} 出错，原因: {e}')
                     continue
     if del_img_list:
         _LOGGER.info(f'{plugins_name}已删除完结剧集相关图片: {del_img_list}')
-    hlink(src_base_path, dst_base_path)
-    _LOGGER.info(f'{plugins_name}剧集数据更新结束')
-    push_message()
-    _LOGGER.info(f'{plugins_name}数据更新进程全部完成')
+
 
 def get_after_day(day, n):
     offset = datetime.timedelta(days=n)
