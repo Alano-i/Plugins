@@ -134,7 +134,7 @@
                     <div style="height: 1px; background-color: #3e3e3e; opacity: 0.5; margin: 0px 12px 0px 12px"></div>
                 </div>
                 <div style="background-color: rgba(255, 255, 255, 0.038); margin: 12px 10px 0px 10px; border-radius: 10px;">
-                    <van-card class="fade-in-up" :style="{ margin:'0px', background: 'rgba(255, 255, 255, 0.0)', padding: '4px 8px 5px 4px' }" :tag="item.vote_average>0?item.vote_average.toString():''">
+                    <van-card class="fade-in-up" :style="{ margin:'0px', background: 'rgba(255, 255, 255, 0.0)', padding: '4px 8px 4px 4px' }" :tag="item.vote_average>0?item.vote_average.toString():''">
                         <template #thumb>
                             <div style="position: relative; width:160px; height:90px; overflow: hidden; border-radius: 6px;" @click="openPlexApp()">
                                 <div  v-if="dateFormat_b(item.air_date) === 'true'" style="filter: blur(3px);">
