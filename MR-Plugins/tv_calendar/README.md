@@ -8,6 +8,7 @@ MR插件，根据 or3ki 大佬的版本修改版，感谢大佬，WEB 页面全�
 - 详情页点击顶部海报可返回上一页
 - 详情页点击剧集剧照可跳转 PLEX 应用（iOS）
 - 点击左下角问号，进入日历
+- 增加媒体详情：`HDR/SDR/杜比视界` `时长`  `大小` `比特率`
 - 可添加至 `iOS 主屏幕` ，类App体验
 
 
@@ -20,5 +21,5 @@ MR插件，根据 or3ki 大佬的版本修改版，感谢大佬，WEB 页面全�
 ```
 
 ## 效果预览
-<img width="1089" alt="sfaf3s" src="https://github.com/Alano-i/wecom-notification/assets/68833595/6a810132-f472-413c-bf52-a9f0d7d017c2">
+![dsfafa](https://github.com/Alano-i/wecom-notification/assets/68833595/7b4457b9-4729-4ecb-87a7-f7bba3624158)
 
