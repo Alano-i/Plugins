@@ -20,6 +20,20 @@
       "label": "封面图 URL 地址",
       "helperText": "自定义推送封面填写此项，不填写则随机二次元封面图，示例：http://img.com/a.png",
       "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/tv_calendar/tv_calendar_Alano/logo.jpg"
+    },
+    {
+      "fieldName": "mbot_url",
+      "fieldType": "String",
+      "label": "Mbot URL，接收入库事件以同步本地媒体库数据到追剧日历，示例：http://10.10.10.3:1329",
+      "helperText": "",
+      "defaultValue": "http://10.10.10.3:1329"
+    },
+    {
+      "fieldName": "mbot_api_key",
+      "fieldType": "String",
+      "label": "Mbot API KEY，接收入库事件时身份验证",
+      "helperText": "",
+      "defaultValue": ""
     }
   ],
   "logoUrl": "/plugins/tv_calendar_Alano/logo.jpg",
