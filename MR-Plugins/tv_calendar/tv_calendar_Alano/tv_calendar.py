@@ -332,7 +332,7 @@ def get_local_info(tmdb_id, season_number, tv_name):
                         local_info_list.update(local_info)
 
                 except Exception as e:
-                    _LOGGER.error(f'{plugins_name}读取「{tv_name}」{tmdb_id}-{season_number} 文件名出错，原因: {e}')
+                    _LOGGER.error(f'{plugins_name}读取「{tv_name}」{tmdb_id}-{season_number} 本地剧集信息出错，原因: {e}')
                     pass
                 return episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, local_info_list
         except Exception as e:
