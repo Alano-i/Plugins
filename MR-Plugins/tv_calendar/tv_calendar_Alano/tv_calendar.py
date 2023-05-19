@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-import datetime
+# import datetime
+from datetime import datetime
 import typing
 import random
 import time
@@ -39,28 +40,31 @@ plexserver = media_server_manager.master_plex.plex
 
 
 def hlink(src_base_path, dst_base_path):
-    one = True
-    for root, dirs, files in os.walk(src_base_path):
-        for file_name in files:
-            src_file_path = os.path.join(root, file_name)
-            dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
-            dst_dir_path = os.path.dirname(dst_file_path)
-            if not os.path.exists(dst_dir_path):
-                os.makedirs(dst_dir_path)
-            if os.path.isfile(src_file_path):
-                if os.path.exists(dst_file_path) or os.path.islink(dst_file_path):
-                    os.remove(dst_file_path) # 如果目标文件已经存在，删除它
-                os.symlink(src_file_path, dst_file_path)
-                # shutil.copyfile(src_file_path, dst_file_path)
-        for dir_name in dirs:
-            src_dir_path = os.path.join(root, dir_name)
-            dst_dir_path = os.path.join(dst_base_path, os.path.relpath(src_dir_path, src_base_path))
-            if not os.path.exists(dst_dir_path):
-                os.makedirs(dst_dir_path)
-            one = False
-            hlink(src_dir_path, dst_dir_path)
-    if one:
-        _LOGGER.info(f'{plugins_name}WEB 素材已软链接到容器')
+    try:
+        one = True
+        for root, dirs, files in os.walk(src_base_path):
+            for file_name in files:
+                src_file_path = os.path.join(root, file_name)
+                dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
+                dst_dir_path = os.path.dirname(dst_file_path)
+                if not os.path.exists(dst_dir_path):
+                    os.makedirs(dst_dir_path)
+                if os.path.isfile(src_file_path):
+                    if os.path.exists(dst_file_path) or os.path.islink(dst_file_path):
+                        os.remove(dst_file_path) # 如果目标文件已经存在，删除它
+                    os.symlink(src_file_path, dst_file_path)
+                    # shutil.copyfile(src_file_path, dst_file_path)
+            for dir_name in dirs:
+                src_dir_path = os.path.join(root, dir_name)
+                dst_dir_path = os.path.join(dst_base_path, os.path.relpath(src_dir_path, src_base_path))
+                if not os.path.exists(dst_dir_path):
+                    os.makedirs(dst_dir_path)
+                one = False
+                hlink(src_dir_path, dst_dir_path)
+        if one:
+            _LOGGER.info(f'{plugins_name}WEB 素材已软链接到容器')
+    except Exception as e:
+        _LOGGER.error(f'{plugins_name}将 WEB 素材已软链接到容器出错，原因: {e}')
 
 
 @plugin.after_setup
@@ -139,7 +143,7 @@ def on_subscribe_delete_media(ctx: PluginContext, event_type: str, data: Dict):
         _LOGGER.info(f'{plugins_name}退订媒体{cn_name}，不是剧集，不更新追剧日历数据')
 
 # 每天重新生成日历数据
-@plugin.task('save_json', '剧集更新', cron_expression='30 0 * * *')
+@plugin.task('save_json', '更新追剧日历数据', cron_expression='45 0,1,6 * * *')
 def task():
     save_json()
 
@@ -217,8 +221,16 @@ def get_display_title(key):
     if response.status_code == 200:
         # 解析XML
         root = ET.fromstring(response.text)
+        """
+        streamType="1": 视频流 (Video Stream)
+        streamType="2": 音频流 (Audio Stream)
+        streamType="3": 字幕流 (Subtitle Stream)
+        streamType="4": 章节流 (Chapter Stream)
+        """
         # 使用XPath定位第一个streamType="1"的Stream元素
         stream_element = root.find('.//Video/Media/Part/Stream[@streamType="1"]')
+        # 使用XPath定位所有的streamType="1"的Stream元素
+        # stream_elements = root.findall('.//Video/Media/Part/Stream[@streamType="1"]')
         if stream_element is not None:
             display_title = stream_element.get('displayTitle')
             if display_title:
@@ -269,7 +281,6 @@ def convert_milliseconds(milliseconds):
         return f"{minutes}分钟"
 
 
-
 def get_local_info(tmdb_id, season_number, tv_name):
     episode_local_max = 0
     local_info = {}
@@ -302,6 +313,7 @@ def get_local_info(tmdb_id, season_number, tv_name):
                         # 文件名
                         try:
                             file_name = os.path.basename(episode_item.locations[0])
+                            # file_name = os.path.basename(episode_item.media[0].parts[0].file)  # 此行也可获取文件名
                         except Exception as e:
                             file_name = ''
                         # 时长
@@ -366,80 +378,81 @@ def get_local_info(tmdb_id, season_number, tv_name):
     return [],0,'',0,{}
 
 def update_json():
-    today_date = datetime.date.today().strftime('%Y-%m-%d')
-    original_path = f'{src_base_path}/original.json'
-    if not os.path.exists(original_path):
-        return
-    # 打开原始 JSON 文件
-    with open(original_path, 'r', encoding='utf-8') as f:
-        episode_list = json.load(f)
-    tmdb_id_list = []
-    episode_data_list = {}
-    episode_data= {}
-    # 将今天更新的集数提取出来放到 today_air_episode
-    for episode in episode_list:
-        if episode["air_date"] == today_date:
-            today_episodes = [ep["episode_number"] for ep in episode_list if ep["show_id"] == episode["show_id"] and ep["air_date"] == today_date]
-            for ep in episode_list:
-                if ep["show_id"] == episode["show_id"]:
-                    ep["today_air_episode"] = today_episodes
-        else:
-            episode["today_air_episode"] = []
-    # 添加本地媒体库数据
-    for episode in episode_list:
-        tmdb_id = episode.get('show_id','')
-        episode_number = episode.get('episode_number','')
-        season_number = episode.get('season_number','')
-        tv_name = episode.get('tv_name','')
-        if tmdb_id not in tmdb_id_list:
-            today_air_episode = episode['today_air_episode']
-            episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, local_info_list = get_local_info(tmdb_id, season_number,tv_name)
-            if today_air_episode:
-                episode_local_updated = set(today_air_episode).issubset(set(episode_local_arr))
-            else:
-                episode_local_updated = False
-            episode['episode_local_num'] = episode_local_num
-            episode['episode_local_max'] = episode_local_max
-            episode['episode_local_arr_f'] = episode_local_arr_f
-            episode['episode_local_updated'] = episode_local_updated
-            episode['episode_local_filename'] = local_info_list.get(episode_number, {}).get('file_name', '')
-            episode['episode_local_size'] = local_info_list.get(episode_number, {}).get('size', '')
-            episode['episode_local_videoResolution'] = local_info_list.get(episode_number, {}).get('videoResolution', '')
-            episode['episode_local_display_title'] = local_info_list.get(episode_number, {}).get('display_title', '')
-            episode['episode_local_bitrate'] = local_info_list.get(episode_number, {}).get('bitrate', '')
-            episode['episode_local_duration'] = local_info_list.get(episode_number, {}).get('duration', '')
-            episode['episode_local_isPlayed'] = local_info_list.get(episode_number, {}).get('isPlayed', '')
-            episode_data = {
-                tmdb_id: {
-                    "episode_local_num": episode_local_num,
-                    "episode_local_max": episode_local_max,
-                    "episode_local_updated": episode_local_updated,
-                    "episode_local_arr_f": episode_local_arr_f,
-                    "local_info_list": local_info_list
-                }
-            }
-            episode_data_list.update(episode_data)
-            tmdb_id_list.append(tmdb_id)
-        else:
-            episode['episode_local_num'] = episode_data_list[tmdb_id]["episode_local_num"]
-            episode['episode_local_max'] = episode_data_list[tmdb_id]["episode_local_max"]
-            episode['episode_local_arr_f'] = episode_data_list[tmdb_id]["episode_local_arr_f"]
-            episode['episode_local_updated'] = episode_data_list[tmdb_id]["episode_local_updated"]
-            episode['episode_local_filename'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('file_name', '')
-            episode['episode_local_size'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('size', '')
-            episode['episode_local_videoResolution'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('videoResolution', '')
-            episode['episode_local_display_title'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('display_title', '')
-            episode['episode_local_bitrate'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('bitrate', '')
-            episode['episode_local_duration'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('duration', '')
-            episode['episode_local_isPlayed'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('isPlayed', '')
+    try:
+        # today_date = datetime.date.today().strftime('%Y-%m-%d')
+        today_date = datetime.today().strftime("%Y-%m-%d")
         
-    # _LOGGER.error(f'episode_data_list：{episode_data_list}')
-    # 将更新后的数据写回到同一文件中
-    with open(original_path, 'w', encoding='utf-8') as fp:
-        json.dump(episode_list, fp, ensure_ascii=False)
-
+        original_path = f'{src_base_path}/original.json'
+        if not os.path.exists(original_path):
+            return
+        # 打开原始 JSON 文件
+        with open(original_path, 'r', encoding='utf-8') as f:
+            episode_list = json.load(f)
+        tmdb_id_list = []
+        episode_data_list = {}
+        episode_data= {}
+        # 将今天更新的集数提取出来放到 today_air_episode
+        for episode in episode_list:
+            if episode["air_date"] == today_date:
+                today_episodes = [ep["episode_number"] for ep in episode_list if ep["show_id"] == episode["show_id"] and ep["air_date"] == today_date]
+                for ep in episode_list:
+                    if ep["show_id"] == episode["show_id"]:
+                        ep["today_air_episode"] = today_episodes
+            else:
+                episode["today_air_episode"] = []
+        # 添加本地媒体库数据
+        for episode in episode_list:
+            tmdb_id = episode.get('show_id','')
+            episode_number = episode.get('episode_number','')
+            season_number = episode.get('season_number','')
+            tv_name = episode.get('tv_name','')
+            if tmdb_id not in tmdb_id_list:
+                today_air_episode = episode['today_air_episode']
+                episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, local_info_list = get_local_info(tmdb_id, season_number,tv_name)
+                if today_air_episode:
+                    episode_local_updated = set(today_air_episode).issubset(set(episode_local_arr))
+                else:
+                    episode_local_updated = False
+                episode['episode_local_num'] = episode_local_num
+                episode['episode_local_max'] = episode_local_max
+                episode['episode_local_arr_f'] = episode_local_arr_f
+                episode['episode_local_updated'] = episode_local_updated
+                episode['episode_local_filename'] = local_info_list.get(episode_number, {}).get('file_name', '')
+                episode['episode_local_size'] = local_info_list.get(episode_number, {}).get('size', '')
+                episode['episode_local_videoResolution'] = local_info_list.get(episode_number, {}).get('videoResolution', '')
+                episode['episode_local_display_title'] = local_info_list.get(episode_number, {}).get('display_title', '')
+                episode['episode_local_bitrate'] = local_info_list.get(episode_number, {}).get('bitrate', '')
+                episode['episode_local_duration'] = local_info_list.get(episode_number, {}).get('duration', '')
+                episode['episode_local_isPlayed'] = local_info_list.get(episode_number, {}).get('isPlayed', '')
+                episode_data = {
+                    tmdb_id: {
+                        "episode_local_num": episode_local_num,
+                        "episode_local_max": episode_local_max,
+                        "episode_local_updated": episode_local_updated,
+                        "episode_local_arr_f": episode_local_arr_f,
+                        "local_info_list": local_info_list
+                    }
+                }
+                episode_data_list.update(episode_data)
+                tmdb_id_list.append(tmdb_id)
+            else:
+                episode['episode_local_num'] = episode_data_list[tmdb_id]["episode_local_num"]
+                episode['episode_local_max'] = episode_data_list[tmdb_id]["episode_local_max"]
+                episode['episode_local_arr_f'] = episode_data_list[tmdb_id]["episode_local_arr_f"]
+                episode['episode_local_updated'] = episode_data_list[tmdb_id]["episode_local_updated"]
+                episode['episode_local_filename'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('file_name', '')
+                episode['episode_local_size'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('size', '')
+                episode['episode_local_videoResolution'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('videoResolution', '')
+                episode['episode_local_display_title'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('display_title', '')
+                episode['episode_local_bitrate'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('bitrate', '')
+                episode['episode_local_duration'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('duration', '')
+                episode['episode_local_isPlayed'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('isPlayed', '')
+    except Exception as e:
+        _LOGGER.error(f'{plugins_name}同步本地媒体库数据到「original.json」出错，原因: {e}')
+    # 将更新后的数据写回到文件中
+    write_json_file(original_path,episode_list)
     create_hard_link('original.json')
-    _LOGGER.info(f'{plugins_name}已更新「original.json」并链接到容器')
+    _LOGGER.info(f'{plugins_name}已同步本地媒体库数据到「original.json」并已链接到容器')
 
 def format_episode_local_arr(episode_local_arr):
     episode_local_arr = sorted(episode_local_arr) # 对列表进行排序
@@ -530,23 +543,27 @@ def save_json():
             # 总集数存入单集数据中
             episode['episodes_all_num'] = episodes_all_num
             episode_list.append(episode)
-    try:
-        original_path = f'{src_base_path}/original.json'
-        _LOGGER.info(f'{plugins_name}开始写入新的追剧日历数据到「original.json」文件')
-        with open(original_path, 'w', encoding='utf-8') as fp:
-            json.dump(episode_list, fp, ensure_ascii=False)
-        update_json()
-        # create_hard_link('original.json')
-    except Exception as e:
-            _LOGGER.error(f'{plugins_name}写入新「original.json」文件出错，原因: {e}')
-            pass
-    # _LOGGER.info(f'img_list {img_list}')
+    original_path = f'{src_base_path}/original.json'
+    _LOGGER.info(f'{plugins_name}开始写入新的追剧日历数据到「original.json」文件')
+    write_json_file(original_path,episode_list)
+    update_json()
     # 遍历删除不需要的图片
     del_img(img_list)
     hlink(src_base_path, dst_base_path)
     _LOGGER.info(f'{plugins_name}剧集数据更新结束')
-    push_message()
+    if datetime.now().time().hour == 6:
+        push_message()
     _LOGGER.info(f'{plugins_name}数据更新进程全部完成')
+
+def write_json_file(original_path,list):
+    for i in range(3):
+        try:
+            with open(original_path, 'w', encoding='utf-8') as fp:
+                json.dump(list, fp, ensure_ascii=False)
+        except Exception as e:
+            _LOGGER.error(f'{plugins_name}写入新数据到「original.json」文件出错，原因: {e}')
+            time.sleep(3)
+            continue
 
 def del_img(img_list):
     del_img_list = []
@@ -608,9 +625,10 @@ def save_img(img_path,tv_name):
         # _LOGGER.info(f'「{tv_name}」图片「{img_name}」本地有了，不重新保存了')
 
 def push_message():
-    _LOGGER.info('开始推送今日将要更新的剧集信息')
+    _LOGGER.info(f'{plugins_name}开始推送今日将要更新的剧集信息')
     msg_title = ''
     pic_url = ''
+    message = ''
     # mr_url = get_server_url()
     # if mr_url:
     #     link_url = f'{mr_url}/static/tv_calendar.html'
@@ -618,7 +636,7 @@ def push_message():
         with open('/app/frontend/static/tv_calendar/original.json', encoding='utf-8') as f:
             episode_list = json.load(f)
         episode_filter = list(
-            filter(lambda x: x['air_date'] == datetime.date.today().strftime('%Y-%m-%d'), episode_list))
+            filter(lambda x: x['air_date'] == datetime.today().strftime("%Y-%m-%d"), episode_list))
         name_dict = {}
         for item in episode_filter:
             if item['tv_name'] not in name_dict:
@@ -678,9 +696,8 @@ def push_message():
             })
             _LOGGER.info(f'「今日剧集更新列表」已推送通知')
     except Exception as e:
-                    _LOGGER.error(f'消息推送异常1，原因: {e}')
-                    pass
-
+        _LOGGER.error(f'消息推送异常，原因: {e}')
+        pass
 
 plex_webhook = Blueprint('update_json', __name__)
 """
