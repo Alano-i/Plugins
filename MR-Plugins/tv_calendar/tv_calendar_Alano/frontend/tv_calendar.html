@@ -5,7 +5,6 @@
     <title>追剧日历</title>
     <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vant@4.0/lib/index.css"> -->
     <link rel="stylesheet" href="/static/tv_calendar/index.css">
-
     <!--iOS 添加到主屏幕时始终全屏-->
     <link rel="manifest" href="/static/tv_calendar/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -60,22 +59,20 @@
             display: -webkit-box;
             -webkit-box-orient: vertical;
         }
-
         .fade-in-up {
             opacity: 0;
             transform: translateY(20px);
             animation: fade-in-up 0.325s ease-out forwards;
         }
-
         @keyframes fade-in-up {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         
@@ -106,7 +103,7 @@
                     <span v-if="key == formatDate(new Date(new Date().setDate(new Date().getDate()-1)))" style="opacity: 0.8; padding-left: 3px">昨天</span> -->
                 </van-divider>
                 <!-- <div :class="['fade-in-up0', { 'fade-in-up': applyAnimation }]"> -->
-                <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="isSmallScreen ? 3 : 9">
+                <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="isMobile ? 3 : 9">
                     <van-grid-item class="img_card" v-for="(list,key2,j) in val" :key="j" text="文字" style="border-radius: 10px;">
                         <!-- <van-image  点击图片跳转-->
                             <!-- @click="openPlexApp()" -->
@@ -136,13 +133,13 @@
 <style>
     :root {
         --van-background-2: #00ff0000;
-        --isSmallScreen: false;
+        /* --isSmallScreen: false; */
     }
-    @media screen and (max-width: 400px) {
+    /* @media screen and (max-width: 400px) {
         :root {
             --isSmallScreen: true;
         }
-    }
+    } */
     @font-face {
         font-family: 'num';
         src: url('/static/tv_calendar/ALIBABA-Font-Bold.otf') format('truetype');
@@ -185,7 +182,14 @@
                 imageBaseUrl: '/static/tv_calendar/img',
                 offset: 7,
                 status: true,
-                isSmallScreen: getComputedStyle(document.documentElement).getPropertyValue('--isSmallScreen') === 'true',
+                isMobile: true,
+                // isSmallScreen: getComputedStyle(document.documentElement).getPropertyValue('--isSmallScreen') === 'true',
+            }
+        },
+        computed: {
+            isMobileDevice() {
+                const mobileRegex = /Mobi|Android|iPhone|iPod/i;
+                return mobileRegex.test(navigator.userAgent);
             }
         },
         // created() {
@@ -337,20 +341,20 @@
                     const updatedHeight = originalHeight + 30;
                     bgDiv.style.height = updatedHeight + 'px';
                 }
-                // bgDiv.style.background = `url(${bgUrl}) no-repeat center top`;
-                if (this.isSmallScreen) {
+                // if (this.isSmallScreen) {
+                if (this.isMobile) {
                     document.getElementById('bg-img').style.filter = 'blur(0)';
                 } else {
                     document.getElementById('bg-img').src = '/static/tv_calendar/bg_pc.png';
                     document.getElementById('bg-img').style.filter = 'blur(5px)';
                 }
-
             }
-
         },
         mounted() {
             this.getEpisodes();
             this.adjustBgDivHeight();
+            this.isMobile = this.isMobileDevice;
+            // console.log(this.isMobile)
         }
     });
     app.use(vant);
