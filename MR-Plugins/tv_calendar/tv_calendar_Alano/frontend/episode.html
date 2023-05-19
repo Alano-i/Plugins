@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>更新计划</title>
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vant@4.0/lib/index.css"/> -->
     <link rel="stylesheet" href="/static/tv_calendar/index.css"/>
     <!--iOS 添加到主屏幕时始终全屏-->
     <link rel="manifest" href="/static/tv_calendar/manifest.json">
@@ -219,10 +220,7 @@
                         <p style="color: rgba(255, 255, 255, 0.7); font-size: 10px; padding: 3px 2px 4px 7px; margin: 0; text-align:left;" class="text-ellipsis">{{item.episode_local_filename}}</p>
                     </div>
                     <div v-if="item.episode_local_filename" style="background-color: rgba(255, 255, 255, 0.0); display: flex; margin: 0px; justify-content: left; align-items: center;">
-                        
-                        <!-- <img src="/static/tv_calendar/updated.svg" style="width:60px; padding: 0px 3px 8px 3px;" alt=""> -->
                         <img v-if="item.episode_local_videoResolution" :src="`/static/tv_calendar/${item.episode_local_videoResolution}.svg`" style="height:13px; padding: 0px 0px 8px 7px;" alt="">
-                        <!-- <img src="/static/tv_calendar/SDR.svg" style="height:13px; padding: 0px 0px 8px 7px;" alt=""> -->
                         <img v-if="item.episode_local_display_title" :src="`/static/tv_calendar/${item.episode_local_display_title}.svg`" style="height:13px; padding: 0px 0px 8px 7px;" alt="">
                         <p v-if="item.episode_local_duration" style="color: rgba(255, 255, 255, 0.7); font-size: 11px; padding: 0px 2px 8px 9px; margin: 0; text-align:left;" class="text-ellipsis">{{item.episode_local_duration}}</p>
                         <!-- <p style="color: rgba(255, 255, 255, 0.7); font-size: 10px; padding: 0px 3px 8px 3px; margin: 0; text-align:left;" v-if="item.episode_local_display_title" class="text-ellipsis">{{item.episode_local_display_title}}</p> -->
