@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 import typing
 import random
 import time
@@ -10,6 +10,9 @@ from plexapi.server import PlexServer
 from moviebotapi.common import MenuItem
 from moviebotapi.core.models import MediaType
 from moviebotapi.subscribe import SubStatus, Subscribe
+
+import urllib3
+from urllib3.exceptions import MaxRetryError, ConnectionError, TimeoutError
 import json
 import os
 import shutil
@@ -61,8 +64,8 @@ def hlink(src_base_path, dst_base_path):
                     os.makedirs(dst_dir_path)
                 one = False
                 hlink(src_dir_path, dst_dir_path)
-        if one:
-            _LOGGER.info(f'{plugins_name}WEB 素材已软链接到容器')
+        # if one:
+        #     _LOGGER.info(f'{plugins_name}WEB 素材已软链接到容器')
     except Exception as e:
         _LOGGER.error(f'{plugins_name}将 WEB 素材已软链接到容器出错，原因: {e}')
 
@@ -77,6 +80,7 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     mbot_api_key = config.get('mbot_api_key','')
 
     hlink(src_base_path, dst_base_path)
+    _LOGGER.info(f'{plugins_name}WEB 素材已全部软链接到容器')
 
     """授权并添加菜单"""
     href = '/common/view?hidePadding=true#/static/tv_calendar/tv_calendar.html'
@@ -143,7 +147,7 @@ def on_subscribe_delete_media(ctx: PluginContext, event_type: str, data: Dict):
         _LOGGER.info(f'{plugins_name}退订媒体{cn_name}，不是剧集，不更新追剧日历数据')
 
 # 每天重新生成日历数据
-@plugin.task('save_json', '更新追剧日历数据', cron_expression='45 0,1,6 * * *')
+@plugin.task('save_json', '更新追剧日历数据', cron_expression='0 0,1,6 * * *')
 def task():
     save_json()
 
@@ -377,6 +381,68 @@ def get_local_info(tmdb_id, season_number, tv_name):
             continue
     return [],0,'',0,{}
 
+
+def timestamp(date):
+    return date.replace("-", "")
+
+def getDateStr(addDayCount):
+    dd = datetime.now() + timedelta(days=addDayCount)
+    y = dd.year
+    m = dd.month
+    d = dd.day
+    # 判断月
+    if m < 10:
+        m = "0" + str(m)
+    # 判断日
+    if d < 10:
+        d = "0" + str(d)
+    return f"{y}-{m}-{d}"
+
+def save_tv_calendar():
+    original_path = f'{src_base_path}/original.json'
+    # 打开原始 JSON 文件
+    with open(original_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    offset=7
+    # 处理操作
+    yesterday = timestamp(getDateStr(0))
+    endDay = timestamp(getDateStr(offset))
+
+    # 筛选符合条件的剧集
+    filterEpisodes = []
+    for episode in data:
+        if episode.get('air_date'):
+            if timestamp(episode['air_date']) >= yesterday and timestamp(episode['air_date']) <= endDay:
+                filterEpisodes.append(episode)
+
+    # 按air_date字段进行排序
+    sortEpisodes = sorted(filterEpisodes, key=lambda x: timestamp(x['air_date']))
+
+    # 按air_date字段进行分组
+    groupEpisodes = {}
+    for episode in sortEpisodes:
+        air_date = episode.get('air_date')
+        if air_date not in groupEpisodes:
+            groupEpisodes[air_date] = []
+        groupEpisodes[air_date].append(episode)
+
+    # 按show_id字段进行二级分组
+    group = {}
+    for air_date, episodes in groupEpisodes.items():
+        tvGroup = {}
+        for episode in episodes:
+            show_id = episode.get('show_id')
+            if show_id not in tvGroup:
+                tvGroup[show_id] = []
+            tvGroup[show_id].append(episode)
+        group[air_date] = tvGroup
+
+    # 将处理结果保存到tv_calendar.json文件
+    tv_calendar_path = f'{src_base_path}/tv_calendar.json'
+    with open(tv_calendar_path, 'w') as file:
+        json.dump(group, file,ensure_ascii=False,indent=4)
+
 def update_json():
     try:
         # today_date = datetime.date.today().strftime('%Y-%m-%d')
@@ -406,6 +472,7 @@ def update_json():
             episode_number = episode.get('episode_number','')
             season_number = episode.get('season_number','')
             tv_name = episode.get('tv_name','')
+            episode['update_date'] = today_date
             if tmdb_id not in tmdb_id_list:
                 today_air_episode = episode['today_air_episode']
                 episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, local_info_list = get_local_info(tmdb_id, season_number,tv_name)
@@ -451,8 +518,12 @@ def update_json():
         _LOGGER.error(f'{plugins_name}同步本地媒体库数据到「original.json」出错，原因: {e}')
     # 将更新后的数据写回到文件中
     write_json_file(original_path,episode_list)
-    create_hard_link('original.json')
-    _LOGGER.info(f'{plugins_name}已同步本地媒体库数据到「original.json」并已链接到容器')
+    # 调用函数拆分JSON文件
+    split_json_file(original_path)
+    save_tv_calendar()
+    hlink(src_base_path, dst_base_path)
+    # create_hard_link('original.json')
+    _LOGGER.info(f'{plugins_name}已同步本地媒体库数据到「original.json」并且 WEB 素材已全部软链接到容器')
 
 def format_episode_local_arr(episode_local_arr):
     episode_local_arr = sorted(episode_local_arr) # 对列表进行排序
@@ -473,6 +544,57 @@ def format_episode_local_arr(episode_local_arr):
     # 将连续范围格式化为字符串
     new = ",".join(new_ranges)
     return new
+
+
+def split_json_file(file_path):
+
+    # 打开原始 JSON 文件
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    # 创建存储拆分JSON的文件夹
+    output_folder = '/data/plugins/tv_calendar_Alano/frontend/json'
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # 拆分JSON数据并存储为多个文件
+    grouped_data = {}
+    all_output_filename=[]
+    for item in data:
+        show_id = item['show_id']
+        season_number = item['season_number']
+        output_filename = f"showId={show_id}&seasonNumber={season_number}.json"
+        # 将output_filename添加到all_output_filename序列中
+        all_output_filename.append(output_filename)
+        output_filepath = os.path.join(output_folder, output_filename)
+        
+        if output_filepath in grouped_data:
+            grouped_data[output_filepath].append(item)
+        else:
+            grouped_data[output_filepath] = [item]
+    
+    # 将 all_output_filename 转换为 set 去重，再转回列表
+    all_output_filename = list(set(all_output_filename))
+    
+    
+
+    # 将拆分的JSON数据写入文件
+    for filepath, items in grouped_data.items():
+        write_json_file(output_filepath,item)
+        with open(filepath, 'w') as f:
+            json.dump(items, f, ensure_ascii=False,indent=4)
+    
+
+    del_json(all_output_filename)
+
+        # 将拆分的JSON数据写入文件
+        # write_json_file(output_filepath,item)
+        
+        # 将拆分的JSON数据写入文件
+        # with open(output_filepath, 'w') as f:
+        #     json.dump(item, f, indent=4)
+
+
 
 
 def save_json():
@@ -550,6 +672,7 @@ def save_json():
     # 遍历删除不需要的图片
     del_img(img_list)
     hlink(src_base_path, dst_base_path)
+    _LOGGER.info(f'{plugins_name}WEB 素材已全部软链接到容器')
     _LOGGER.info(f'{plugins_name}剧集数据更新结束')
     if datetime.now().time().hour == 6:
         push_message()
@@ -559,11 +682,26 @@ def write_json_file(original_path,list):
     for i in range(3):
         try:
             with open(original_path, 'w', encoding='utf-8') as fp:
-                json.dump(list, fp, ensure_ascii=False)
+                json.dump(list, fp, ensure_ascii=False,indent=4)
         except Exception as e:
             _LOGGER.error(f'{plugins_name}写入新数据到「original.json」文件出错，原因: {e}')
             time.sleep(3)
             continue
+
+def del_json(json_list):
+    del_json_list = []
+    _LOGGER.info(f'{plugins_name}开始检查是否有完结剧集相关json，如有将其删除！')
+    all_json = os.listdir(os.path.join(src_base_path, 'json'))
+    for json_file in all_json:
+        if json_file not in json_list:
+            try:
+                os.remove(os.path.join(src_base_path, 'json', json_file))
+                del_json_list.append(json_file)
+            except Exception as e:
+                    _LOGGER.error(f'{plugins_name}删除 {json_file} 出错，原因: {e}')
+                    continue
+    if del_json_list:
+        _LOGGER.info(f'{plugins_name}已删除完结剧集拆分json: {del_json_list}')
 
 def del_img(img_list):
     del_img_list = []
@@ -603,23 +741,54 @@ def get_after_day(day, n):
 #         pass
 #     return '' 
 
-def save_img(img_path,tv_name):
+
+
+
+
+def save_img(img_path, tv_name):
     img_url = f"{tmdb_imageBaseUrl}{img_path}"
     img_dir = os.path.join(src_base_path, 'img')
     os.makedirs(img_dir, exist_ok=True)
     img_path = os.path.join(img_dir, os.path.basename(img_url))
     if not os.path.exists(img_path):
-        for i in range(3):
+        retries = 5
+        retry_delay = 3
+        for i in range(retries):
             try:
-                response = requests.get(img_url)
+                http = urllib3.PoolManager()
+                response = http.request('GET', img_url)
                 with open(img_path, "wb") as f:
-                    f.write(response.content)
+                    f.write(response.data)
                 # _LOGGER.info(f"{tv_name}的海报/背景已存入{img_path}")
                 break
-            except Exception as e:
-                _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/3 次请求异常，原因：{e}')
-                time.sleep(3)
+            except (ConnectionError, TimeoutError, MaxRetryError) as e:
+                _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
+                time.sleep(retry_delay)
                 continue
+            except Exception as e:
+                _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
+                continue
+
+
+
+
+# def save_img(img_path,tv_name):
+#     img_url = f"{tmdb_imageBaseUrl}{img_path}"
+#     img_dir = os.path.join(src_base_path, 'img')
+#     os.makedirs(img_dir, exist_ok=True)
+#     img_path = os.path.join(img_dir, os.path.basename(img_url))
+#     if not os.path.exists(img_path):
+#         for i in range(3):
+#             try:
+#                 response = requests.get(img_url)
+#                 with open(img_path, "wb") as f:
+#                     f.write(response.content)
+#                 # _LOGGER.info(f"{tv_name}的海报/背景已存入{img_path}")
+#                 break
+#             except Exception as e:
+#                 _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/3 次请求异常，原因：{e}')
+#                 time.sleep(3)
+#                 continue
     # else:
     #     img_name = os.path.basename(img_path)
         # _LOGGER.info(f'「{tv_name}」图片「{img_name}」本地有了，不重新保存了')
