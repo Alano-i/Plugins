@@ -115,7 +115,7 @@
                             @click="goBack()"
                             style="width:160px; height: 240px; border-radius: 10px; overflow: hidden; margin-top: 20px;margin-left: 12px;margin-right: 10px;margin-bottom: 20px; cursor: pointer;"
                             lazy-load
-                            :src="imageBaseUrl+item.season_poster"
+                            :src="item.season_poster!=null?imageBaseUrl+item.season_poster:imageBaseUrl+item.tv_poster"
                         ></img>
                         <div style="width: calc(100vw - 160px - 24px); height: 240px; display: flex; align-items: center;">
                             <div>
@@ -126,7 +126,7 @@
                                 <div style="margin-top: 15px; margin-bottom: 0px;">
                                     <!-- <p style="color: #ffffff; opacity: 0.9; font-size: 14px; padding-top: 4px; margin: 0; text-align:left;">{{date_dict[0].episode_local_arr_f}}<span v-if="date_dict[0].episode_local_updated" style="font-size: 13px; padding-left: 3px;">✅</span></p> -->
                                     <p style="color: #ffffff; opacity: 0.9; font-size: 17px; font-weight: bold; margin: 0; text-align:left;">{{date_dict[0].episode_local_arr_f}}</p>
-                                    <img v-if="date_dict[0].episode_local_updated" src="/static/tv_calendar/updated.svg" style="width:60px; padding-top: 4px; padding-bottom: 11px;" alt="">
+                                    <img v-if="date_dict[0].episode_local_updated && date_dict[0].update_date == formatDate(new Date())" src="/static/tv_calendar/updated.svg" style="width:60px; padding-top: 4px; padding-bottom: 11px;" alt="">
                                     <p style="color: #ffffff; opacity: 0.65; font-size: 12px; padding-top: 4px; margin: 0; text-align:left;">{{date_dict[0].air_date+' - '+date_dict[date_dict.length - 1].air_date+' 更新'}}</p>
                                 </div>
                             </div>
@@ -198,7 +198,7 @@
                                 <div v-else-if="dateFormat_b(item.air_date) === 'today' && !date_dict[0].episode_local_updated" style="color: #ffffff; opacity: 0.8; font-weight: bold; font-size: 18px; position: absolute; top: 50%; width:160px; height:90px; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.4); display: flex; justify-content: center; align-items: center;">
                                     今日更新
                                 </div>
-                                <div v-else-if="dateFormat_b(item.air_date) === 'today' && date_dict[0].episode_local_updated" style="color: #ffffff; opacity: 0.8; font-weight: bold; font-size: 18px; position: absolute; top: 50%; width:160px; height:90px; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.4); display: flex; justify-content: center; align-items: center;">
+                                <div v-else-if="dateFormat_b(item.air_date) === 'today' && date_dict[0].episode_local_updated && date_dict[0].update_date == formatDate(new Date())" style="color: #ffffff; opacity: 0.8; font-weight: bold; font-size: 18px; position: absolute; top: 50%; width:160px; height:90px; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.4); display: flex; justify-content: center; align-items: center;">
                                     今日已更新
                                 </div>
                             </div>
@@ -262,14 +262,23 @@
             }
         },
         methods: {
-            getTitle(name) {
-                if (name.substring(0,1)==='第'){
-                    return ''
-                }else {
-                    return name
-                }
+            // getTitle(name) {
+            //     if (name.substring(0,1)==='第'){
+            //         return ''
+            //     }else {
+            //         return name
+            //     }
 
+            // },
+            getTitle(name) {
+                const regex = /^第\d+集$/;
+                if (regex.test(name)) {
+                    return '';
+                } else {
+                    return name;
+                }
             },
+
             getDate(strDate) {
                 if(strDate){
                     return new Date((strDate).replace(/-/g,"/"))
@@ -291,6 +300,14 @@
                 return ''
                 
             },
+            formatDate(date) {
+                var y = date.getFullYear();
+                var m = date.getMonth() + 1;
+                m = m < 10 ? '0' + m : m;
+                var d = date.getDate();
+                d = d < 10 ? ('0' + d) : d;
+                return y + '-' + m + '-' + d;
+            },
             dateFormat_b(dateStr) {
                 const date = this.getDate(dateStr); //转换成Date对象
                 const today = new Date(); //获取当前日期
@@ -310,39 +327,25 @@
                 window.location.href = 'plex://';
             },
             getEpisodeDetail(tmdb_id, season_number) {
-                let cachedEpisodes = localStorage.getItem('cachedEpisodes')
-                if (cachedEpisodes) {
-                    let filterEpisodes = JSON.parse(cachedEpisodes).filter((episode) => {
+                axios({
+                    method: 'get',
+                    url: '/static/tv_calendar/json/showId=' + tmdb_id + '&seasonNumber=' + season_number + '.json?' + new Date().getTime()
+                }).then(res => {
+                    let episodes = res.data
+                    let filterEpisodes = episodes.filter((episode) => {
                         return episode['show_id'] == tmdb_id && episode['season_number'] == season_number
                     })
                     this.date_dict = filterEpisodes
-                    if (JSON.parse(cachedEpisodes).length == 0) {
+                    if (episodes.length == 0) {
                         this.status = false
                     } else {
                         this.status = true
                     }
-                } 
-                // } else {
-                //     axios({
-                //         method: 'get',
-                //         url: '/static/tv_calendar/original.json?' + new Date().getTime()
-                //     }).then(res => {
-                //         let episodes = res.data
-                //         localStorage.setItem('cachedEpisodes', JSON.stringify(episodes)) // Store the data in local storage
-                //         let filterEpisodes = episodes.filter((episode) => {
-                //             return episode['show_id'] == tmdb_id && episode['season_number'] == season_number
-                //         })
-                //         this.date_dict = filterEpisodes
-                //         if (episodes.length == 0) {
-                //             this.status = false
-                //         } else {
-                //             this.status = true
-                //         }
-                //     }).catch(e => {
-                //         this.status = false
-                //     });
-                // }
+                }).catch(e => {
+                    this.status = false
+                });
             },
+
 
             groupBy(list, fn) {
                 const groups = {};
