@@ -11,6 +11,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/static/tv_calendar/icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- 通过添加缓存控制标头来告知浏览器不缓存页面 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 
     <!-- <link rel="apple-touch-startup-image" href="/static/img/launch.png"> -->
     <!-- <link rel="apple-touch-icon" href="/static/tv_calendar/icon/iphone.png">
@@ -89,7 +93,7 @@
 </div>
 <div id="app" v-cloak style="background-color: #171717;">
     <van-config-provider theme="dark">
-        <template v-if="status==false">
+        <template v-if="!status">
             <van-empty   image="https://fastly.jsdelivr.net/npm/@vant/assets/custom-empty-image.png"  image-size="120" description="怎么肥事!!怎么肥事!!" />
         </template>
         <template v-else>
@@ -103,7 +107,8 @@
                     <span v-if="key == formatDate(new Date(new Date().setDate(new Date().getDate()-1)))" style="opacity: 0.8; padding-left: 3px">昨天</span> -->
                 </van-divider>
                 <!-- <div :class="['fade-in-up0', { 'fade-in-up': applyAnimation }]"> -->
-                <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="isMobile ? 3 : 9">
+                <!-- <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="isMobile ? 3 : 9"> -->
+                <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="columnNum">
                     <van-grid-item class="img_card" v-for="(list,key2,j) in val" :key="j" text="文字" style="border-radius: 10px;">
                         <!-- <van-image  点击图片跳转-->
                             <!-- @click="openPlexApp()" -->
@@ -117,7 +122,7 @@
                         <h5 class="text-ellipsis" style="font-weight: bold; opacity: 0.95; margin-bottom: 2px; margin-top: 6px;">{{list[0].tv_name?list[0].tv_name:tv_original_name}}</h5>
                         <p v-if="list.length>1" style="font-weight: normal; opacity: 0.8; margin-bottom: 0px; margin-top: 3px; font-size: 12px;">第{{list[0].season_number}}季 第{{list[0].episode_number}}-{{list[list.length-1].episode_number}}集</p>
                         <p v-else style="font-weight: normal; opacity: 0.8; margin-bottom: 0px; margin-top: 3px; font-size: 12px;">第{{list[0].season_number}}季 第{{list[0].episode_number}}集</p>
-                        <p v-if="list[0].episode_local_num!=null" style="font-weight: normal; opacity: 0.8; margin-bottom: 5px; margin-top: 0px; font-size: 12px;"><span v-if="list[0].episode_local_updated && key == formatDate(new Date())" style="font-size: 10px; padding-right: 3px">✅</span>{{list[0].episode_local_num}} / {{list[0].episodes_all_num}}</p>
+                        <p v-if="list[0].episode_local_num!=null" style="font-weight: normal; opacity: 0.8; margin-bottom: 5px; margin-top: 0px; font-size: 12px;"><span v-if="list[0].episode_local_updated && key == formatDate(new Date()) && list[0].update_date == formatDate(new Date())" style="font-size: 10px; padding-right: 3px">✅</span>{{list[0].episode_local_num}} / {{list[0].episodes_all_num}}</p>
 
                     </van-grid-item>
                 </van-grid>
@@ -183,6 +188,7 @@
                 offset: 7,
                 status: true,
                 isMobile: true,
+                windowWidth: window.innerWidth,
                 // isSmallScreen: getComputedStyle(document.documentElement).getPropertyValue('--isSmallScreen') === 'true',
             }
         },
@@ -190,6 +196,23 @@
             isMobileDevice() {
                 const mobileRegex = /Mobi|Android|iPhone|iPod/i;
                 return mobileRegex.test(navigator.userAgent);
+            },
+            columnNum() {
+                if (this.windowWidth <= 500) {
+                    return 3;
+                } else if (this.windowWidth > 500 && this.windowWidth < 700) {
+                    return 4;
+                } else if (this.windowWidth >= 700 && this.windowWidth < 900) {
+                    return 5;
+                } else if (this.windowWidth >= 900 && this.windowWidth < 1100) {
+                    return 6;
+                } else if (this.windowWidth >= 1100 && this.windowWidth < 1300) {
+                    return 7;
+                } else if (this.windowWidth >= 1300 && this.windowWidth < 1500) {
+                    return 8;
+                } else {
+                    return 9;
+                }
             }
         },
         // created() {
@@ -250,64 +273,67 @@
                 }
                 return y + "-" + m + "-" + d;
             },
+
+
+            // getEpisodes() {
+            //     axios({
+            //         method: 'get',
+            //         url: '/static/tv_calendar/tv_calendar.json?' + new Date().getTime()
+            //     }).then(res => {
+            //         let episodes = res.data
+            //         this.date_dict = JSON.stringify(episodes);
+            //         if (episodes.length == 0) {
+            //             this.status = false
+            //         } else {
+            //             this.status = true
+            //         }
+            //     }).catch(e => {
+            //         this.status = false
+            //     });
+            // },
+
             getEpisodes() {
-                let cachedTime = localStorage.getItem('originalJsonLastModifiedTime');
-                let cachedData = localStorage.getItem('originalJsonData');
-                // console.log("缓存json文件修改时间："+ cachedTime)
                 axios({
                     method: 'get',
-                    url: '/static/tv_calendar/original.json',
-                    headers: { 'If-Modified-Since': cachedTime }
+                    url: '/static/tv_calendar/tv_calendar.json?' + new Date().getTime()
                 }).then(res => {
-                    if (res.status === 304) {
-                        // If the response status is 304 (Not Modified), use the cached data
-                        this.date_dict = JSON.parse(cachedData);
-                        this.status = (Object.keys(this.date_dict).length > 0);
-                    } else {
-                        // Otherwise, update the cache with the new data
-                        let yesterday = this.timestamp(this.getDateStr(0));
-                        let endDay = this.timestamp(this.getDateStr(this.offset));
-                        let episodes = res.data;
-                        let filterEpisodes = episodes.filter((episode) => {
-                            if (episode['air_date']) {
-                                return this.timestamp(episode['air_date']) >= yesterday && this.timestamp(episode['air_date']) <= endDay
-                            } else {
-                                return false;
-                            }
-                        });
-                        let sortEpisodes = filterEpisodes.sort((a, b) => {
-                            return this.timestamp(a['air_date']) - this.timestamp(b['air_date']);
-                        });
-                        let groupEpisodes = this.groupBy(sortEpisodes, episode => {
-                            return episode['air_date'];
-                        });
-                        let group = {};
-                        for (let key in groupEpisodes) {
-                            let list = groupEpisodes[key];
-                            let tvGroup = this.groupBy(list, episode => {
-                                return episode['show_id'];
-                            });
-                            group[key] = tvGroup;
+                        this.date_dict = res.data;
+                        this.status = true;
+                        if (this.date_dict.length == 0) {
+                            this.status = false
+                        } else {
+                            this.status = true
                         }
-                        this.date_dict = group;
-                        localStorage.setItem('originalJsonLastModifiedTime', res.headers['last-modified']);
-                        localStorage.setItem('originalJsonData', JSON.stringify(this.date_dict));
-                        // this.status = (episodes.length > 0);
-                        this.status = true;
-                        localStorage.setItem('cachedEpisodes', JSON.stringify(episodes));
-                    }
-                }).catch(e => {
-                    if (cachedData) {
-                        // If the axios request fails and there is cached data, use the cached data
-                        this.date_dict = JSON.parse(cachedData);
-                        // this.status = (Object.keys(this.date_dict).length > 0);
-                        this.status = true;
-                    } else {
-                        // If there is no cached data and the axios request fails, set status to false
+                    })
+                    .catch(e => {
                         this.status = false;
-                    }
-                });
+                    });
             },
+
+            // getEpisodes() {
+            //     // let cachedTime = localStorage.getItem('originalJsonLastModifiedTime');
+            //     // let cachedData = localStorage.getItem('originalJsonData');
+            //     // console.log("缓存json文件修改时间："+ cachedTime)
+            //     axios({
+            //         method: 'get',
+            //         url: '/static/tv_calendar/tv_calendar.json?' + new Date().getTime()
+            //     }).then(res => {
+            //             let episodes = res.data;
+
+            //             console.log(episodes)
+            //             // localStorage.setItem('123a', episodes)
+
+            //             this.date_dict = JSON.stringify(episodes);
+
+            //             // localStorage.setItem('123b', this.date_dict)
+            //             localStorage.setItem('originalJsonData', this.date_dict);
+
+            //             // this.status = (episodes.length > 0);
+            //             this.status = true;
+            //     }).catch(e => {
+            //             this.status = false;
+            //     });
+            // },
             timestamp(date){
                 return date.replaceAll("-", "")
             },
@@ -328,6 +354,9 @@
                 } catch (e) {
                     return true;
                 }
+            },
+            handleResize() {
+                this.windowWidth = window.innerWidth;
             },
             // 判断是否在主屏幕中
             isAddedToHomeScreen() {
@@ -353,9 +382,15 @@
         mounted() {
             this.getEpisodes();
             this.isMobile = this.isMobileDevice;
+            window.addEventListener('resize', this.handleResize);
+            window.addEventListener('orientationchange', this.handleResize);
             this.adjustBgDivHeight();
             // console.log(this.isMobile)
-        }
+        },
+        beforeDestroy() {
+            window.removeEventListener('resize', this.handleResize);
+            window.removeEventListener('orientationchange', this.handleResize);
+        },
     });
     app.use(vant);
     app.use(vant.Lazyload);
