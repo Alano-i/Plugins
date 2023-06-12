@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# import datetime
 from datetime import datetime, timedelta
 import typing
 import random
@@ -10,7 +9,6 @@ from plexapi.server import PlexServer
 from moviebotapi.common import MenuItem
 from moviebotapi.core.models import MediaType
 from moviebotapi.subscribe import SubStatus, Subscribe
-
 import urllib3
 from urllib3.exceptions import MaxRetryError, ConnectionError, TimeoutError
 import json
@@ -41,7 +39,6 @@ dst_base_path = '/app/frontend/static/tv_calendar'
 # plexserver = PlexServer(plex_url, plex_token)
 plexserver = media_server_manager.master_plex.plex
 
-
 def hlink(src_base_path, dst_base_path):
     try:
         one = True
@@ -69,7 +66,6 @@ def hlink(src_base_path, dst_base_path):
     except Exception as e:
         _LOGGER.error(f'{plugins_name}将 WEB 素材已软链接到容器出错，原因: {e}')
 
-
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     global set_pic_url,mbot_url,mbot_api_key
@@ -78,10 +74,8 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     message_to_uid = config.get('uid','')
     mbot_url = config.get('mbot_url','')
     mbot_api_key = config.get('mbot_api_key','')
-
     hlink(src_base_path, dst_base_path)
     _LOGGER.info(f'{plugins_name}WEB 素材已全部软链接到容器')
-
     """授权并添加菜单"""
     href = '/common/view?hidePadding=true#/static/tv_calendar/tv_calendar.html'
     # 授权管理员和普通用户可访问
@@ -112,7 +106,7 @@ def config_changed(config: Dict[str, Any]):
     mbot_url = config.get('mbot_url','')
     mbot_api_key = config.get('mbot_api_key','')
     # shutil.copy('/data/plugins/tv_calendar_Alano/frontend/tv_calendar.html', '/app/frontend/static')
-    hlink(src_base_path, dst_base_path)
+    hlink(src_base_path, dst_base_path) 
     _LOGGER.info('「追剧日历」已重新加载配置并重新链接资源到容器内')
     set_plex()
 
@@ -155,7 +149,6 @@ def task():
 @plugin.task('update_json', '同步本地媒体库数据至追剧日历', cron_expression='0 * * * *')
 def update():
     update_json()
-
 
 def set_plex():
     try:
@@ -284,7 +277,6 @@ def convert_milliseconds(milliseconds):
     else:
         return f"{minutes}分钟"
 
-
 def get_local_info(tmdb_id, season_number, tv_name):
     episode_local_max = 0
     local_info = {}
@@ -381,7 +373,6 @@ def get_local_info(tmdb_id, season_number, tv_name):
             continue
     return [],0,'',0,{}
 
-
 def timestamp(date):
     return date.replace("-", "")
 
@@ -398,27 +389,24 @@ def getDateStr(addDayCount):
         d = "0" + str(d)
     return f"{y}-{m}-{d}"
 
-def save_tv_calendar():
-    original_path = f'{src_base_path}/original.json'
+def save_tv_calendar(original_path):
     # 打开原始 JSON 文件
     with open(original_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
-
     offset=7
-    # 处理操作
-    yesterday = timestamp(getDateStr(0))
+    # 获取起始日期，最近7天
+    """今天"""
+    startDay = timestamp(getDateStr(0))
+    """第7天"""
     endDay = timestamp(getDateStr(offset))
-
     # 筛选符合条件的剧集
     filterEpisodes = []
     for episode in data:
         if episode.get('air_date'):
-            if timestamp(episode['air_date']) >= yesterday and timestamp(episode['air_date']) <= endDay:
+            if timestamp(episode['air_date']) >= startDay and timestamp(episode['air_date']) <= endDay:
                 filterEpisodes.append(episode)
-
     # 按air_date字段进行排序
     sortEpisodes = sorted(filterEpisodes, key=lambda x: timestamp(x['air_date']))
-
     # 按air_date字段进行分组
     groupEpisodes = {}
     for episode in sortEpisodes:
@@ -520,10 +508,10 @@ def update_json():
     write_json_file(original_path,episode_list)
     # 调用函数拆分JSON文件
     split_json_file(original_path)
-    save_tv_calendar()
+    save_tv_calendar(original_path)
     hlink(src_base_path, dst_base_path)
     # create_hard_link('original.json')
-    _LOGGER.info(f'{plugins_name}已同步本地媒体库数据到「original.json」并且 WEB 素材已全部软链接到容器')
+    _LOGGER.info(f'{plugins_name}已同步本地媒体库数据到「original.json」并已拆分，WEB 素材已全部软链接到容器')
 
 def format_episode_local_arr(episode_local_arr):
     episode_local_arr = sorted(episode_local_arr) # 对列表进行排序
@@ -545,18 +533,15 @@ def format_episode_local_arr(episode_local_arr):
     new = ",".join(new_ranges)
     return new
 
-
+# 拆分json文件，一部剧一个文件
 def split_json_file(file_path):
-
     # 打开原始 JSON 文件
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    
     # 创建存储拆分JSON的文件夹
     output_folder = '/data/plugins/tv_calendar_Alano/frontend/json'
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    
     # 拆分JSON数据并存储为多个文件
     grouped_data = {}
     all_output_filename=[]
@@ -567,35 +552,20 @@ def split_json_file(file_path):
         # 将output_filename添加到all_output_filename序列中
         all_output_filename.append(output_filename)
         output_filepath = os.path.join(output_folder, output_filename)
-        
         if output_filepath in grouped_data:
             grouped_data[output_filepath].append(item)
         else:
             grouped_data[output_filepath] = [item]
-    
     # 将 all_output_filename 转换为 set 去重，再转回列表
     all_output_filename = list(set(all_output_filename))
-    
-    
-
     # 将拆分的JSON数据写入文件
     for filepath, items in grouped_data.items():
         write_json_file(output_filepath,item)
         with open(filepath, 'w') as f:
             json.dump(items, f, ensure_ascii=False,indent=4)
-    
-
+    _LOGGER.info(f'{plugins_name}json 文件拆分完成')
     del_json(all_output_filename)
-
-        # 将拆分的JSON数据写入文件
-        # write_json_file(output_filepath,item)
-        
-        # 将拆分的JSON数据写入文件
-        # with open(output_filepath, 'w') as f:
-        #     json.dump(item, f, indent=4)
-
-
-
+    
 
 def save_json():
     _LOGGER.info(f'{plugins_name}开始更新剧集数据')
@@ -668,11 +638,11 @@ def save_json():
     original_path = f'{src_base_path}/original.json'
     _LOGGER.info(f'{plugins_name}开始写入新的追剧日历数据到「original.json」文件')
     write_json_file(original_path,episode_list)
-    update_json()
     # 遍历删除不需要的图片
     del_img(img_list)
+    update_json()
     hlink(src_base_path, dst_base_path)
-    _LOGGER.info(f'{plugins_name}WEB 素材已全部软链接到容器')
+    # _LOGGER.info(f'{plugins_name}WEB 素材已全部软链接到容器')
     _LOGGER.info(f'{plugins_name}剧集数据更新结束')
     if datetime.now().time().hour == 6:
         push_message()
@@ -741,10 +711,6 @@ def get_after_day(day, n):
 #         pass
 #     return '' 
 
-
-
-
-
 def save_img(img_path, tv_name):
     img_url = f"{tmdb_imageBaseUrl}{img_path}"
     img_dir = os.path.join(src_base_path, 'img')
@@ -769,30 +735,6 @@ def save_img(img_path, tv_name):
                 _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
                 continue
 
-
-
-
-# def save_img(img_path,tv_name):
-#     img_url = f"{tmdb_imageBaseUrl}{img_path}"
-#     img_dir = os.path.join(src_base_path, 'img')
-#     os.makedirs(img_dir, exist_ok=True)
-#     img_path = os.path.join(img_dir, os.path.basename(img_url))
-#     if not os.path.exists(img_path):
-#         for i in range(3):
-#             try:
-#                 response = requests.get(img_url)
-#                 with open(img_path, "wb") as f:
-#                     f.write(response.content)
-#                 # _LOGGER.info(f"{tv_name}的海报/背景已存入{img_path}")
-#                 break
-#             except Exception as e:
-#                 _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/3 次请求异常，原因：{e}')
-#                 time.sleep(3)
-#                 continue
-    # else:
-    #     img_name = os.path.basename(img_path)
-        # _LOGGER.info(f'「{tv_name}」图片「{img_name}」本地有了，不重新保存了')
-
 def push_message():
     _LOGGER.info(f'{plugins_name}开始推送今日将要更新的剧集信息')
     msg_title = ''
@@ -800,7 +742,7 @@ def push_message():
     message = ''
     # mr_url = get_server_url()
     # if mr_url:
-    #     link_url = f'{mr_url}/static/tv_calendar.html'
+    #    link_url = f'{mr_url}/static/tv_calendar.html'
     try:
         with open('/app/frontend/static/tv_calendar/original.json', encoding='utf-8') as f:
             episode_list = json.load(f)
