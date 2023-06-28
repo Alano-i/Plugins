@@ -1,0 +1,40 @@
+{
+  "name": "audio_tools",
+  "title": "有声书工具箱",
+  "author": "Alano",
+  "description": "剪辑片头片尾，修改元数据，整理系列文件夹，plex Audiobookshelf 可识别。",
+  "version": "1.1",
+  "requirements": null,
+  "configField": [
+    {
+      "fieldName": "uid",
+      "fieldType": "Enum",
+      "label": "推送用户",
+      "helperText": "",
+      "enumValuesRef": "UserList",
+      "multiValue": true
+    },
+    {
+      "fieldName": "channel",
+      "fieldType": "Enum",
+      "label": "推送通道",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "pic_url",
+      "fieldType": "String",
+      "label": "推送消息封面",
+      "helperText": "",
+      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/audio_tools/audio_tools/logo.jpg"
+    }
+  ],
+  "logoUrl": "/plugins/audio_tools/logo.jpg",
+  "githubUrl": "",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/audio_tools",
+  "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
+  "dependencies": {
+    "appVersion": ">=1.9.30"
+  }
+}
