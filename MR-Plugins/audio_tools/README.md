@@ -7,6 +7,7 @@ MR插件，剪辑片头片尾，修改元数据，整理系列文件夹，`plex`
 ## 使用说明
 - 将 `audio_tools` 文件夹放到 `Plugins` 文件夹。
 - 重启后如果日志报错：依赖库 `mutagen` `cn2an` 安装失败而导致插件载入失败，请手动进入 MR 命令行安装，安装命令：`pip install mutagen cn2an`
+- 听有声书我用的 Prologue（美区App Store），支持 Plex。
 
 ## 整理完成之后效果如下
 <img width="1258" alt="image" src="https://github.com/Alano-i/wecom-notification/assets/68833595/cd0d43a1-813c-4d99-a1b4-01d89fd417c8">
