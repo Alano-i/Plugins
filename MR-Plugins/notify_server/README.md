@@ -26,5 +26,5 @@ http://10.10.10.33:1329/api/plugins/notify_server?access_key=改成你的&num=88
 <img width="628" alt="image" src="https://user-images.githubusercontent.com/68833595/226600252-55b939da-6dd3-4fd9-aec8-46c11195f368.png">
 
 
-# 如果觉得好用的话可以请我喝杯咖啡
-<img width="188" alt="image" src="https://user-images.githubusercontent.com/68833595/233236971-e59d4eef-b0af-49ea-9ad7-8c4ce479c623.png">
+## 如果觉得好用的话可以请我喝杯咖啡
+<img width="120" alt="image" src="https://user-images.githubusercontent.com/68833595/233236971-e59d4eef-b0af-49ea-9ad7-8c4ce479c623.png">
