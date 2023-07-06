@@ -34,6 +34,7 @@ for v in import_list:
     try:
         import_module(v)
     except ImportError:
-        _LOGGER.error("「有声书工具箱」 - 安装依赖脚本, 没有找到需要的依赖库:  "+v+" 现在开始安装！")
+        _LOGGER.error(f"{plugins_name} - 安装依赖脚本, 没有找到需要的依赖库: {v} 现在开始安装！")
+
         GetPackage(v)
 ##############################################################
