@@ -45,7 +45,7 @@ def config_changed(config: Dict[str, Any]):
     if not message_to_uid:
         _LOGGER.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
 
-def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, album, art_album,group_now,use_filename):
+def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, album, art_album, group_now, use_filename, subject):
     global has_cover_jpg
     exts = ['.m4a', '.mp3', '.flac', '.wav']
     files_num = len(filenames_group)
@@ -108,14 +108,14 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
                         src_audio.save()
                 # cliped_folder_dir = f'{input_dir}/{cliped_folder}'
                 if clip_configs == 'clip_and_move':
-                    thread_move_to_dir(cliped_folder_dir,filename,authors,year,narrators,series,album,art_album,use_filename)
+                    thread_move_to_dir(cliped_folder_dir,filename,authors,year,narrators,series,album,art_album,use_filename,subject)
 
         except Exception as e:
             _LOGGER.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
             continue
 
 
-def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip_configs,authors,year,narrators,series,album,art_album,use_filename):
+def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip_configs,authors,year,narrators,series,album,art_album,use_filename,subject):
     # cliped_folder_dir = f'{input_dir}/{cliped_folder}'
     cliped_folder_dir = os.path.join(input_dir, cliped_folder)
     audio_end = int(audio_end)
@@ -155,7 +155,7 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
         group_now = f"{group_num+1}/{all_group_num}"
         _LOGGER.warning(f"{plugins_name}开始剪辑第 {group_now} 个分组")
         # 多线程
-        thread = threading.Thread(target=thread_audio_clip, args=(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs,authors,year,narrators,series,album,art_album,group_now,use_filename))
+        thread = threading.Thread(target=thread_audio_clip, args=(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, album, art_album, group_now, use_filename, subject))
         thread.start()
         threads.append(thread)
         time.sleep(1)
@@ -244,25 +244,34 @@ def add_space(text):
         return result
     return text
 
-# 添加元数据
-def add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder,use_filename):
-    """
-    mp3、flac格式: 自定义标签 MVNM 为系列, 标签键: MVNM,  标签类型: 普通文本,  标签值: 系列文本
-    m4a格式: 自定义标签 ----:com.apple.iTunes:series 为系列, 标签键: ----:com.apple.iTunes:series,  标签类型: 普通文本,  标签值: 系列文本
+def extract_number(text):
+    # 使用正则表达式匹配数字
+    match = re.search(r'\d+', text)
+    if match:
+        # 提取第一个匹配到的数字并转换为整数
+        number = int(match.group())
+        return number
+    else:
+        return ''
+    
+def get_book_name(text):
+    # 使用正则表达式匹配书名
+    pattern = r"^([\u4e00-\u9fa5]+[\w\s·]+)"
+    match = re.search(pattern, text)
+    if match:
+        new_text = match.group(0).strip()
+        return new_text
+    else:
+        return ''
 
-    """
-    audio = mutagen.File(file_path)
-    # 获取文件的扩展名
-    ext = os.path.splitext(file_path)[1].lower()
-    # 获取带后缀的文件名
-    filename = os.path.basename(file_path)
+# 处理文件名规范为 0236 xxxx 或者 第0236集 格式
+def extract_filename(filename,series):
     # 获取文件名（不带后缀）
     filename_text = os.path.splitext(filename)[0]
     filename_text_ori = filename_text
     # 去掉文件名中的书名，只保留当前音频的名称
     if series:
         filename_text = filename_text.replace(series, '').strip()
-    # 处理文件名规范为 0236 xxxx 或者 第0236集 格式
     try:
         if filename_text.isdigit():
             filename_text = f'第{filename_text.zfill(4)}集'
@@ -272,12 +281,57 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
             need_flag, filename_text = is_valid_format(filename_text)
             if not need_flag:
                 filename_text = add_space(filename_text)
+        # if filename_text:
+        #     trck_num = extract_number(filename_text)
     except Exception as e:
         _LOGGER.error(f"{plugins_name}处理 ['{filename_text_ori}'] 文件名时出错了: {e}")
+        filename_text = filename_text_ori
+    return filename_text
+
+# 添加元数据
+def add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder, use_filename, subject, filename_text):
+    """
+    mp3、flac格式: 自定义标签 MVNM 为系列, 标签键: MVNM,  标签类型: 普通文本,  标签值: 系列文本
+    m4a格式: 自定义标签 ----:com.apple.iTunes:series 为系列, 标签键: ----:com.apple.iTunes:series,  标签类型: 普通文本,  标签值: 系列文本
+    """
+    org_album = ''
+    audio = mutagen.File(file_path)
+    # 获取文件的扩展名
+    ext = os.path.splitext(file_path)[1].lower()
+    # 获取路径中最后一个文件夹的名称
+    folder_name = os.path.basename(os.path.dirname(file_path))
+    # 音轨序号
+    if filename_text:
+        trck_num = extract_number(filename_text)
     if ext == '.mp3':
+        # new_TCON_frame = mutagen.id3.TCON(encoding=3, text=['题材'])
+        # new_TRCK_frame = mutagen.id3.TRCK(encoding=3, text=['音轨编号'])
         # new_TIT2_frame = mutagen.id3.TIT2(encoding=3, text=['新标题'])
         # new_TPE2_frame = mutagen.id3.TPE2(encoding=3, text=['专辑艺术家'])
 
+        ######################################################################
+        # 读取原音频标题
+        # if 'TIT2' in audio.tags:
+        #     org_title = audio.tags['TIT2'].text[0]
+        auto = False
+        if auto:
+            # 读取原音频专辑-----该值将作为艺术家的值
+            if 'TALB' in audio.tags:
+                org_album = audio.tags['TALB'].text[0]
+            if org_album:
+                authors = org_album
+            else:
+                authors = get_book_name(folder_name) or authors
+        ######################################################################
+        # 题材
+        if subject:
+            new_TCON_frame = mutagen.id3.TCON(encoding=3, text=[subject])
+            audio.tags.setall('TCON', [new_TCON_frame])
+        # 音频序号
+        if trck_num:
+            trck_num = int(trck_num)
+            new_TRCK_frame = mutagen.id3.TRCK(encoding=3, text=[trck_num])
+            audio.tags.setall('TRCK', [new_TRCK_frame])
         # 使用文件名作为元数据标题
         if use_filename:
             new_TIT2_frame = mutagen.id3.TIT2(encoding=3, text=[filename_text])
@@ -292,6 +346,7 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
         if year:
             new_TDRC_frame = mutagen.id3.TDRC(encoding=3, text=[year])
             audio.tags.setall('TDRC', [new_TDRC_frame])
+        # 艺术家
         if authors:
             new_TPE1_frame = mutagen.id3.TPE1(encoding=3, text=[authors])
             audio.tags.setall('TPE1', [new_TPE1_frame])
@@ -317,8 +372,21 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
         # audio.tags.add(new_TXXX_mvn_frame)
         audio.save()
     if ext == '.m4a':
-        # 标题 标签
-        # audio.tags['©nam'] = '标题'
+        """
+        audio.tags['©nam'] = '标题'
+        audio.tags['©gen'] = '题材'
+        audio.tags['trkn'] = '音频序号'
+
+        读取原音频标签
+        org_album = audio.tags['©alb']
+
+        """
+        # 题材
+        if subject:
+            audio.tags['©gen'] = subject
+        # 音频序号
+        if trck_num:
+            audio.tags['trkn'] = [(int(trck_num), 0)]
         # 使用文件名作为元数据标题
         if use_filename:
             audio.tags['©nam'] = filename_text
@@ -360,8 +428,19 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
         audio['mvnm'] = "系列"
         audio['date'] = "2055"
         audio['album'] = "新专辑"
+        audio['genre'] = "题材"
+        audio['tracknumber'] = "音频序号"
+        
+        读取原音频标签
+        org_album = audio['album']
 
         """
+        # 题材
+        if subject:
+            audio['genre'] = subject
+        # 音频序号
+        if trck_num:
+            audio['tracknumber'] = trck_num
         # 使用文件名作为元数据标题
         if use_filename:
             audio['title'] = filename_text
@@ -388,15 +467,15 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
         audio.save()
 
 # 线程任务文件分配到文件夹中
-def thread_move_to_dir(dir_path,filename,authors,year,narrators,series,album,art_album,use_filename):
+def thread_move_to_dir(dir_path, filename, authors, year, narrators, series, album, art_album, use_filename, subject):
     src_file_path = os.path.join(dir_path, filename)
     # 只处理文件, 跳过文件夹
     if os.path.isfile(src_file_path):
         file_path = src_file_path
-        subfolder = match_subfolder(filename)
+        subfolder,filename_text = match_subfolder(filename,series)
         subfolder = album or subfolder
         # 添加tag
-        add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder,use_filename)
+        add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder, use_filename, subject, filename_text)
         if subfolder:    
             # 创建子文件夹, 如果不存在
             subfolder_path = os.path.join(dir_path, subfolder)
@@ -410,14 +489,14 @@ def thread_move_to_dir(dir_path,filename,authors,year,narrators,series,album,art
             shutil.move(src_file_path, dst_file_path)
 
 # 文件分配到文件夹中
-def move_to_dir(output_dir,authors,year,narrators,series,album,art_album,clip_configs,use_filename):
+def move_to_dir(output_dir, authors, year, narrators, series, album, art_album, clip_configs, use_filename, subject):
     dir_path = output_dir
     # 如果目录不存在, 则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     # 遍历目录中的所有文件
     for filename in os.listdir(dir_path):
-        thread_move_to_dir(dir_path,filename,authors,year,narrators,series,album,art_album,use_filename)
+        thread_move_to_dir(dir_path, filename, authors, year, narrators, series,album, art_album, use_filename, subject)
     if clip_configs != 'clip_and_move':
         _LOGGER.info(f'{plugins_name}添加元数据并分配到子文件夹完成')
 
@@ -492,29 +571,33 @@ def move_out(output_dir):
                 shutil.move(src_path, dst_path)
     _LOGGER.info(f'{plugins_name}音频已从子文件夹全部移到 {output_dir}')
 
-def match_subfolder(filename):
+def match_subfolder(filename,series):
+    # 处理文件名规范为 0236 xxxx 或者 第0236集 格式
+    filename_text = extract_filename(filename,series)
     subfolder = ''
     # 从文件名中获取数字
-    match = re.search(r'(\d+)', filename)
+    match = re.search(r'(\d+)', filename_text)
     if match:
         number = int(match.group(1))
         # 设置number的最小值为1
         number = max(number, 1)
         # 分配子文件夹
         subfolder = str((number - 1) // 100 * 100 + 1) + '-' + str((number - 1) // 100 * 100 + 100)
-    return subfolder
+    else:
+        subfolder = '1-100'
+    return subfolder,filename_text
 
 # 处理output_dir文件夹及其子文件夹下的文件
-def all_add_tag(output_dir, authors, year, narrators, series, album, art_album,use_filename):
+def all_add_tag(output_dir, authors, year, narrators, series, album, art_album,use_filename,subject):
     # 遍历目录中的所有文件和子文件夹
     for root, dirs, files in os.walk(output_dir):
         for filename in files:
             # album 变量有值时将其赋给 subfolder 变量，否则将 subfolder 变量的值保持不变
-            subfolder = match_subfolder(filename)
+            subfolder,filename_text = match_subfolder(filename,series)
             subfolder = album or subfolder
             # 处理文件, 跳过文件夹
             file_path = os.path.join(root, filename)
-            add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder,use_filename)
+            add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder, use_filename, subject, filename_text)
     _LOGGER.info(f'{plugins_name}DIY 元数据完成')
 
 def push_msg_to_mbot(msg_title, msg_digest):
