@@ -60,7 +60,8 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
                 series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value=None, required=False),
                 year: ArgSchema(ArgType.String, '发布年份', '', default_value=None, required=False),
                 albums: ArgSchema(ArgType.String, '专辑：留空则自动按每100集划分', '', default_value=None, required=False),
-                art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value=None, required=False)):
+                art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value=None, required=False),
+                subject: ArgSchema(ArgType.String, '题材，例如：武侠，相声', '', default_value=None, required=False)):
     output_dir = output_dir or input_dirs
     use_filename = bool(use_filename_config and use_filename_config.lower() != 'off')
     _LOGGER.info(f"{plugins_name}任务\n开始运行音频剪辑\n输入路径：[{input_dirs}]\n输出路径：[{output_dir}/{cliped_folder}]\n开始时间：[{audio_start}]\n结束倒数秒数：[{audio_end}]\n\n整理参数如下：\n系列：['{series}']\n作者：['{authors}']\n演播者：['{narrators}']\n发布年份：['{year}']\n专辑：['{albums}']\n专辑艺术家：['{art_album}']")
@@ -76,7 +77,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
         if albums:
             album = albums_s[i]
         output_dir = output_dir or input_dir
-        audio_clip(input_dir,output_dir,cliped_folder,audio_start,audio_end,clip_configs,authors,year,narrators,series,album,art_album,use_filename)
+        audio_clip(input_dir,output_dir,cliped_folder,audio_start,audio_end,clip_configs,authors,year,narrators,series,album,art_album,use_filename,subject)
     return PluginCommandResponse(True, f'音频剪辑任务完成')
 
 @plugin.command(name='diy_abs', title='修改metadata.abs', desc='修改 Audiobookshelf 元数据', icon='SwitchAccessShortcutAdd',run_in_background=True)
@@ -101,14 +102,15 @@ def move_to_dir_echo(ctx: PluginCommandContext,
                 series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value=None, required=False),
                 year: ArgSchema(ArgType.String, '发布年份', '', default_value=None, required=False),
                 album: ArgSchema(ArgType.String, '专辑：留空则自动按每100集划分', '', default_value=None, required=False),
-                art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value=None, required=False)):
+                art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value=None, required=False),
+                subject: ArgSchema(ArgType.String, '题材，例如：武侠，相声', '', default_value=None, required=False)):
     use_filename = bool(use_filename_config and use_filename_config.lower() != 'off')
     _LOGGER.info(f"{plugins_name}任务\n开始整理系列文件夹\n输入路径：[{output_dir}]\n系列：['{series}']\n作者：['{authors}']\n演播者：['{narrators}']\n发布年份：['{year}']")
     if move_out_configs == 'move':
         move_out(output_dir)
     elif move_out_configs == 'add_and_move':
-        move_to_dir(output_dir,authors,year,narrators,series,album,art_album,move_out_configs,use_filename)
+        move_to_dir(output_dir,authors,year,narrators,series,album,art_album,move_out_configs,use_filename,subject)
         diy_abs(output_dir, series, authors, narrators, year)
     else:
-        all_add_tag(output_dir,authors,year,narrators,series,album,art_album,use_filename)
+        all_add_tag(output_dir,authors,year,narrators,series,album,art_album,use_filename,subject)
     return PluginCommandResponse(True, f'整理系列文件夹任务完成')
