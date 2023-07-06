@@ -3,7 +3,7 @@
   "title": "有声书工具箱",
   "author": "Alano",
   "description": "剪辑片头片尾，修改元数据，整理系列文件夹，plex Audiobookshelf 可识别。",
-  "version": "1.1",
+  "version": "1.2",
   "requirements": null,
   "configField": [
     {
