@@ -4,7 +4,7 @@ MR插件，PLEX 工具箱，主要功能如下图所示：
 <div align=center><img src="https://github.com/Alano-i/Plex-Tools/assets/68833595/b4d3ea32-ef97-435a-a8c5-8a0723cea8d2" width="852" /></div>
 
 ## 使用说明
-- 将 `plexsortout` 文件夹放到 `Plugins` 文件夹，配置好各项设置。
+- 将 `plex_tools` 文件夹放到 `Plugins` 文件夹，配置好各项设置。
 - 添加海报信息功能中，恢复模式仅在成功处理过的媒体上才能生效！
 
 ## 为海报添加媒体信息
