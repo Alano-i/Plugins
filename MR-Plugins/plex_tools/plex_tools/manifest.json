@@ -120,8 +120,8 @@
     }
   ],
   "logoUrl": "/plugins/plex_tools/logo.jpg",
-  "githubUrl": "https://github.com/WadeChenn/Plex-Tools/tree/main/Plex-SortTittle/MR-Plugins",
-  "helpDocUrl": "https://github.com/WadeChenn/Plex-Tools",
+  "githubUrl": "",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/plex_tools",
   "payImageUrl": "https://p.xmoviebot.com/donate/yewei_wechat.jpg",
   "dependencies": {
     "appVersion": ">=1.9.16"
