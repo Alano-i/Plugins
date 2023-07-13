@@ -199,7 +199,7 @@ def task():
     else:
         loger.info(f'{plugins_name}定时任务启动，未开启合集整理，跳过处理')
 
-@plugin.task('process_recent', '「整理最近10项和添加海报」', cron_expression='18 3 * * *')
+@plugin.task('process_recent', '「整理最近10项和添加海报信息」', cron_expression='18 3 * * *')
 def process_recent():
     if str(libstr).lower() == 'all' or not libstr:
         try:
