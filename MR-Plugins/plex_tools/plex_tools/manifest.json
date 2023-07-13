@@ -1,0 +1,129 @@
+{
+  "name": "plex_tools",
+  "title": "Plex工具箱",
+  "author": "BeiMou(yewei)",
+  "description": "下载完成后，自动进行整理。",
+  "version": "2.8",
+  "requirements": null,
+  "configField": [
+    {
+      "fieldName": "plex_url",
+      "fieldType": "String",
+      "label": "PLEX 服务器 URL，示例：http://10.10.10.3:32400",
+      "helperText": "",
+      "defaultValue": "http://10.10.10.3:32400"
+    },
+    {
+      "fieldName": "plex_token",
+      "fieldType": "String",
+      "label": "PLEX 服务器 TOKEN",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "custom_url",
+      "fieldType": "String",
+      "label": "PLEX 服务器自定义访问 URL",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "check",
+      "fieldType": "Bool",
+      "label": "定时检查PLEX设置是否正常",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "Added",
+      "fieldType": "Bool",
+      "label": "启用 PLEX 入库事件触发实时整理最新入库的媒体",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "mbot_url",
+      "fieldType": "String",
+      "label": "Mbot URL，接收入库事件，示例：http://10.10.10.3:1329",
+      "helperText": "",
+      "defaultValue": "http://10.10.10.3:1329"
+    },
+    {
+      "fieldName": "mbot_api_key",
+      "fieldType": "String",
+      "label": "Mbot API KEY，接收入库事件时身份验证",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "SortTitle",
+      "fieldType": "Bool",
+      "label": "整理首字母",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "Genres",
+      "fieldType": "Bool",
+      "label": "整理标签",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "SelfGenres",
+      "fieldType": "String",
+      "label": "例：若'Action'标签没有翻译，则设置 Action:动作 后可正常翻译替换,多个用英文逗号分割",
+      "helperText": "",
+      "defaultValue": "SelfGenres:SelfGenres"
+    },
+    {
+      "fieldName": "Top250",
+      "fieldType": "Bool",
+      "label": "添加 TOP250 榜单标签",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "tmdb_api_key",
+      "fieldType": "String",
+      "label": "TMDB API KEY, 用于更新 TOP250 列表",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "Collection",
+      "fieldType": "Bool",
+      "label": "整理合集",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "Poster",
+      "fieldType": "Bool",
+      "label": "筛选 Fanart 精美海报",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "add_media_info",
+      "fieldType": "Bool",
+      "label": "当有新入库时，自动为该影片海报添加媒体信息",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "LIBRARY",
+      "fieldType": "String",
+      "label": "需整理的媒体库名称（默认全库：ALL）,英文逗号','间隔",
+      "helperText": "",
+      "defaultValue": "ALL"
+    }
+  ],
+  "logoUrl": "/plugins/plex_tools/logo.jpg",
+  "githubUrl": "https://github.com/WadeChenn/Plex-Tools/tree/main/Plex-SortTittle/MR-Plugins",
+  "helpDocUrl": "https://github.com/WadeChenn/Plex-Tools",
+  "payImageUrl": "https://p.xmoviebot.com/donate/yewei_wechat.jpg",
+  "dependencies": {
+    "appVersion": ">=1.9.16"
+  }
+}
