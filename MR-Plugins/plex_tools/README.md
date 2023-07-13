@@ -1,5 +1,6 @@
 # 🌎 PLEX 工具箱
 MR插件，PLEX 工具箱，原作者是BeiMou(yewei)，在此基础上修改优化了其中各项功能，并添加了许多其他实用功能！
+
 主要功能如下图所示：
 
 <div align=center><img src="https://github.com/Alano-i/Plex-Tools/assets/68833595/b4d3ea32-ef97-435a-a8c5-8a0723cea8d2" width="852" /></div>
