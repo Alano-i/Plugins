@@ -919,13 +919,6 @@ class plex_sortout:
             loger.info(f"{plugins_name}新入库{media_type_text} 整理完成")
         else:
             loger.error(f"{plugins_name}在 PLEX 服务器中没有找到媒体: {rating_key}")
-
-    ################# 下面是处理 你好星期六 标题的代码 ###############
-        if '你好，星期六' in media_type_text:
-            try:
-                self.get_rss_info()
-            except Exception as e:
-                loger.error(f'通过 rss 修改剧集标题失败，原因：{e}')
         
     # 整理指定媒体
     def process_single_video(self, single_videos, spare_flag):
@@ -966,94 +959,3 @@ class plex_sortout:
                     if self.config_SortTitle:
                         self.process_sorttitle(editvideo,video_info)
             # loger.info(f"{plugins_name} {sortout_num} 手动整理指定电影名称的媒体完成")
-
-##################################################### 下面是处理 你好星期六 标题的代码 #####################################################
-    def get_title(self, title):
-        pattern = r'(\d+) \|(.*?)\|'
-        match = re.search(pattern, title)
-        if match:
-            extracted_title = match.group(2).strip()
-        else:
-            extracted_title = ''
-        pattern = r'(\d+)期：(.*?)\|'
-        match = re.search(pattern, title)
-        if match:
-            extracted_title = match.group(2).strip()
-        else:
-            extracted_title = ''
-        # 使用正则表达式提取日期内容
-        p = r'\[(\d+)\]'
-        m = re.search(p, title)
-        if m:
-            extracted_date = m.group(1)
-        else:
-            extracted_date = ''
-        return extracted_title, extracted_date
-
-    def diy_e_info(self,video_name,s,e,title):
-        search_results = self.plexserver.library.search(video_name)
-        # ratingKey = search_results[0].ratingKey
-        if search_results:
-            try:
-                tv_show  = search_results[0]
-                episode = tv_show.episode(season=s, episode=e)
-                org_title = episode.title
-                if 'Episode' in org_title:
-                    episode.edit(**{'title.value': title})
-                    episode.reload()
-                    loger.info(f"['{video_name}'] S{s}E{e} 新标题:['{episode.title}']")
-            except Exception as e:
-                loger.error(f'重命名标题失败，原因：{e}')
-
-    # def get_rss_info(self):
-    #     url = "https://tjupt.org/torrentrss.php?rows=50&cat403=1&icat=1&ismalldescr=1&isize=1&official=1&search=%E4%BD%A0%E5%A5%BD%E6%98%9F%E6%9C%9F%E5%85%AD&search_mode=0&passkey=6dd0d5a94b8de0a1e5337ae18d2a4ad1&linktype=dl"
-    #     feed = feedparser.parse(url)
-    #     for entry in feed.entries:
-    #         title, air_date = self.get_title(entry.title)
-    #         if air_date:
-    #             try:
-    #                 s = int(air_date[:4])
-    #                 e = int(air_date[4:])
-    #             except Exception as e:
-    #                 loger.error(f'{title} 拆分发布日期错误，原因：{e}')
-    #                 continue
-    #         if title and s and e:
-    #             self.diy_e_info('你好，星期六',s,e,title)
-            # download_link = entry.link
-            # published = entry.published
-            # published_old = 'Sat, 01 Jul 2023 14:39:45 +0000'
-            # # 将时间字符串转换为 datetime 对象
-            # datetime_published_old = datetime.strptime(published_old, '%a, %d %b %Y %H:%M:%S %z')
-            # datetime_published = datetime.strptime(published, '%a, %d %b %Y %H:%M:%S %z')
-
-            # if datetime_published_old < datetime_published:
-            #     print("有新的下载")
-            # print("\n")
-
-    def get_rss_info(self):
-        url = "https://tjupt.org/torrentrss.php?rows=50&cat403=1&icat=1&ismalldescr=1&isize=1&official=1&search=%E4%BD%A0%E5%A5%BD%E6%98%9F%E6%9C%9F%E5%85%AD&search_mode=0&passkey=6dd0d5a94b8de0a1e5337ae18d2a4ad1&linktype=dl"
-        response = session.request("GET", url, timeout=60)
-        tree = etree.fromstring(response.content)
-        title = ''
-        # 检查是否成功获取响应
-        if response.status_code == 200:
-            # 从 XML 结构中提取信息
-            for item in tree.iterfind('.//item'):
-                # 处理每个项
-                title_all = item.find('title').text
-                # link = item.find('link').text
-                if title_all:
-                    title, air_date = self.get_title(title_all)
-                if air_date:
-                    try:
-                        s = int(air_date[:4])
-                        e = int(air_date[4:])
-                    except Exception as e:
-                        loger.error(f'{title_all} 拆分发布日期错误，原因：{e}')
-                        s = ''
-                        e = ''
-                        continue
-                if title and s and e:
-                    self.diy_e_info('你好，星期六',s,e,title)
-        else:
-            loger.error("无法获取 XML 数据。响应状态码：", response.status_code)
