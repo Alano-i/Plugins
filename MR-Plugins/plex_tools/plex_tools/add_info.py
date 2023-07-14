@@ -108,17 +108,21 @@ def get_display_title(key):
     return ''
 
 def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,title):
-    if media_type in ['show','episode','season']: media_type = 'show'
+    media_type_org = media_type
+    if media_type in ['show','episode','show']: media_type = 'show'
+    if media_type in ['show_p','season_p']: duration = ''
+    if media_type in ['movie','show_p','season_p']: media_type = 'movie'
+
     rating = str(rating)
     if rating == '10.0': rating = '10'
     if media_type == 'movie':
         poster_width = 1000
         poster_height = 1500
         scale = 1215/1000
-        if resolution == '1080P':
+        if resolution == '1080P' and media_type_org not in ['show_p','season_p']:
             scale = 1192/1000
             duration = duration.replace(' ','')
-        if rdynamic_range =='DV':
+        if rdynamic_range =='DV' and media_type_org not in ['show_p','season_p']:
             scale = 1180/1000
             duration = duration.replace(' ','')
     elif media_type == 'show':
@@ -311,14 +315,22 @@ def get_episode(media,media_type,lib_name,force_add,restore,show_log):
         rating_key = media.parentRatingKey
         plexserver = PlexServer(plex_url, plex_token)
         show = plexserver.fetchItem(int(rating_key))
-        show_year = show.year
+        show_year = show.year   
         rating = show.audienceRating or ''
+        add_info_one(media,'season_p','',lib_name,force_add,1,rating,show_year,restore,show_log)
     if media_type =='show':
         show_year = media.year
         try:
             rating = media.audienceRating
         except Exception as e:
             rating = ''
+
+        add_info_one(media,'show_p','',lib_name,force_add,1,rating,show_year,restore,show_log)
+        # 获取季节列表
+        seasons = media.seasons()
+        for season in seasons:
+            add_info_one(season,'season_p','',lib_name,force_add,1,rating,show_year,restore,show_log)
+
     for episode in media.episodes():
         add_info_one(episode,'episode','',lib_name,force_add,1,rating,show_year,restore,show_log)
 
@@ -342,6 +354,16 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
                 s = str(media.parentIndex).zfill(2)
                 t = media.grandparentTitle
                 media_title = f"{t} {show_year} S{s}E{e}"
+
+            if media_type == 'show_p':
+                poster_url = media.posterUrl
+                media_title = media.title
+            if media_type == 'season_p':
+                poster_url = media.posterUrl
+                media_title = f"{media.parentTitle} S{media.seasonNumber}"
+                if not media.posters():
+                    poster_url = ''
+
             if not lib_name:
                 lib_name = media.librarySectionTitle or ''
             media_title = media_title or '未知' 
@@ -350,20 +372,31 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
                     loger.info(f"{plugins_name}开始处理 {i}/{media_n} ['{media_title}']")
                 else:
                     loger.info(f"{plugins_name}开始处理 ['{media_title}']")
-
-            img_dir = os.path.join(base_path, f'poster_backup/{lib_name}')
-            img_path = os.path.join(img_dir, f"{media_title}.jpg")
-            if restore:
-                media.uploadPoster(filepath=img_path)
-                break
-
+            
             if poster_url:
+
+                img_dir = os.path.join(base_path, f'poster_backup/{lib_name}')
+                img_path = os.path.join(img_dir, f"{media_title}.jpg")
+                if restore:
+                    media.uploadPoster(filepath=img_path)
+                    break
+
+
                 poster_path,overlay_flag = save_img(media,poster_url,media_title,img_path,img_dir)
                 # 上传海报
                 if not overlay_flag or force_add:
+
+                    if media_type in ['show_p','season_p']:
+                        media_s = media
+                        media = media.episodes()[0]
+
                     file_name,duration,size,bitrate,videoResolution,display_title = get_local_info(media)
                     if poster_path:
                         out_path = new_poster(media_type,videoResolution,display_title,duration,rating,poster_path,media_title)
+
+                        if media_type in ['show_p','season_p']:
+                            media = media_s
+
                         media.uploadPoster(filepath=out_path)
                 else:
                     if show_log: loger.warning(f"['{media_title}'] 已经处理过了，跳过")
@@ -383,6 +416,13 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log):
                     rating = show.audienceRating
                 except Exception as e:
                     rating = ''
+
+                add_info_one(show,'show_p','',lib_name,force_add,1,rating,show_year,restore,show_log)
+                # 获取季节列表
+                seasons = show.seasons()
+                for season in seasons:
+                    add_info_one(season,'season_p','',lib_name,force_add,1,rating,show_year,restore,show_log)
+
                 i=1
                 for episode in show.episodes():
                     add_info_one(episode,'episode','',lib_name,force_add,i,rating,show_year,restore,show_log)
