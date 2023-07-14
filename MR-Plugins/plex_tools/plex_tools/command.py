@@ -116,9 +116,11 @@ def import_plex(ctx: PluginCommandContext,
 def add_info(ctx: PluginCommandContext,
              library: ArgSchema(ArgType.Enum, '选择需要处理的的媒体库', '', enum_values=get_enum_data, multi_value=True),
              restore_config: ArgSchema(ArgType.Enum, '恢复模式，默认关闭', '开启后恢复所有处理前的原始海报且下方设置失效', enum_values=lambda: collection_on_list, default_value='off', multi_value=False, required=False),
-             force_add_config: ArgSchema(ArgType.Enum, '强制添加模式，默认关闭', '开启：所有海报重新处理。关闭：处理过的海报不再处理', enum_values=lambda: spare_flag_list, default_value='off', multi_value=False, required=False)):
+             force_add_config: ArgSchema(ArgType.Enum, '强制添加模式，默认关闭', '开启：所有海报重新处理。关闭：处理过的海报不再处理', enum_values=lambda: spare_flag_list, default_value='off', multi_value=False, required=False),
+             only_show_config: ArgSchema(ArgType.Enum, '只处理剧集封面，默认关闭', '', enum_values=lambda: spare_flag_list, default_value='off', multi_value=False, required=False)):
     force_add = bool(force_add_config and force_add_config.lower() != 'off')
     restore = bool(restore_config and restore_config.lower() != 'off')
+    only_show = bool(only_show_config and only_show_config.lower() != 'off')
     show_log = True
     if force_add:
         force_add_text = '强制添加信息（处理过的海报将重新处理）'
@@ -127,7 +129,7 @@ def add_info(ctx: PluginCommandContext,
     for i in range(len(library)):
         loger.info(
             f"{plugins_name}开始处理媒体库 ['{library[i]}']，模式: {force_add_text}")
-        add_info_to_posters_main(library[i], force_add, restore, show_log)
+        add_info_to_posters_main(library[i], force_add, restore, show_log,only_show)
     return PluginCommandResponse(True, f'将媒体主要信息添加到海报运行完成')
 
 
