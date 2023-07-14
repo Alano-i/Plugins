@@ -18,12 +18,25 @@ def add_config(config):
     plex_url = config.get('plex_url','')
     plex_token = config.get('plex_token','')
 
-def save_img(img_url,title,img_path,img_dir):
+def re_get_poster(media):
+    try:
+        posters = media.posters()
+        if posters:
+            s_poster = False
+            for p in posters:
+                if p.selected:
+                    s_poster = True
+                    break
+            if not s_poster:
+                poster_url = f"{plex_url}{posters[0].key}&X-Plex-Token={plex_token}"
+                return poster_url
+    except Exception as e:
+        loger.error(f"{plugins_name}获取海报列表失败，原因：{e}")
+
+def save_img(media,img_url,title,img_path,img_dir):
     overlay_flag = False
-    # img_dir = os.path.join(base_path, f'poster_backup/{lib_name}')
     os.makedirs(img_dir, exist_ok=True)
-    # img_path = os.path.join(img_dir, f"{title}.jpg")
-    retries = 5
+    retries = 3
     retry_delay = 3
     for i in range(retries):
         try:
@@ -42,15 +55,12 @@ def save_img(img_url,title,img_path,img_dir):
                     f.write(response.data)
                 # loger.info(f"{title} 的海报/背景已存入{img_path}")
             break
-        except (ConnectionError, TimeoutError, MaxRetryError) as e:
-            loger.error(f'「{title}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
-            time.sleep(retry_delay)
-            img_path = ''
-            continue
         except Exception as e:
             loger.error(f'「{title}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
-            img_path = ''
+            img_url = re_get_poster(media)
             continue
+    if not img_url:
+        img_path = ''
     return img_path,overlay_flag
 
 # 大小单位转换，输入Bytes
@@ -314,7 +324,7 @@ def get_episode(media,media_type,lib_name,force_add,restore,show_log):
 
 def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,restore,show_log):
     media_title = ''
-    for v in range(5):
+    for v in range(3):
         try:
             if media_type == 'movie':
                 rating = media.audienceRating
@@ -348,18 +358,19 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
                 break
 
             if poster_url:
-                img_path,overlay_flag = save_img(poster_url,media_title,img_path,img_dir)
+                poster_path,overlay_flag = save_img(media,poster_url,media_title,img_path,img_dir)
                 # 上传海报
                 if not overlay_flag or force_add:
                     file_name,duration,size,bitrate,videoResolution,display_title = get_local_info(media)
-                    out_path = new_poster(media_type,videoResolution,display_title,duration,rating,img_path,media_title)
-                    media.uploadPoster(filepath=out_path)
+                    if poster_path:
+                        out_path = new_poster(media_type,videoResolution,display_title,duration,rating,poster_path,media_title)
+                        media.uploadPoster(filepath=out_path)
                 else:
                     if show_log: loger.warning(f"['{media_title}'] 已经处理过了，跳过")
             break
         except Exception as e:
             media_title = media_title or '未知' 
-            loger.error(f"{plugins_name}第 {v+1}/5 次处理 ['{media_title}'] 时失败，原因：{e}")
+            loger.error(f"{plugins_name}第 {v+1}/3 次处理 ['{media_title}'] 时失败，原因：{e}")
 
 def add_info_to_posters(library,lib_name,force_add,restore,show_log):
     lib_type = library.type
