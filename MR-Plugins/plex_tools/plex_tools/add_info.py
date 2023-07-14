@@ -357,10 +357,13 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
 
             if media_type == 'show_p':
                 poster_url = media.posterUrl
-                media_title = media.title
+                t = media.title
+                media_title = f"{t} {show_year}"
             if media_type == 'season_p':
                 poster_url = media.posterUrl
-                media_title = f"{media.parentTitle} S{media.seasonNumber}"
+                t = media.parentTitle
+                s = str(media.seasonNumber).zfill(2)
+                media_title = f"{t} {show_year} S{s}"
                 if not media.posters():
                     poster_url = ''
 
@@ -388,8 +391,9 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
 
                     if media_type in ['show_p','season_p']:
                         media_s = media
-                        # media = media.episodes()[0]  # 第一集
-                        media = media.episodes()[-1] # 最后一集
+                        medias = media.episodes()
+                        medias.sort(key=lambda media: media.addedAt, reverse=True)  # 最新的排在最前面
+                        media = medias[0]
 
                     file_name,duration,size,bitrate,videoResolution,display_title = get_local_info(media)
                     if poster_path:
@@ -403,10 +407,11 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
                     if show_log: loger.warning(f"['{media_title}'] 已经处理过了，跳过")
             break
         except Exception as e:
+            media = media_s
             media_title = media_title or '未知' 
             loger.error(f"{plugins_name}第 {v+1}/3 次处理 ['{media_title}'] 时失败，原因：{e}")
 
-def add_info_to_posters(library,lib_name,force_add,restore,show_log):
+def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
     lib_type = library.type
     if lib_type == 'show':
         shows = library.all()
@@ -424,10 +429,11 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log):
                 for season in seasons:
                     add_info_one(season,'season_p','',lib_name,force_add,1,rating,show_year,restore,show_log)
 
-                i=1
-                for episode in show.episodes():
-                    add_info_one(episode,'episode','',lib_name,force_add,i,rating,show_year,restore,show_log)
-                    i=i+1
+                if not only_show:
+                    i=1
+                    for episode in show.episodes():
+                        add_info_one(episode,'episode','',lib_name,force_add,i,rating,show_year,restore,show_log)
+                        i=i+1
             loger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中的剧集海报添加媒体信息完成")
         else:
             loger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有剧集，不需要处理")
@@ -443,14 +449,14 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log):
         else:
             loger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有电影，不需要处理")
 
-def add_info_to_posters_main(lib_name,force_add,restore,show_log):
+def add_info_to_posters_main(lib_name,force_add,restore,show_log,only_show):
     try:
         plexserver = PlexServer(plex_url, plex_token) 
     except Exception as e:
         loger.error(f"{plugins_name}连接 Plex 服务器失败,原因：{e}")
     try:
         library = plexserver.library.section(lib_name)
-        add_info_to_posters(library,lib_name,force_add,restore,show_log)
+        add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show)
     except Exception as e:
         loger.error(f"{plugins_name}海报添加信息出现错误! 原因：{e}")
 
