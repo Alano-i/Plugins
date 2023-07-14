@@ -388,7 +388,8 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
 
                     if media_type in ['show_p','season_p']:
                         media_s = media
-                        media = media.episodes()[0]
+                        # media = media.episodes()[0]  # 第一集
+                        media = media.episodes()[-1] # 最后一集
 
                     file_name,duration,size,bitrate,videoResolution,display_title = get_local_info(media)
                     if poster_path:
