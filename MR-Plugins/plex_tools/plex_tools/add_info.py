@@ -336,6 +336,7 @@ def get_episode(media,media_type,lib_name,force_add,restore,show_log):
 
 def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,restore,show_log):
     media_title = ''
+    media_s = media
     for v in range(3):
         try:
             if media_type == 'movie':
@@ -390,7 +391,7 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
                 if not overlay_flag or force_add:
 
                     if media_type in ['show_p','season_p']:
-                        media_s = media
+                        # media_s = media
                         medias = media.episodes()
                         medias.sort(key=lambda media: media.addedAt, reverse=True)  # 最新的排在最前面
                         media = medias[0]
@@ -460,7 +461,4 @@ def add_info_to_posters_main(lib_name,force_add,restore,show_log,only_show):
     except Exception as e:
         loger.error(f"{plugins_name}海报添加信息出现错误! 原因：{e}")
 
-        # loger.warning(f"videoResolution:{videoResolution}")
-        # loger.warning(f"display_title:{display_title}")
-        # loger.warning(f"duration:{duration}")
-        # loger.warning(f"rating:{rating}")
+        
