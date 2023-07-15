@@ -215,9 +215,10 @@ def process_recent():
     show_log = False
     force_add = False
     restore = False
+    only_show = False
     loger.info(f"{plugins_name}开始为海报添加媒体信息，已添加信息的海报将自动跳过")
     for i in range(len(libtable)):
-        add_info_to_posters_main(libtable[i],force_add,restore,show_log)
+        add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
     loger.info(f"{plugins_name}为海报添加媒体信息完成，已自动跳过处理过的海报")
 
 
