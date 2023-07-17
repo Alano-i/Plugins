@@ -109,7 +109,7 @@ def get_display_title(key):
 
 def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,title):
     media_type_org = media_type
-    if media_type in ['show','episode','show']: media_type = 'show'
+    if media_type in ['show','episode','season']: media_type = 'show'
     if media_type in ['show_p','season_p']: duration = ''
     if media_type in ['movie','show_p','season_p']: media_type = 'movie'
 
@@ -461,4 +461,7 @@ def add_info_to_posters_main(lib_name,force_add,restore,show_log,only_show):
     except Exception as e:
         loger.error(f"{plugins_name}海报添加信息出现错误! 原因：{e}")
 
-        
+        # loger.warning(f"videoResolution:{videoResolution}")
+        # loger.warning(f"display_title:{display_title}")
+        # loger.warning(f"duration:{duration}")
+        # loger.warning(f"rating:{rating}")
