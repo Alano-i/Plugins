@@ -214,16 +214,26 @@ def get_imdb_top_250():
     url = 'https://www.imdb.com/chart/top'
     try:
         for i in range(5):
-            response = session.request("GET", url, headers=headers, timeout=30)
+            response = session.request("GET", url, headers=headers, timeout=90)
             if response.status_code == 200:
+                # 使用etree解析HTML内容
                 html = etree.HTML(response.text)
-                # 获取 imdbtop250 电影 imdb id
-                imdb_ids = html.xpath('//td[@class="titleColumn"]/a/@href')
-                imdb_ids = [id.split('/')[2] for id in imdb_ids]
+                ######################## 旧版 imdb top250网页 ########################
+
+                # # 使用XPath选择器提取所有电影的IMDb ID
+                # imdb_id_elements = html.xpath('//td[@class="titleColumn"]/a/@href')
+                # imdb_ids = [id.split('/')[2] for id in imdb_id_elements]
+
+                ######################## 新版 imdb top250网页 ########################
+                
+                # 使用XPath选择器提取所有电影的IMDb ID
+                imdb_id_elements = html.xpath('//*[@id="__next"]/main/div/div[3]/section/div/div[2]/div/ul/li/div[2]/div/div/div[1]/a/@href')
+                imdb_ids = [imdb_id.split('/')[2] for imdb_id in imdb_id_elements]
+
                 if imdb_ids:
                     break
                 else:
-                    loger.error(f"{plugins_name} 第 {i+1}/5 次请求 tmdb 网站失败")
+                    loger.error(f"{plugins_name} 第 {i+1}/5 次请求 IMDB 网站解析 TOP250 列表失败")
     except Exception as e:
         loger.error(f"{plugins_name}获取 IMDB TOP250 失败，原因：{e}")
 
