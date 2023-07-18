@@ -3,7 +3,7 @@ import logging
 from importlib import import_module
 import time
 import os
-loger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 plugins_name = '「PLEX 工具箱」'
 #########################依赖库初始化###########################
 # 依赖库列表 feedparser
@@ -18,21 +18,21 @@ sourceurl = "pypi.douban.com"
 def GetPackage(PackageName):
     comand = f"pip install {PackageName} -i {sourcestr} --trusted-host {sourceurl}"
     # 正在安装
-    loger.info(f"{plugins_name} - 安装依赖脚本, 正在安装依赖 + {str(PackageName)}")
-    loger.info(comand)
+    logger.info(f"{plugins_name} - 安装依赖脚本, 正在安装依赖 + {str(PackageName)}")
+    logger.info(comand)
     try:
         # os.system(comand)
         install_log = os.popen(comand)
-        # loger.error(f"「每天60秒读懂世界 - 安装依赖脚本」安装日志：{install_log}")
-        loger.info(f'{plugins_name} - 安装依赖脚本, 安装依赖日志如下:\n{install_log.read()}')
-        loger.warning(f'{plugins_name} - 安装依赖脚本, 如果下方报错：依赖库安装失败导致插件载入失败，请手动进入 MR 命令行安装，安装命令：pip install lxml')
+        # logger.error(f"「每天60秒读懂世界 - 安装依赖脚本」安装日志：{install_log}")
+        logger.info(f'{plugins_name} - 安装依赖脚本, 安装依赖日志如下:\n{install_log.read()}')
+        logger.warning(f'{plugins_name} - 安装依赖脚本, 如果下方报错：依赖库安装失败导致插件载入失败，请手动进入 MR 命令行安装，安装命令：pip install lxml')
         # os.system(f'{comand} | tee /data/plugins/daily_news/install.log')
     except Exception as e:
-        loger.error(f"{plugins_name} - 安装依赖脚本, 安装依赖库失败！原因：{e}")
+        logger.error(f"{plugins_name} - 安装依赖脚本, 安装依赖库失败！原因：{e}")
 for v in import_list:
     try:
         import_module(v)
     except ImportError:
-        loger.error("「PLEX 工具箱」 - 安装依赖脚本, 没有找到需要的依赖库:  "+v+" 现在开始安装！")
+        logger.error("「PLEX 工具箱」 - 安装依赖脚本, 没有找到需要的依赖库:  "+v+" 现在开始安装！")
         GetPackage(v)
 ##############################################################
