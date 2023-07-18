@@ -20,7 +20,7 @@ from .add_info import add_info_one, get_episode
 server = mbot_api
 RECOVER = 1
 ENABLE_LOG = 1
-loger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 plugins_name = '「PLEX 工具箱」'
 
 IMDBTop250 = ['tt0111161', 'tt0068646', 'tt0468569', 'tt0071562', 'tt0050083', 'tt0108052', 'tt0167260', 'tt0110912', 'tt0120737', 'tt0060196', 'tt0109830', 'tt0137523', 'tt0167261', 'tt1375666', 'tt0080684', 'tt0133093', 'tt0099685', 'tt0073486', 'tt0114369', 'tt0047478', 'tt0038650', 'tt0102926', 'tt0120815', 'tt0317248', 'tt0816692', 'tt0118799', 'tt0120689', 'tt0076759', 'tt0103064', 'tt0088763', 'tt0245429', 'tt0253474', 'tt0054215', 'tt6751668', 'tt0110413', 'tt0110357', 'tt0172495', 'tt0120586', 'tt0407887', 'tt0482571', 'tt2582802', 'tt0114814', 'tt0034583', 'tt0095327', 'tt0056058', 'tt1675434', 'tt0027977', 'tt0064116', 'tt0095765', 'tt0047396', 'tt0078748', 'tt0021749', 'tt0078788', 'tt0209144', 'tt1853728', 'tt0082971', 'tt0910970', 'tt0405094', 'tt0043014', 'tt0050825', 'tt0081505', 'tt0032553', 'tt4154756', 'tt0051201', 'tt0090605', 'tt4633694', 'tt0169547', 'tt0057012', 'tt1345836', 'tt0364569', 'tt0361748', 'tt0086879', 'tt2380307', 'tt0114709', 'tt7286456', 'tt0112573', 'tt0082096', 'tt4154796', 'tt0119698', 'tt0087843', 'tt0119217', 'tt5311514', 'tt0045152', 'tt1187043', 'tt0180093', 'tt0057565', 'tt0435761', 'tt8267604', 'tt0086190', 'tt0338013', 'tt0062622', 'tt0091251', 'tt0105236', 'tt2106476', 'tt0033467', 'tt0022100', 'tt0056172', 'tt0053125', 'tt0044741', 'tt0052357', 'tt0053604', 'tt0211915', 'tt0066921', 'tt0036775', 'tt0093058', 'tt0086250', 'tt8503618', 'tt1255953', 'tt0113277', 'tt0056592', 'tt1049413', 'tt0070735', 'tt1832382', 'tt0017136', 'tt0075314', 'tt0119488', 'tt0095016', 'tt0208092', 'tt0097576', 'tt1745960', 'tt0040522', 'tt0986264', 'tt8579674', 'tt0363163', 'tt5074352', 'tt0059578', 'tt0372784', 'tt0012349', 'tt0053291', 'tt10272386', 'tt0042192', 'tt0993846', 'tt6966692', 'tt0055031', 'tt0089881', 'tt0112641', 'tt0120382', 'tt0469494', 'tt0457430', 'tt0105695', 'tt0167404', 'tt1130884', 'tt0268978', 'tt0107290', 'tt0055630', 'tt0040897', 'tt0071853', 'tt0477348', 'tt0057115', 'tt0266697', 'tt0042876', 'tt10872600', 'tt0084787', 'tt0266543', 'tt0080678', 'tt0071315', 'tt0081398', 'tt0434409', 'tt0031381', 'tt0120735', 'tt0046912', 'tt2096673', 'tt1305806', 'tt0347149', 'tt5027774', 'tt0117951', 'tt0050212', 'tt1392214', 'tt1291584', 'tt0116282', 'tt1205489', 'tt0096283', 'tt0264464', 'tt0405159', 'tt0118849', 'tt0083658', 'tt0015864', 'tt4729430', 'tt0112471', 'tt1201607', 'tt2024544', 'tt0047296', 'tt0052618', 'tt2278388', 'tt2267998', 'tt0050986', 'tt0017925', 'tt0072684', 'tt0107207', 'tt0041959', 'tt0077416', 'tt2119532', 'tt0046268', 'tt0353969', 'tt0015324', 'tt3011894', 'tt0031679', 'tt1392190', 'tt0978762', 'tt0050976', 'tt0892769', 'tt0198781', 'tt0073195', 'tt0097165', 'tt3170832', 'tt0118715', 'tt0046438', 'tt0019254', 'tt1950186', 'tt0395169', 'tt0075148', 'tt0091763', 'tt0382932', 'tt1895587', 'tt3315342', 'tt0088247', 'tt0092005', 'tt1979320', 'tt0074958', 'tt0381681', 'tt0758758', 'tt0032138', 'tt0036868', 'tt0107048', 'tt0070047', 'tt0048473', 'tt0317705', 'tt0035446', 'tt0113247', 'tt0325980', 'tt15097216', 'tt0032551', 'tt0058946', 'tt1028532', 'tt0476735', 'tt0245712', 'tt0032976', 'tt0061512', 'tt4016934', 'tt0053198', 'tt0059742', 'tt0025316', 'tt0060827', 'tt0079470', 'tt0129167', 'tt1454029', 'tt0071411', 'tt0103639', 'tt0099348', 'tt0083987']
@@ -36,14 +36,14 @@ new_imdb_top250_list = server.common.get_cache('top250', 'imdb') or []
 if len(new_imdb_top250_list) == 250:
     if set(IMDBTop250) != set(new_imdb_top250_list):
         IMDBTop250 = new_imdb_top250_list
-        loger.info(f"{plugins_name} IMDB TOP250 数据有更新，共 {len(IMDBTop250)} 项")
-        loger.info(f"{plugins_name} 最新 IMDB TOP250 数据：{IMDBTop250}")
+        logger.info(f"{plugins_name} IMDB TOP250 数据有更新，共 {len(IMDBTop250)} 项")
+        logger.info(f"{plugins_name} 最新 IMDB TOP250 数据：{IMDBTop250}")
 
 if len(new_douban_top250_list) == 250:
     if set(DouBanTop250) != set(new_douban_top250_list):
         DouBanTop250 = new_douban_top250_list
-        loger.info(f"{plugins_name} 豆瓣 TOP250 数据有更新，共 {len(DouBanTop250)} 项")
-        loger.info(f"{plugins_name} 最新豆瓣 TOP250 数据：{DouBanTop250}")
+        logger.info(f"{plugins_name} 豆瓣 TOP250 数据有更新，共 {len(DouBanTop250)} 项")
+        logger.info(f"{plugins_name} 最新豆瓣 TOP250 数据：{DouBanTop250}")
 
 tags = {
     "Action": "动作",
@@ -108,9 +108,9 @@ class plex_sortout:
         try:
             self.plexserver = PlexServer(self.config_plex_url, self.config_plex_token)
             self.connected = True
-            loger.info(f"{plugins_name}PLEX 服务器连接成功")
+            logger.info(f"{plugins_name}PLEX 服务器连接成功")
         except Exception as e:
-            loger.error(f"{plugins_name}PLEX 服务器守护连接失败，原因：{e}")
+            logger.error(f"{plugins_name}PLEX 服务器守护连接失败，原因：{e}")
 
     # def setdata(self,plex,mrserver,servertype):
     #     self.plexserver = plex
@@ -156,9 +156,9 @@ class plex_sortout:
             if webhook_url not in webhooks:
                 webhooks.append(webhook_url)
                 account.setWebhooks(webhooks)
-                loger.info(f"{plugins_name} 已向 PLEX 服务器添加 Webhook")
+                logger.info(f"{plugins_name} 已向 PLEX 服务器添加 Webhook")
             else:
-                loger.info(f"{plugins_name} PLEX 服务器 Webhook 列表中已添加此 Webhook 链接：{webhook_url}")
+                logger.info(f"{plugins_name} PLEX 服务器 Webhook 列表中已添加此 Webhook 链接：{webhook_url}")
             
     def uniqify(self, seq):
         keys = {}
@@ -214,9 +214,9 @@ class plex_sortout:
         else:
             video.addGenre(chlist, locked=True)
         if chlist:
-            loger.info(f"「{video.title}」标签翻译整理完成 {chlist}")
+            logger.info(f"「{video.title}」标签翻译整理完成 {chlist}")
         else:
-            loger.info(f"「{video.title}」的标签都是中文，不需要翻译")
+            logger.info(f"「{video.title}」的标签都是中文，不需要翻译")
         if add_new and englist:
             for i in range(3):
                 try:
@@ -224,7 +224,7 @@ class plex_sortout:
                     # video.reload()
                     break
                 except Exception as e:
-                    loger.info(f"「{video.title}」第 {i+1}/3 次与 PLEX 服务器同步翻译项失败，原因：{e}")
+                    logger.info(f"「{video.title}」第 {i+1}/3 次与 PLEX 服务器同步翻译项失败，原因：{e}")
                     time.sleep(5)
                     continue
             
@@ -234,7 +234,7 @@ class plex_sortout:
         lib = {}
         for section in self.plexserver.library.sections():
             #输出所有媒体库
-            loger.info(f'{section.title}')
+            logger.info(f'{section.title} {section.key}')
             lib['name']=section.title
             lib['value']=section.title
             libtable.append(lib.copy())
@@ -266,7 +266,7 @@ class plex_sortout:
                 guid_id = guid.get("id")
                 guids.append(guid_id)
         else:
-            loger.error(f"「{video.title}」获取影片信息失败")
+            logger.error(f"「{video.title}」获取影片信息失败")
         return locked_info, genres_all, guids
 
     def get_locked_info(self, video, spare_flag):
@@ -285,12 +285,12 @@ class plex_sortout:
                     locked_info, genres_all, guids = self.get_video_info(video)
 
                 if locked_info:
-                    loger.info(f'「{title}」当前元数据锁定情况：{locked_info}')
+                    logger.info(f'「{title}」当前元数据锁定情况：{locked_info}')
                 else:
-                    loger.info(f'「{title}」当前没有锁定任何元数据')
+                    logger.info(f'「{title}」当前没有锁定任何元数据')
                 break
             except ConnectTimeoutError as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次获取 ['{title}'] 元数据锁定情况，连接失败等待10秒重连，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次获取 ['{title}'] 元数据锁定情况，连接失败等待10秒重连，原因：{e}")
                 time.sleep(10)
                 self.connected = False
                 self.connect_plex()
@@ -298,7 +298,7 @@ class plex_sortout:
                 spare_flag = not spare_flag
                 continue
             except Exception as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次获取 ['{title}'] 元数据锁定情况失败，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次获取 ['{title}'] 元数据锁定情况失败，原因：{e}")
                 time.sleep(2)
                 spare_flag = not spare_flag
                 continue
@@ -320,17 +320,17 @@ class plex_sortout:
                 #     video.reload()
                 video.unlockArt()
                 video.unlockPoster()
-                loger.info(f'「{video.title}」海报和背景已经解锁，PLEX 服务器可以自动更新了\n')
+                logger.info(f'「{video.title}」海报和背景已经解锁，PLEX 服务器可以自动更新了\n')
                 break
             except ConnectTimeoutError as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次解锁 ['{title}'] 海报和背景异常，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次解锁 ['{title}'] 海报和背景异常，原因：{e}")
                 time.sleep(10)
                 self.connected = False
                 self.connect_plex()
                 reconnect_flag = True
                 continue
             except Exception as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次解锁 ['{title}'] 海报和背景异常，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次解锁 ['{title}'] 海报和背景异常，原因：{e}")
                 time.sleep(2)
                 continue
 
@@ -344,17 +344,17 @@ class plex_sortout:
                 #     video.reload()
                 video.lockArt()
                 video.lockPoster()
-                loger.info(f'「{video.title}」海报和背景已经锁定，PLEX 服务器不会再自动更新了\n')
+                logger.info(f'「{video.title}」海报和背景已经锁定，PLEX 服务器不会再自动更新了\n')
                 break
             except ConnectTimeoutError as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次锁定 ['{title}'] 海报和背景异常，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次锁定 ['{title}'] 海报和背景异常，原因：{e}")
                 time.sleep(10)
                 self.connected = False
                 self.connect_plex()
                 reconnect_flag = True
                 continue
             except Exception as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次锁定 ['{title}'] 海报和背景异常，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次锁定 ['{title}'] 海报和背景异常，原因：{e}")
                 time.sleep(10)
                 continue
     # 筛选fanart封面
@@ -365,7 +365,7 @@ class plex_sortout:
             try:
                 title = video.title
                 if {'art', 'thumb'}.issubset(field_names for field_names in locked_info):
-                    loger.info(f'「{title}」当前海报和背景已经锁定，不做修改！')
+                    logger.info(f'「{title}」当前海报和背景已经锁定，不做修改！')
                     return
                 # TypeDic={
                 #     'show':MediaType.TV,
@@ -377,58 +377,58 @@ class plex_sortout:
                         has_fanart_poster = False
                         for poster in posters:
                             if poster.provider == 'fanarttv' and poster.selected:
-                                loger.info(f'「{title}」当前选择的海报已经是 Fanart 封面，不做修改！')
+                                logger.info(f'「{title}」当前选择的海报已经是 Fanart 封面，不做修改！')
                                 has_fanart_poster = True
                                 break
                             elif poster.provider == 'fanarttv':
                                 # 设置当前海报为展示海报
                                 video.setPoster(poster)
-                                loger.info(f'「{title}」Fanart 海报筛选完成,并已锁定，PLEX 服务器不会再自动更新了')
+                                logger.info(f'「{title}」Fanart 海报筛选完成,并已锁定，PLEX 服务器不会再自动更新了')
                                 has_fanart_poster = True
                                 break
                         if not has_fanart_poster:
-                            loger.info(f'「{title}」在 Fanart 中没有海报')
+                            logger.info(f'「{title}」在 Fanart 中没有海报')
                         # 锁定海报元数据
                         video.lockPoster()
                     else:
-                        loger.info(f'「{title}」没有海报')
+                        logger.info(f'「{title}」没有海报')
                 else:
-                    loger.info(f'「{title}」当前选择的海报已经锁定，不做修改！')
+                    logger.info(f'「{title}」当前选择的海报已经锁定，不做修改！')
 
                 if 'art' not in locked_info:
                     arts = video.arts()
-                    # loger.info(f'「{video.title}」arts:{arts}')
+                    # logger.info(f'「{video.title}」arts:{arts}')
                     if len(arts) > 0:
                         has_fanart_art = False
                         for art in arts:
                             if art.provider == 'fanarttv' and art.selected:
-                                loger.info(f'「{video.title}」当前选择的背景已经是 Fanart 背景，不做修改！')
+                                logger.info(f'「{video.title}」当前选择的背景已经是 Fanart 背景，不做修改！')
                                 has_fanart_art = True
                                 return
                             elif art.provider == 'fanarttv':
                                 # 设置选中当前背景为展示背景
                                 video.setArt(art)
-                                loger.info(f'「{video.title}」Fanart 背景筛选完成,并已锁定，PLEX 服务器不会再自动更新了')
+                                logger.info(f'「{video.title}」Fanart 背景筛选完成,并已锁定，PLEX 服务器不会再自动更新了')
                                 has_fanart_art = True
                                 break
                         if not has_fanart_art:
-                            loger.info(f'「{video.title}」在 Fanart 中没有背景')
+                            logger.info(f'「{video.title}」在 Fanart 中没有背景')
                         # 锁定背景元数据
                         video.lockArt()
                     else:
-                        loger.info(f'「{video.title}」没有背景')
+                        logger.info(f'「{video.title}」没有背景')
                 else:
-                    loger.info(f'「{title}」当前选择的背景已经锁定，不做修改！')
+                    logger.info(f'「{title}」当前选择的背景已经锁定，不做修改！')
                 break
             except ConnectTimeoutError as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] Fanart 封面筛选异常，连接失败等待10秒重连，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] Fanart 封面筛选异常，连接失败等待10秒重连，原因：{e}")
                 time.sleep(10)
                 self.connected = False
                 self.connect_plex()
                 reconnect_flag = True
                 continue
             except Exception as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] Fanart 封面筛选异常，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] Fanart 封面筛选异常，原因：{e}")
                 time.sleep(10)
                 continue
             
@@ -449,21 +449,21 @@ class plex_sortout:
                             SortTitle = self.removePunctuation(SortTitle)
                             try:
                                 video.editSortTitle(SortTitle)
-                                loger.info(f"「{title}」排序已修改为首字母 ['{SortTitle}']\n")
+                                logger.info(f"「{title}」排序已修改为首字母 ['{SortTitle}']\n")
                             except Exception as e:
-                                loger.error(f"「{title}」首字母排序失败,原因：{e}\n")
+                                logger.error(f"「{title}」首字母排序失败,原因：{e}\n")
                 else:
-                    loger.info(f"「{title}」排序首字母为 ['{video_titleSort}']已锁定，不需要重新排序\n")
+                    logger.info(f"「{title}」排序首字母为 ['{video_titleSort}']已锁定，不需要重新排序\n")
                 break
             except ConnectTimeoutError as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 首字母排序异常，连接失败等待10秒重连，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 首字母排序异常，连接失败等待10秒重连，原因：{e}")
                 time.sleep(10)
                 self.connected = False
                 self.connect_plex()
                 reconnect_flag = True
                 continue
             except Exception as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 首字母排序异常，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 首字母排序异常，原因：{e}")
                 time.sleep(2)
                 continue
 
@@ -501,12 +501,12 @@ class plex_sortout:
                                 hastag = True
                                 break
                     if hastag:
-                        loger.info(f"「{title}」已有 ['IMDB TOP 250'] 标签，不用再添加")
+                        logger.info(f"「{title}」已有 ['IMDB TOP 250'] 标签，不用再添加")
                         break
                     chlist = []
                     chlist.append("IMDB TOP 250")
                     video.addGenre(chlist, locked=True)
-                    loger.info(f"「{title}」已添加 ['IMDB TOP 250'] 标签")
+                    logger.info(f"「{title}」已添加 ['IMDB TOP 250'] 标签")
         # 获取影片 tmdb_id, 使用唯一的id进行匹配，防止重名
         tmdb_id = ''
         for guid in guids:
@@ -534,12 +534,12 @@ class plex_sortout:
                                 hastag = True
                                 break
                     if hastag:
-                        loger.info(f"「{title}」已有 ['豆瓣TOP 250'] 标签，不用再添加")
+                        logger.info(f"「{title}」已有 ['豆瓣TOP 250'] 标签，不用再添加")
                         break
                     chlist = []
                     chlist.append("豆瓣TOP 250")
                     video.addGenre(chlist, locked=True)
-                    loger.info(f"「{title}」已添加 ['豆瓣TOP 250'] 标签")
+                    logger.info(f"「{title}」已添加 ['豆瓣TOP 250'] 标签")
 
     def process_tag(self,video,video_info,add_new):
         spare_flag = video_info.get('spare_flag',False)
@@ -569,7 +569,7 @@ class plex_sortout:
                 if genres:
                     self.updategenre(video, spare_flag, genres, add_new)
                 else:
-                    loger.info(f"「{title}」没有标签，不需要翻译")
+                    logger.info(f"「{title}」没有标签，不需要翻译")
                 # 只有电影类型才需要添加 TOP250 标签
                 if self.config_Top250 and video.type == 'movie':
                     video_info['spare_flag'] = spare_flag
@@ -577,7 +577,7 @@ class plex_sortout:
                     self.add_top250(video, video_info)
                 break
             except ConnectTimeoutError as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 标签翻译异常，连接失败等待10秒重连，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 标签翻译异常，连接失败等待10秒重连，原因：{e}")
                 time.sleep(10)
                 self.connected = False
                 self.connect_plex()
@@ -586,7 +586,7 @@ class plex_sortout:
                 spare_flag = not spare_flag
                 continue
             except Exception as e:
-                loger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 标签翻译异常，原因：{e}")
+                logger.error(f"{plugins_name}第 {i+1}/{max_retry} 次处理 ['{title}'] 标签翻译异常，原因：{e}")
                 spare_flag = not spare_flag
                 time.sleep(2)
                 error_flag = True
@@ -613,10 +613,10 @@ class plex_sortout:
         for video,i in zip(videos,range(video_num)):
             video_percent = f"{round(((i+1)/video_num)*100, 1)}%"
             if video_percent == '100.0%':
-                loger.info(f"{plugins_name}开始处理 {group_now} 分组第 {i+1} 部影片：['{video.title}']，已完成 100%，这是当前分组需要处理的最后一部影片")
+                logger.info(f"{plugins_name}开始处理 {group_now} 分组第 {i+1} 部影片：['{video.title}']，已完成 100%，这是当前分组需要处理的最后一部影片")
             else:
                 now_video_count = int(video_num - i - 1)
-                loger.info(f"{plugins_name}开始处理 {group_now} 分组第 {i+1} 部影片：['{video.title}']，已完成 {video_percent}，当前分组剩余 {now_video_count} 部影片需要处理，还需要 {self.how_long(now_video_count)}")
+                logger.info(f"{plugins_name}开始处理 {group_now} 分组第 {i+1} 部影片：['{video.title}']，已完成 {video_percent}，当前分组剩余 {now_video_count} 部影片需要处理，还需要 {self.how_long(now_video_count)}")
             # 获取元数据锁定情况
             # video, locked_info, spare_flag, genres_all = self.get_locked_info(video)
             video, video_info = self.get_locked_info(video, spare_flag)
@@ -639,86 +639,86 @@ class plex_sortout:
             "run_unlocked": f"{group_now} 分组解锁海报和背景完成!",
             "run_all": f"{group_now} 分组运行整理完成!"
         }
-        loger.info(f"{plugins_name}{result[is_lock]}")
+        logger.info(f"{plugins_name}{result[is_lock]}")
         
     # 手动选择媒体库整理
     def process_all(self,library,sortoutNum,is_lock,threading_num,collection_on_config,spare_flag):
         spare_flag_text = '备用方案' if spare_flag else '默认方案'
         collection_on = bool(collection_on_config)
         libtable=library
-        # loger.error(f"libtable：{libtable}")
+        # logger.error(f"libtable：{libtable}")
         for i in range(len(libtable)):
-            loger.info(f"{plugins_name}现在开始使用 ['{spare_flag_text}'] 处理媒体库 ['{libtable[i]}']")
+            logger.info(f"{plugins_name}现在开始使用 ['{spare_flag_text}'] 处理媒体库 ['{libtable[i]}']")
             # 需要优化
             videos_lib = self.plexserver.library.section(libtable[i])
-            # loger.error(f"videos_lib.type:{videos_lib.type}")
+            # logger.error(f"videos_lib.type:{videos_lib.type}")
             if videos_lib.type == 'photo':
-                loger.info(f"「{libtable[i]}」是照片库，跳过整理\n")
+                logger.info(f"「{libtable[i]}」是照片库，跳过整理\n")
                 continue
             videos = videos_lib.all()
-            # loger.error(f"{plugins_name}未排序前：\n{videos}")
+            # logger.error(f"{plugins_name}未排序前：\n{videos}")
             videos.sort(key=lambda video: video.addedAt, reverse=True)
-            # loger.error(f"{plugins_name}排序后：\n{videos}")
+            # logger.error(f"{plugins_name}排序后：\n{videos}")
             #处理合集
             if self.config_Collection and collection_on:
                 collections=videos_lib.collections()
                 collections.sort(key=lambda collection: collection.addedAt, reverse=True)
                 collections_num = len(collections)
-                loger.info(f"{plugins_name}开始处理媒体库 ['{libtable[i]}'] 中所有合集，共 {collections_num} 个合集")
+                logger.info(f"{plugins_name}开始处理媒体库 ['{libtable[i]}'] 中所有合集，共 {collections_num} 个合集")
                 collection_count = 1
                 for collection in collections:
                     collection_percent = f"{round((collection_count/collections_num)*100, 1)}%"
                     if collection_percent == '100.0%':
-                        loger.info(f"{plugins_name}开始处理第 {collection_count} 个合集：['{collection.title}']，已完成 100%，这是当前库需要处理的最后一个合集")
+                        logger.info(f"{plugins_name}开始处理第 {collection_count} 个合集：['{collection.title}']，已完成 100%，这是当前库需要处理的最后一个合集")
                     else:
                         now_collection_count = int(collections_num - collection_count)
-                        loger.info(f"{plugins_name}开始处理第 {collection_count} 个合集：['{collection.title}']，已完成 {collection_percent}，当前库剩余 {now_collection_count} 个合集需要处理，还需要 {self.how_long(now_collection_count)}")
+                        logger.info(f"{plugins_name}开始处理第 {collection_count} 个合集：['{collection.title}']，已完成 {collection_percent}，当前库剩余 {now_collection_count} 个合集需要处理，还需要 {self.how_long(now_collection_count)}")
                     collection_count = collection_count + 1
                     # 获取元数据锁定情况
                     # collection, locked_info, spare_flag, genres_all = self.get_locked_info(collection)
                     collection, video_info = self.get_locked_info(collection,spare_flag)
                     if is_lock == 'run_locked':
                         self.process_lock_poster_and_art(collection)
-                        # loger.info(f"「{collection.title}」手动锁定海报和背景完成!\n")
+                        # logger.info(f"「{collection.title}」手动锁定海报和背景完成!\n")
                     elif is_lock == 'run_unlocked':
                         self.process_unlock_poster_and_art(collection)
-                        # loger.info(f"「{collection.title}」手动解锁海报和背景完成!\n")
+                        # logger.info(f"「{collection.title}」手动解锁海报和背景完成!\n")
                     else:
                         if self.config_Poster:
                             self.process_fanart(collection,video_info)
                         # 判断标题排序和标题是否相同,如果是不相同则视为手动修改过，不处理。
                         if collection.titleSort != collection.title and self.config_SortTitle:
-                            loger.info(f"「{collection.title}」合集的标题排序为: ['{collection.titleSort}'], 已锁定或手动调整过，不进行翻译替换\n")
+                            logger.info(f"「{collection.title}」合集的标题排序为: ['{collection.titleSort}'], 已锁定或手动调整过，不进行翻译替换\n")
                         else:
                             self.process_sorttitle(collection,video_info)
 
             #处理视频
             video_len=len(videos)
-            loger.info(f"「{libtable[i]}」库中共有 {video_len} 部影片")
+            logger.info(f"「{libtable[i]}」库中共有 {video_len} 部影片")
             if str(sortoutNum).lower() != 'all':
                 if str(sortoutNum).isdigit():
                     sortoutNum = int(sortoutNum)
                     video_num = min(sortoutNum, video_len)
                     if sortoutNum > video_len:
-                        loger.info(f"「{libtable[i]}」库设置的整理数量为['{sortoutNum}']，但库中只有 {video_len} 部影片，将整理库中所有影片")
+                        logger.info(f"「{libtable[i]}」库设置的整理数量为['{sortoutNum}']，但库中只有 {video_len} 部影片，将整理库中所有影片")
                     else:
-                        loger.info(f'「{libtable[i]}」库将整理最新的 {video_num} 部影片')
+                        logger.info(f'「{libtable[i]}」库将整理最新的 {video_num} 部影片')
                     # 当 sortoutNum 是单个数字时，取出前 sortoutNum 个视频
                     videos = videos[:int(video_num)]
                 elif '-' in sortoutNum:
                     # 当 sortoutNum 是数字范围时，取出指定范围的视频
                     start, end = map(int, sortoutNum.split('-'))
                     if start > end:
-                        loger.info(f'{plugins_name}整理范围设置错误，开始位置比结束位置还大，请重新设置')
+                        logger.info(f'{plugins_name}整理范围设置错误，开始位置比结束位置还大，请重新设置')
                         return
                     videos = videos[start-1:end]
                     video_num = end - start -1
-                    loger.info(f"「{libtable[i]}」库将整理第 {start} - {end} 部影片")
+                    logger.info(f"「{libtable[i]}」库将整理第 {start} - {end} 部影片")
                     if start > video_len:
-                        loger.info(f'「{libtable[i]}」库中的影片数量不足 {start} 部，请重新设置')
+                        logger.info(f'「{libtable[i]}」库中的影片数量不足 {start} 部，请重新设置')
                         return
             else:
-                loger.info(f"「{libtable[i]}」库设置整理数量为['{sortoutNum}'], 将整理库中所有影片，共 {video_len} 部影片")
+                logger.info(f"「{libtable[i]}」库设置整理数量为['{sortoutNum}'], 将整理库中所有影片，共 {video_len} 部影片")
                 video_num = video_len
                 # videos = videos[:video_num]
                 
@@ -736,8 +736,8 @@ class plex_sortout:
                 threads = []
                 for video_group in video_groups:
                     group_now = f"{group_num}/{all_group_num}"
-                    loger.warning(f"{plugins_name}开始处理第 {group_now} 个分组")
-                    # loger.warning(f"{plugins_name}开始处理第 {group_num}/{all_group_num} 个分组:{video_group}")
+                    logger.warning(f"{plugins_name}开始处理第 {group_now} 个分组")
+                    # logger.warning(f"{plugins_name}开始处理第 {group_num}/{all_group_num} 个分组:{video_group}")
                     group_num = group_num + 1
                     thread = threading.Thread(target=self.thread_process_all, args=(video_group, is_lock, group_now, spare_flag))
                     thread.start()
@@ -747,28 +747,28 @@ class plex_sortout:
                 # 等待所有线程执行完毕
                 for t in threads:
                     t.join()
-                loger.info(f"{plugins_name}所有 {all_group_num} 个分组已全部处理完成")
+                logger.info(f"{plugins_name}所有 {all_group_num} 个分组已全部处理完成")
                 
             else:
                 for video,i in zip(videos,range(video_num)):
                     video_percent = f"{round(((i+1)/video_num)*100, 1)}%"
                     if video_percent == '100.0%':
-                        loger.info(f"{plugins_name}开始处理第 {i+1} 部影片：['{video.title}']，已完成 100%，这是当前库需要处理的最后一部影片")
+                        logger.info(f"{plugins_name}开始处理第 {i+1} 部影片：['{video.title}']，已完成 100%，这是当前库需要处理的最后一部影片")
                     else:
                         now_video_count = int(video_num - i - 1)
-                        loger.info(f"{plugins_name}开始处理第 {i+1} 部影片：['{video.title}']，已完成 {video_percent}，当前库剩余 {now_video_count} 部影片需要处理，还需要 {self.how_long(now_video_count)}")
+                        logger.info(f"{plugins_name}开始处理第 {i+1} 部影片：['{video.title}']，已完成 {video_percent}，当前库剩余 {now_video_count} 部影片需要处理，还需要 {self.how_long(now_video_count)}")
                     # 获取元数据锁定情况
                     # video, locked_info, spare_flag, genres_all = self.get_locked_info(video)
                     video, video_info = self.get_locked_info(video,spare_flag)
 
                     if is_lock == 'run_locked':
                         self.process_lock_poster_and_art(video)
-                        # loger.info(f"「{video.title}」手动锁定海报和背景完成!\n")
+                        # logger.info(f"「{video.title}」手动锁定海报和背景完成!\n")
                     elif is_lock == 'run_unlocked':
                         self.process_unlock_poster_and_art(video)
-                        # loger.info(f"「{video.title}」手动解锁海报和背景完成!\n")
+                        # logger.info(f"「{video.title}」手动解锁海报和背景完成!\n")
                     else:   
-                        # loger.info(f"{plugins_name}video.type ['{video.type}']")
+                        # logger.info(f"{plugins_name}video.type ['{video.type}']")
                         #fanart筛选
                         if self.config_Poster:
                             self.process_fanart(video,video_info)
@@ -783,7 +783,7 @@ class plex_sortout:
                     "run_unlocked": "解锁海报和背景完成!",
                     "run_all": "运行整理完成!"
                 }
-                loger.info(f"{plugins_name}{result[is_lock]}")
+                logger.info(f"{plugins_name}{result[is_lock]}")
 
     # 定时整理合集
     def process_collection(self):
@@ -798,13 +798,13 @@ class plex_sortout:
                 all_collections.extend(collections)
                 # for collection in collections():
                 #         all_collections.append(collection)
-            loger.info(f"{plugins_name}未指定需要整理的媒体库或设置为ALL，将整理全库所有合集")
+            logger.info(f"{plugins_name}未指定需要整理的媒体库或设置为ALL，将整理全库所有合集")
         else:
             library_names = []
             library_names = self.config_LIBRARY.split(',')
-            loger.info(f"{plugins_name}指定需要整理的媒体库为：{library_names}")
+            logger.info(f"{plugins_name}指定需要整理的媒体库为：{library_names}")
 
-            # loger.info(f"{plugins_name}将整理指定库中最近添加的 {sortout_num} 个合集")
+            # logger.info(f"{plugins_name}将整理指定库中最近添加的 {sortout_num} 个合集")
             for library_name in library_names:
                 library = self.plexserver.library.section(library_name)
                 if library.type == 'photo': continue
@@ -815,26 +815,26 @@ class plex_sortout:
 
         # 处理合集
         all_collections_count = len(all_collections)
-        loger.info(f"{plugins_name}一共需要整理 {all_collections_count} 个合集")
+        logger.info(f"{plugins_name}一共需要整理 {all_collections_count} 个合集")
         for collection_count, collection in enumerate(all_collections):
             # if collection: 可通过此判断 是否为空合集（即合集中没有影片，空文件）
             collection_title = collection.title
             collection_percent = f"{round(((collection_count+1)/all_collections_count)*100, 1)}%"
             now_collection_count = int(all_collections_count - collection_count - 1)
             if collection_percent == '100.0%':
-                loger.info(f"{plugins_name}开始处理 第 {collection_count+1}/{all_collections_count} 个合集 ['{collection_title}']，已完成 100%，这是最后一个需要处理的合集")
+                logger.info(f"{plugins_name}开始处理 第 {collection_count+1}/{all_collections_count} 个合集 ['{collection_title}']，已完成 100%，这是最后一个需要处理的合集")
             else:
-                loger.info(f"{plugins_name}开始处理 第 {collection_count+1}/{all_collections_count} 个合集 ['{collection_title}']，已完成 {collection_percent}，剩余 {now_collection_count} 个合集需要处理")
+                logger.info(f"{plugins_name}开始处理 第 {collection_count+1}/{all_collections_count} 个合集 ['{collection_title}']，已完成 {collection_percent}，剩余 {now_collection_count} 个合集需要处理")
             # collection, locked_info, spare_flag, genres_all = self.get_locked_info(collection)
             collection, video_info = self.get_locked_info(collection,False)
             # 判断标题排序和标题是否相同,如果是不相同则视为手动修改过，不处理。
             if self.config_Poster:
                 self.process_fanart(collection,video_info)
             if collection.titleSort != collection.title and self.config_SortTitle:
-                loger.info(f"「{collection_title}」合集的标题排序为: ['{collection.titleSort}'], 已锁定或手动调整过，不进行翻译替换\n")
+                logger.info(f"「{collection_title}」合集的标题排序为: ['{collection.titleSort}'], 已锁定或手动调整过，不进行翻译替换\n")
             else:
                 self.process_sorttitle(collection,video_info)
-        loger.info(f"{plugins_name}媒体库合集定时整理完成")
+        logger.info(f"{plugins_name}媒体库合集定时整理完成")
 
     # 自动整理指定库最近新添加项
     def process_new(self, library_section_title, rating_key, parent_rating_key, grandparent_rating_key, grandparent_title, parent_title, org_title, org_type,add_media_info):
@@ -848,7 +848,7 @@ class plex_sortout:
             'show': f"剧集：['{org_title}']"
         }
         media_type_text = media_types.get(org_type, f"媒体 ['{org_type}']：['{org_title}']")
-        loger.info(f"{plugins_name}{wait_text}{media_type_text}")
+        logger.info(f"{plugins_name}{wait_text}{media_type_text}")
         video = None
         time.sleep(random.randint(50, 70))
 
@@ -856,9 +856,9 @@ class plex_sortout:
         if str(self.config_LIBRARY).lower() != 'all' and self.config_LIBRARY:
             library_names = ''
             library_names = self.config_LIBRARY.split(',')
-            loger.info(f"{plugins_name}指定需要整理的媒体库为：{library_names}")
+            logger.info(f"{plugins_name}指定需要整理的媒体库为：{library_names}")
             if library_section_title and library_section_title not in library_names:
-                loger.info(f"{plugins_name}新入库媒体所属库为：['{library_section_title}']，不属于需要整理的媒体库，跳过整理！")
+                logger.info(f"{plugins_name}新入库媒体所属库为：['{library_section_title}']，不属于需要整理的媒体库，跳过整理！")
                 return
 
         for retry_count in range(max_retry):
@@ -867,7 +867,7 @@ class plex_sortout:
                 video = self.plexserver.fetchItem(int(rating_key))
                 break
             except Exception as e:
-                loger.error(f"{plugins_name} 第 {retry_count+1}/{max_retry} 获取新添加的媒体对象失败，原因：{e}")
+                logger.error(f"{plugins_name} 第 {retry_count+1}/{max_retry} 获取新添加的媒体对象失败，原因：{e}")
                 time.sleep(15)
                 self.connect_plex()
                 continue
@@ -887,7 +887,7 @@ class plex_sortout:
                         editvideo=video
                     break
                 except Exception as e:
-                    loger.error(f"{plugins_name} 第 {retry_count+1}/{max_retry} 获取新添加剧集上一级媒体对象失败，原因：{e}")
+                    logger.error(f"{plugins_name} 第 {retry_count+1}/{max_retry} 获取新添加剧集上一级媒体对象失败，原因：{e}")
                     time.sleep(15)
                     self.connect_plex()
                     continue
@@ -907,7 +907,7 @@ class plex_sortout:
 
             # 整理结束后执行海报添加媒体信息
             if rating_key and add_media_info:
-                loger.info(f'{plugins_name}开始为新入库{media_type_text} 的海报添加媒体信息')
+                logger.info(f'{plugins_name}开始为新入库{media_type_text} 的海报添加媒体信息')
                 force_add = False
                 restore = False
                 show_log = True
@@ -916,16 +916,16 @@ class plex_sortout:
                 if org_type in ['movie','episode']:
                     add_info_one(video,org_type,'',library_section_title,force_add,'','','',restore,show_log)
             
-            loger.info(f"{plugins_name}新入库{media_type_text} 整理完成")
+            logger.info(f"{plugins_name}新入库{media_type_text} 整理完成")
         else:
-            loger.error(f"{plugins_name}在 PLEX 服务器中没有找到媒体: {rating_key}")
-        
+            logger.error(f"{plugins_name}在 PLEX 服务器中没有找到媒体: {rating_key}")
+            
     # 整理指定媒体
     def process_single_video(self, single_videos, spare_flag):
         video = None
         single_videos_names = single_videos.split('\n')
         spare_flag_text = '备用方案' if spare_flag else '默认方案'
-        loger.info(f"{plugins_name}开始使用 ['{spare_flag_text}'] 处理 {single_videos_names}")
+        logger.info(f"{plugins_name}开始使用 ['{spare_flag_text}'] 处理 {single_videos_names}")
         
         for single_videos_name in single_videos_names:
             for i in range(max_retry):
@@ -934,16 +934,16 @@ class plex_sortout:
                     break
                 except Exception as e:
                     if i+1 == max_retry:
-                        loger.error(f"{plugins_name} 第 {i+1}/{max_retry} 次在 PLEX 中搜索 ['{single_videos_name}'] 失败，原因：{e}，跳过处理")
+                        logger.error(f"{plugins_name} 第 {i+1}/{max_retry} 次在 PLEX 中搜索 ['{single_videos_name}'] 失败，原因：{e}，跳过处理")
                     else:
-                        loger.error(f"{plugins_name} 第 {i+1}/{max_retry} 次在 PLEX 中搜索 ['{single_videos_name}'] 失败，原因：{e}")
+                        logger.error(f"{plugins_name} 第 {i+1}/{max_retry} 次在 PLEX 中搜索 ['{single_videos_name}'] 失败，原因：{e}")
                     ######################
                     self.connected = False
                     time.sleep(10)
                     self.connect_plex()
                     ######################
                     continue
-            loger.info(f"{plugins_name}['{single_videos_name}'] 在 PLEX 中共搜索到 {len(search_results)} 条结果：{search_results} ,只处理电影和剧集\n")
+            logger.info(f"{plugins_name}['{single_videos_name}'] 在 PLEX 中共搜索到 {len(search_results)} 条结果：{search_results} ,只处理电影和剧集\n")
             for video in search_results:
                 if video.type == 'show' or video.type == 'movie':
                     # 获取元数据锁定情况
@@ -958,4 +958,4 @@ class plex_sortout:
                     # 首字母排序
                     if self.config_SortTitle:
                         self.process_sorttitle(editvideo,video_info)
-            # loger.info(f"{plugins_name} {sortout_num} 手动整理指定电影名称的媒体完成")
+            # logger.info(f"{plugins_name} {sortout_num} 手动整理指定电影名称的媒体完成")
