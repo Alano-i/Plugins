@@ -9,11 +9,12 @@ import threading
 from plexapi.server import PlexServer
 from mbot.core.event.models import EventType
 from mbot.core.plugins import PluginContext,PluginMeta,plugin
+from mbot.openapi import mbot_api
 from . import plex_sortout
 from .get_top250 import get_top250_config
 from .import_to_mbot import import_config
 from .add_info import add_config,add_info_to_posters_main
-loger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 plugins_name = '「PLEX 工具箱」'
 plex_webhook = Blueprint('get_plex_event', __name__)
 """
@@ -21,13 +22,14 @@ plex_webhook = Blueprint('get_plex_event', __name__)
 这个URL访问完整的前缀是 /api/plugins/你设置的前缀
 """
 plugin.register_blueprint('get_plex_event', plex_webhook)
+server = mbot_api
 
 @plugin.after_setup
 def after_setup(plugin: PluginMeta, plugin_conf: dict):
     """
     插件加载后执行的操作
     """
-    loger.info(f'{plugins_name}插件开始加载')
+    logger.info(f'{plugins_name}插件开始加载')
     # global added, libtable , plex_url, plex_token
     global added,collection_on,libtable,libstr,add_media_info
     global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check
@@ -36,29 +38,33 @@ def after_setup(plugin: PluginMeta, plugin_conf: dict):
     custom_url = plugin_conf.get('custom_url','')
     mbot_url = plugin_conf.get('mbot_url','')
     mbot_api_key = plugin_conf.get('mbot_api_key','')
+    
+    # mbot_api_key = server.auth.get_default_ak()
+
+
     check = plugin_conf.get('check',True)
     added = plugin_conf.get('Added') if plugin_conf.get('Added') else None
     add_media_info = plugin_conf.get('add_media_info') if plugin_conf.get('add_media_info') else None
     collection_on = plugin_conf.get('Collection') if plugin_conf.get('Collection') else None
     if added:
-        loger.info(f'{plugins_name}启用「PLEX 入库事件」触发整理实时入库的媒体')
+        logger.info(f'{plugins_name}启用「PLEX 入库事件」触发整理实时入库的媒体')
     else:
-        loger.info(f'{plugins_name}未启用「PLEX 入库事件」触发整理实时入库的媒体')
+        logger.info(f'{plugins_name}未启用「PLEX 入库事件」触发整理实时入库的媒体')
     libstr = plugin_conf.get('LIBRARY')
     if libstr:
         if str(libstr).lower() != 'all':
             libtable=libstr.split(',')
-            loger.info(f'{plugins_name}需要整理的库：{libtable}')
+            logger.info(f'{plugins_name}需要整理的库：{libtable}')
             # plugin_conf['library']=libtable
     else:
-        loger.info(f'{plugins_name}未设置需要整理的媒体库名称，将默认整理所有库')
+        logger.info(f'{plugins_name}未设置需要整理的媒体库名称，将默认整理所有库')
         # plugin_conf['library'] = 'ALL'   
     # 传递设置参数
     get_top250_config(plugin_conf)
     import_config(plugin_conf)
     add_config(plugin_conf)
     plex_sortout.setconfig(plugin_conf)
-    loger.info(f'{plugins_name}自定义参数加载完成')
+    logger.info(f'{plugins_name}自定义参数加载完成')
     # printAllMembers(plex_sortout)
 
 @plugin.config_changed
@@ -66,7 +72,7 @@ def config_changed(plugin_conf: dict):
     """
     插件变更配置后执行的操作
     """
-    loger.info(f'{plugins_name}配置发生变更，加载新配置')
+    logger.info(f'{plugins_name}配置发生变更，加载新配置')
     global added,collection_on,libtable,libstr,add_media_info
     global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check
     plex_url = plugin_conf.get('plex_url','')
@@ -79,17 +85,17 @@ def config_changed(plugin_conf: dict):
     add_media_info = plugin_conf.get('add_media_info') if plugin_conf.get('add_media_info') else None
     collection_on = plugin_conf.get('Collection') if plugin_conf.get('Collection') else None
     if added:
-        loger.info(f'{plugins_name}启用「PLEX 入库事件」触发整理实时入库的媒体')
+        logger.info(f'{plugins_name}启用「PLEX 入库事件」触发整理实时入库的媒体')
     else:
-        loger.info(f'{plugins_name}未启用「PLEX 入库事件」触发整理实时入库的媒体')
+        logger.info(f'{plugins_name}未启用「PLEX 入库事件」触发整理实时入库的媒体')
     libstr = plugin_conf.get('LIBRARY')
     if libstr:
         if str(libstr).lower() != 'all':
             libtable=libstr.split(',')
-            loger.info(f'{plugins_name}需要整理的库：{libtable}')
+            logger.info(f'{plugins_name}需要整理的库：{libtable}')
             # plugin_conf['library']=libtable
     else:
-        loger.info(f'{plugins_name}未设置需要整理的媒体库名称，将默认整理所有库')
+        logger.info(f'{plugins_name}未设置需要整理的媒体库名称，将默认整理所有库')
         # plugin_conf['library'] = 'ALL'
     
     # 传递设置参数
@@ -97,7 +103,7 @@ def config_changed(plugin_conf: dict):
     import_config(plugin_conf)
     add_config(plugin_conf)
     plex_sortout.setconfig(plugin_conf)
-    loger.info(f'{plugins_name}自定义参数加载完成')
+    logger.info(f'{plugins_name}自定义参数加载完成')
     # printAllMembers(plex_sortout)
 
 def printAllMembers(cls):
@@ -127,9 +133,9 @@ def set_plex():
             if webhook_url not in webhooks:
                 webhooks.append(webhook_url)
                 account.setWebhooks(webhooks)
-                loger.info(f"{plugins_name} 已向 PLEX 服务器添加 Webhook")
+                logger.info(f"{plugins_name} 已向 PLEX 服务器添加 Webhook")
     else:
-        loger.error(f'{plugins_name}PLEX URL 或 TOKEN 未设置，无法检查设置')
+        logger.error(f'{plugins_name}PLEX URL 或 TOKEN 未设置，无法检查设置')
 
 last_event_time = 0
 last_event_count = 1
@@ -160,7 +166,7 @@ def webhook():
         if library_section_type == 'photo':
             return api_result(code=0, message=plex_event, data=data)
         ########################## 始终处理 ##########################
-        loger.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件')
+        logger.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件')
         # 执行自动整理
         thread = threading.Thread(target=plex_sortout.process_new, args=(library_section_title,rating_key,parent_rating_key,grandparent_rating_key,grandparent_title,parent_title,org_title,org_type,add_media_info))
         thread.start()
@@ -170,12 +176,12 @@ def webhook():
         ########################## 15秒内处理一次 ##########################
         # if time.time() - last_event_time < 15:
         #     last_event_count = last_event_count + 1
-        #     loger.info(f'{plugins_name}15 秒内接收到 {last_event_count} 条入库事件，只处理一次')
+        #     logger.info(f'{plugins_name}15 秒内接收到 {last_event_count} 条入库事件，只处理一次')
         # else:
         #     last_event_time = time.time()
         #     last_event_count = 1
         #     # time.sleep(60)
-        #     loger.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件')
+        #     logger.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件')
         #     # 执行自动整理
         #     thread = threading.Thread(target=plex_sortout.process_new, args=(library_section_title,rating_key,parent_rating_key,grandparent_rating_key,grandparent_title,parent_title,org_title,org_type))
         #     thread.start()
@@ -194,10 +200,10 @@ def webhook():
 @plugin.task('process_collection', '「整理 PLEX 合集」', cron_expression='50 4 * * *')
 def task():
     if collection_on:
-        loger.info(f'{plugins_name}定时任务启动，开始处理 PLEX 合集')
+        logger.info(f'{plugins_name}定时任务启动，开始处理 PLEX 合集')
         plex_sortout.process_collection()
     else:
-        loger.info(f'{plugins_name}定时任务启动，未开启合集整理，跳过处理')
+        logger.info(f'{plugins_name}定时任务启动，未开启合集整理，跳过处理')
 
 @plugin.task('process_recent', '「整理最近10项和添加海报信息」', cron_expression='18 3 * * *')
 def process_recent():
@@ -206,20 +212,20 @@ def process_recent():
             libtables = plex_sortout.get_library()
             libtable = [value['value'] for value in libtables]
         except Exception as e:
-            loger.error(f"{plugins_name}获取所有媒体库出错，原因：{e}")
+            logger.error(f"{plugins_name}获取所有媒体库出错，原因：{e}")
     else:
         libtable=libstr.split(',')
-    loger.info(f"{plugins_name}开始整理媒体库中最近10项")
+    logger.info(f"{plugins_name}开始整理媒体库中最近10项")
     plex_sortout.process_all(libtable,'10','run_all',0,False,True)
-    loger.info(f"{plugins_name}媒体库中最近10项整理完成")
+    logger.info(f"{plugins_name}媒体库中最近10项整理完成")
     show_log = False
     force_add = False
     restore = False
     only_show = False
-    loger.info(f"{plugins_name}开始为海报添加媒体信息，已添加信息的海报将自动跳过")
+    logger.info(f"{plugins_name}开始为海报添加媒体信息，已添加信息的海报将自动跳过")
     for i in range(len(libtable)):
         add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
-    loger.info(f"{plugins_name}为海报添加媒体信息完成，已自动跳过处理过的海报")
+    logger.info(f"{plugins_name}为海报添加媒体信息完成，已自动跳过处理过的海报")
 
 
 @plugin.task('set_plex', '「检查 PLEX 设置」', cron_expression='15 */2 * * *')
@@ -228,7 +234,7 @@ def set_plex_ckeck():
         try:
             set_plex()
         except Exception as e:
-            loger.error(f'{plugins_name}检查 PLEX 服务器设置出错，原因: {e}')
+            logger.error(f'{plugins_name}检查 PLEX 服务器设置出错，原因: {e}')
 
 
 # @plugin.on_event(
@@ -238,10 +244,10 @@ def set_plex_ckeck():
 #     触发绑定的事件后调用此函数
 #     函数接收参数固定。第一个为插件上下文信息，第二个事件类型，第三个事件携带的数据
 #     """
-#     # loger.info(f'{plugins_name}接收到「DownloadCompleted」事件，现在开始整理')
+#     # logger.info(f'{plugins_name}接收到「DownloadCompleted」事件，现在开始整理')
 #     if not added:
-#         loger.info(f'{plugins_name}接收到「下载完成事件」且未开启入库事件触发，现在开始整理')
+#         logger.info(f'{plugins_name}接收到「下载完成事件」且未开启入库事件触发，现在开始整理')
 #         plex_sortout.process()
 #     else:
-#         loger.info(f'{plugins_name}接收到「下载完成事件」但已开启入库事件触发，将等待 PLEX 入库后再整理')
+#         logger.info(f'{plugins_name}接收到「下载完成事件」但已开启入库事件触发，将等待 PLEX 入库后再整理')
     
