@@ -8,7 +8,7 @@ from .add_info import add_info_to_posters_main
 import logging
 
 server = mbot_api
-loger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 plugins_name = '「PLEX 工具箱」'
 
@@ -69,7 +69,7 @@ def get_enum_data():
     返回一个包含name和value的枚举数据，在前端页面会呈现为下拉列表框；
     value就是你最终你能接收到的变量值
     """
-    loger.info(f'{plugins_name}开始获取媒体库')
+    logger.info(f'{plugins_name}开始获取媒体库列表，格式：媒体库名称 编号')
 
     libtable = plex_sortout.get_library()
     return libtable
@@ -83,7 +83,7 @@ def select_data(ctx: PluginCommandContext,
                 is_lock: ArgSchema(ArgType.Enum, '选择需要执行的操作，留空执行设置中选中的全部操作', '', enum_values=lambda: is_lock_list, default_value='run_all', multi_value=False, required=False),
                 collection_on_config: ArgSchema(ArgType.Enum, '临时启用合集整理，默认关闭', '', enum_values=lambda: collection_on_list, default_value='off', multi_value=False, required=False),
                 spare_flag: ArgSchema(ArgType.Enum, '启用备用整理方案，默认启用', '', enum_values=lambda: spare_flag_list, default_value='on', multi_value=False, required=False)):
-    # loger.info(f'library:{library[0]}')
+    # logger.info(f'library:{library[0]}')
     spare_flag = bool(spare_flag and spare_flag.lower() != 'off')
     collection_on_config = bool(
         collection_on_config and collection_on_config.lower() != 'off')
@@ -107,7 +107,7 @@ def import_plex(ctx: PluginCommandContext,
                 library: ArgSchema(ArgType.Enum, '选择需要导入的的媒体库', '', enum_values=get_enum_data, multi_value=True)):
 
     for i in range(len(library)):
-        loger.info(f"{plugins_name}开始导入媒体库 ['{library[i]}']")
+        logger.info(f"{plugins_name}开始导入媒体库 ['{library[i]}']")
         push_sub_main(library[i])
     return PluginCommandResponse(True, f'导入 PLEX 媒体库到 Mbot 数据库完成')
 
@@ -117,7 +117,7 @@ def add_info(ctx: PluginCommandContext,
              library: ArgSchema(ArgType.Enum, '选择需要处理的的媒体库', '', enum_values=get_enum_data, multi_value=True),
              restore_config: ArgSchema(ArgType.Enum, '恢复模式，默认关闭', '开启后恢复所有处理前的原始海报且下方设置失效', enum_values=lambda: collection_on_list, default_value='off', multi_value=False, required=False),
              force_add_config: ArgSchema(ArgType.Enum, '强制添加模式，默认关闭', '开启：所有海报重新处理。关闭：处理过的海报不再处理', enum_values=lambda: spare_flag_list, default_value='off', multi_value=False, required=False),
-             only_show_config: ArgSchema(ArgType.Enum, '只处理剧集封面，默认关闭', '', enum_values=lambda: spare_flag_list, default_value='off', multi_value=False, required=False)):
+             only_show_config: ArgSchema(ArgType.Enum, '对于剧集只处理剧集封面，默认关闭', '', enum_values=lambda: spare_flag_list, default_value='off', multi_value=False, required=False)):
     force_add = bool(force_add_config and force_add_config.lower() != 'off')
     restore = bool(restore_config and restore_config.lower() != 'off')
     only_show = bool(only_show_config and only_show_config.lower() != 'off')
@@ -127,7 +127,7 @@ def add_info(ctx: PluginCommandContext,
     else:
         force_add_text = '仅处理未处理过的海报'
     for i in range(len(library)):
-        loger.info(
+        logger.info(
             f"{plugins_name}开始处理媒体库 ['{library[i]}']，模式: {force_add_text}")
         add_info_to_posters_main(library[i], force_add, restore, show_log,only_show)
     return PluginCommandResponse(True, f'将媒体主要信息添加到海报运行完成')
@@ -135,25 +135,25 @@ def add_info(ctx: PluginCommandContext,
 
 @plugin.command(name='get_top250', title='更新 TOP250 列表', desc='获取最新豆瓣和IMDB TOP250 列表', icon='MilitaryTech', run_in_background=True)
 def get_top250_echo(ctx: PluginCommandContext):
-    loger.info(f'{plugins_name}开始手动获取最新 TOP250 列表')
+    logger.info(f'{plugins_name}开始手动获取最新 TOP250 列表')
     # DouBanTop250 = [278, 10997, 13, 597, 101, 637, 129, 424, 27205, 157336, 37165, 28178, 10376, 20453, 5528, 10681, 10775, 269149, 37257, 21835, 81481, 238, 1402, 77338, 43949, 8392, 746, 354912, 31439, 155, 671, 122, 770, 532753, 255709, 14160, 389, 517814, 360814, 4935, 25838, 87827, 51533, 640, 365045, 423, 13345, 10515, 121, 9475, 11216, 804, 490132, 207, 47759, 120, 603, 240, 8587, 242452, 10451, 550, 453, 4922, 14574, 582, 47002, 100, 10867, 15121, 411088, 19995, 857, 510, 21334, 12445, 274, 11324, 120467, 1124, 1954, 23128, 9470, 489, 311, 680, 673, 3082, 18329, 74308, 53168, 2832, 807, 11423, 4977, 22, 672, 152578, 31512, 158445, 25538, 37703, 398818, 142, 162, 197, 16804, 76, 745, 11104, 49026, 128, 177572, 4291, 80, 194, 37185, 161285, 294682, 9559, 51739, 2517, 210577, 30421, 336026, 37797, 1100466, 122906, 594, 10191, 242, 92321, 348678, 10494, 585, 674, 10193, 4348, 396535, 24238, 20352, 165213, 68718, 54186, 587, 74037, 55157, 77117, 333339, 9261, 10950, 205596, 209764, 324786, 843, 55156, 346, 150540, 526431, 4588, 605, 539, 372058, 176, 359940, 152532, 49519, 292362, 205, 598, 2503, 11471, 81, 315846, 47423, 132344, 497, 77, 39693, 31743, 265195, 45380, 872, 505192, 244786, 82690, 295279, 62, 12405, 475557, 425, 11647, 26466, 40751, 508, 508442, 15804, 89825, 7350, 16859, 13398, 44214, 475149, 16074, 901, 380, 45612, 11036, 334541, 57627, 644, 8290, 424694, 39915, 12477, 280, 548, 76341, 40213, 782, 406997, 16869, 12429, 473267, 220289, 1541, 604, 1372, 525832, 313369, 695932, 25050, 1830, 43824, 286217, 2502, 33320, 12444, 122973, 4476, 9345, 18311, 2501, 8055, 198277, 1427, 36970, 14069, 675, 7508]
     # server.common.set_cache('top250', 'douban', DouBanTop250)
     get_top250()
-    loger.info(f'{plugins_name}手动获取最新 TOP250 列表完成')
+    logger.info(f'{plugins_name}手动获取最新 TOP250 列表完成')
     return PluginCommandResponse(True, f'手动获取最新 TOP250 列表完成')
 
 
 @plugin.command(name='get_lost_top250', title='TOP250缺了哪些', desc='查询媒体库中缺失的 TOP250 列表', icon='MilitaryTech', run_in_background=True)
 def get_lost_douban_top250_echo(ctx: PluginCommandContext,
                                 lost_top250_config: ArgSchema(ArgType.Enum, '选择查询缺失类型，默认查询缺失的豆瓣TOP250', '', enum_values=lambda: lost_top250_list, default_value=1, multi_value=False, required=False)):
-    loger.info(f'{plugins_name}开始获取缺失的TOP250列表')
+    logger.info(f'{plugins_name}开始获取缺失的TOP250列表')
     if lost_top250_config == 1:
         get_lost_douban_top250()
     elif lost_top250_config == 2:
         get_lost_imdb_top250()
     else:
         get_lost_top250()
-    loger.info(f'{plugins_name}缺失的 TOP250 列表获取完成')
+    logger.info(f'{plugins_name}缺失的 TOP250 列表获取完成')
     return PluginCommandResponse(True, f'缺失的 TOP250 列表获取完成')
 
 
@@ -162,7 +162,7 @@ def single_video(ctx: PluginCommandContext,
                  single_videos: ArgSchema(ArgType.String, '整理指定电影名称的媒体,支持回车换行，一行一条', '', default_value='', required=True),
                  spare_flag: ArgSchema(ArgType.Enum, '启用备用整理方案，默认启用', '', enum_values=lambda: spare_flag_list, default_value='on', multi_value=False, required=False)):
     spare_flag = bool(spare_flag and spare_flag.lower() != 'off')
-    loger.info(f'{plugins_name}开始手动整理指定媒体')
+    logger.info(f'{plugins_name}开始手动整理指定媒体')
     plex_sortout.process_single_video(single_videos, spare_flag)
-    loger.info(f'{plugins_name}手动整理指定媒体完成')
+    logger.info(f'{plugins_name}手动整理指定媒体完成')
     return PluginCommandResponse(True, f'手动整理指定媒体完成')
