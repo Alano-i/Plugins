@@ -9,6 +9,9 @@ MR插件，PLEX 工具箱，原作者是BeiMou(yewei)，感谢。在此基础上
 - 将 `plex_tools` 文件夹放到 `Plugins` 文件夹，配置好各项设置。
 - 添加海报信息功能中，恢复模式仅在成功处理过的媒体上才能生效！
 
+## 更新说明（*必看*，重要）
+- 更新时覆盖`plex_tools` 文件夹时，本地 `overlays/poster_backup` 文件夹中的内容不可删除，里面存放的是媒体的海报备份。
+
 ## 为海报添加媒体信息
 
 <img width="1628" alt="image" src="https://github.com/Alano-i/Plex-Tools/assets/68833595/aaf76b61-8fba-44f6-96fe-8f0635e1b3d8">
