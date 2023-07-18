@@ -22,5 +22,5 @@ from .command import *
 from .get_top250 import *
 from .add_info import *
 import logging
-loger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
