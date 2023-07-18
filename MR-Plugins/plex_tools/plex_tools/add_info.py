@@ -7,7 +7,7 @@ import time
 import logging
 import urllib3
 from urllib3.exceptions import MaxRetryError, ConnectionError, TimeoutError
-loger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 plugins_name = '「PLEX 工具箱」'
 base_path = '/data/plugins/plex_tools/overlays'
 
@@ -31,7 +31,7 @@ def re_get_poster(media):
                 poster_url = f"{plex_url}{posters[0].key}&X-Plex-Token={plex_token}"
                 return poster_url
     except Exception as e:
-        loger.error(f"{plugins_name}获取海报列表失败，原因：{e}")
+        logger.error(f"{plugins_name}获取海报列表失败，原因：{e}")
 
 def save_img(media,img_url,title,img_path,img_dir):
     overlay_flag = False
@@ -53,10 +53,10 @@ def save_img(media,img_url,title,img_path,img_dir):
             if not overlay_flag:
                 with open(img_path, "wb") as f:
                     f.write(response.data)
-                # loger.info(f"{title} 的海报/背景已存入{img_path}")
+                # logger.info(f"{title} 的海报/背景已存入{img_path}")
             break
         except Exception as e:
-            loger.error(f'「{title}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
+            logger.error(f'「{title}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
             img_url = re_get_poster(media)
             continue
     if not img_url:
@@ -166,7 +166,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
         contrast_factor = 1.65  # 色阶增强因子，大于1增强，小于1减弱
         poster_image = enhancer.enhance(contrast_factor)
     except Exception as e:
-        loger.error(f'{plugins_name}调整色阶、饱和度、混合模式时发生错误，原因：{e}')
+        logger.error(f'{plugins_name}调整色阶、饱和度、混合模式时发生错误，原因：{e}')
     # 创建海报层图像
     poster = Image.new("RGBA", (poster_width, poster_height))
     # 创建一个与海报相同尺寸的遮罩图像
@@ -373,9 +373,9 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
             media_title = media_title or '未知' 
             if show_log:
                 if media_n:
-                    loger.info(f"{plugins_name}开始处理 {i}/{media_n} ['{media_title}']")
+                    logger.info(f"{plugins_name}开始处理 {i}/{media_n} ['{media_title}']")
                 else:
-                    loger.info(f"{plugins_name}开始处理 ['{media_title}']")
+                    logger.info(f"{plugins_name}开始处理 ['{media_title}']")
             
             if poster_url:
 
@@ -405,12 +405,12 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
 
                         media.uploadPoster(filepath=out_path)
                 else:
-                    if show_log: loger.warning(f"['{media_title}'] 已经处理过了，跳过")
+                    if show_log: logger.warning(f"['{media_title}'] 已经处理过了，跳过")
             break
         except Exception as e:
             media = media_s
             media_title = media_title or '未知' 
-            loger.error(f"{plugins_name}第 {v+1}/3 次处理 ['{media_title}'] 时失败，原因：{e}")
+            logger.error(f"{plugins_name}第 {v+1}/3 次处理 ['{media_title}'] 时失败，原因：{e}")
 
 def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
     lib_type = library.type
@@ -435,9 +435,9 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
                     for episode in show.episodes():
                         add_info_one(episode,'episode','',lib_name,force_add,i,rating,show_year,restore,show_log)
                         i=i+1
-            loger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中的剧集海报添加媒体信息完成")
+            logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中的剧集海报添加媒体信息完成")
         else:
-            loger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有剧集，不需要处理")
+            logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有剧集，不需要处理")
     elif lib_type == 'movie':
         movies = library.all()
         if movies:
@@ -446,22 +446,22 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
             for movie in movies:
                 add_info_one(movie,'movie',movies_n,lib_name,force_add,i,'','',restore,show_log)
                 i=i+1
-            loger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中的电影海报添加媒体信息完成")
+            logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中的电影海报添加媒体信息完成")
         else:
-            loger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有电影，不需要处理")
+            logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有电影，不需要处理")
 
 def add_info_to_posters_main(lib_name,force_add,restore,show_log,only_show):
     try:
         plexserver = PlexServer(plex_url, plex_token) 
     except Exception as e:
-        loger.error(f"{plugins_name}连接 Plex 服务器失败,原因：{e}")
+        logger.error(f"{plugins_name}连接 Plex 服务器失败,原因：{e}")
     try:
         library = plexserver.library.section(lib_name)
         add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show)
     except Exception as e:
-        loger.error(f"{plugins_name}海报添加信息出现错误! 原因：{e}")
+        logger.error(f"{plugins_name}海报添加信息出现错误! 原因：{e}")
 
-        # loger.warning(f"videoResolution:{videoResolution}")
-        # loger.warning(f"display_title:{display_title}")
-        # loger.warning(f"duration:{duration}")
-        # loger.warning(f"rating:{rating}")
+        # logger.warning(f"videoResolution:{videoResolution}")
+        # logger.warning(f"display_title:{display_title}")
+        # logger.warning(f"duration:{duration}")
+        # logger.warning(f"rating:{rating}")
