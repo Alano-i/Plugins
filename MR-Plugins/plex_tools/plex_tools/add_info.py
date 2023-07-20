@@ -361,7 +361,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
 
     poster = poster.convert("RGB")
     # out_path = f"{base_path}/done/{os.path.basename(poster_path)}"
-    out_path = f"{base_path}/tmp.jpg"
+    out_path = f"{poster_backup_path}/tmp.jpg"
     # poster.save(out_path, quality=97)
     # 添加自定义的EXIF标签
     exif_tags = poster.getexif()
