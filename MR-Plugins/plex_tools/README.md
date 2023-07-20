@@ -10,7 +10,7 @@ MR插件，PLEX 工具箱，原作者是BeiMou(yewei)，感谢。在此基础上
 - 添加海报信息功能中，恢复模式仅在成功处理过的媒体上才能生效！
 
 ## 更新说明（*必看*，重要）
-- 3.0 版本之后海报备份文件夹改为 `/data/poster_backup`
+- 3.0 版本（2023-7-20发布）之后海报备份文件夹改为 `/data/poster_backup`
 - 如果 3.0 版本之前安装过此插件，需要将`/data/plugins/plex_tools/overlays`目录下面的 `poster_backup` 目录移动到 `/data` 下面
 - 本地 `/data/poster_backup` 文件夹中的内容不可删除，里面存放的是媒体的海报备份。
 - 如果已经删除了，需要手动重新设置为未处理过的海报再次运行 plex_tools 插件方可正常使用
