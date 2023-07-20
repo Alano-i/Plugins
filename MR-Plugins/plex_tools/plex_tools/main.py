@@ -23,6 +23,7 @@ plex_webhook = Blueprint('get_plex_event', __name__)
 """
 plugin.register_blueprint('get_plex_event', plex_webhook)
 server = mbot_api
+max_retry = 3
 
 @plugin.after_setup
 def after_setup(plugin: PluginMeta, plugin_conf: dict):
@@ -231,11 +232,14 @@ def process_recent():
 @plugin.task('set_plex', '「检查 PLEX 设置」', cron_expression='15 */2 * * *')
 def set_plex_ckeck():
     if check:
-        try:
-            set_plex()
-        except Exception as e:
-            logger.error(f'{plugins_name}检查 PLEX 服务器设置出错，原因: {e}')
-
+        for retry_count in range(max_retry):
+            try:
+                set_plex()
+                break
+            except Exception as e:
+                logger.error(f"{plugins_name} 第 {retry_count+1}/{max_retry} 次检查 PLEX 服务器设置出错，原因: {e}")
+                time.sleep(5)
+                continue
 
 # @plugin.on_event(
 #     bind_event=[EventType.DownloadCompleted], order=1)
