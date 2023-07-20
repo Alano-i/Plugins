@@ -10,6 +10,18 @@ from urllib3.exceptions import MaxRetryError, ConnectionError, TimeoutError
 logger = logging.getLogger(__name__)
 plugins_name = '「PLEX 工具箱」'
 base_path = '/data/plugins/plex_tools/overlays'
+poster_backup_path = '/data/poster_backup'
+
+def create_backup_note(directory):
+    try:
+        if not os.path.exists(directory): os.makedirs(directory)
+        file_path = os.path.join(directory, "海报备份文件夹_此文件夹中的内容不可删除.txt")
+        if not os.path.exists(file_path):
+            with open(file_path, 'w') as file:
+                file.write("海报备份文件夹_此文件夹中的内容不可删除\n如果已经删除了，需要手动重新设置为未处理过的海报再次运行 plex_tools 插件方可正常使用")
+    except Exception as e:
+        logger.error(f"{plugins_name}检查备份说明失败，原因：{e}")
+create_backup_note(poster_backup_path)
 
 def add_config(config):
     global mbot_url, mbot_api_key, plex_url, plex_token
@@ -78,7 +90,10 @@ def convert_milliseconds(milliseconds):
     if minutes >= 60:
         hours = minutes // 60
         minutes %= 60
-        return f"{hours}小时 {minutes}分钟"
+        if minutes > 0:
+            return f"{hours}小时 {minutes}分钟"
+        else:
+            return f"{hours}小时"
     else:
         return f"{minutes}分钟"
 
@@ -107,45 +122,132 @@ def get_display_title(key):
                 return display_title
     return ''
 
+
+def adjust_brightness(rgba_image, threshold=110):
+
+    # 转换为RGB模式
+    rgb_image = rgba_image.convert("RGB")
+    width, height = rgb_image.size
+
+    # 截取图片底部190像素
+    rgb_bottom_region = rgb_image.crop((0, height - 190, width, height))
+
+
+    # 创建一个新的空白图像，用于保存调整后的结果
+    adjusted_image = Image.new("RGB", (width, height))
+
+    for x in range(width):
+        for y in range(height - 190, height):
+            # 获取底部像素点的RGB值
+            r, g, b = rgb_bottom_region.getpixel((x, y - (height - 190)))
+
+            # 计算亮度（按Luminance公式）
+            luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+            # 如果亮度高于阈值，则将亮度设置为80，否则保持不变
+            if luminance > threshold:
+                r, g, b = int(r * threshold / luminance), int(g * threshold / luminance), int(b * threshold / luminance)
+
+            # 将调整后的像素点保存到底部区域的副本中
+            rgb_bottom_region.putpixel((x, y - (height - 190)), (r, g, b))
+
+    # 将调整后的底部区域放回原始图像的底部位置
+    adjusted_image = Image.new("RGB", (width, height))
+    adjusted_image.paste(rgb_image, (0, 0))
+    adjusted_image.paste(rgb_bottom_region, (0, height - 190))
+
+    adjusted_image = adjusted_image.convert("RGBA")
+    return adjusted_image
+
 def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,title):
     media_type_org = media_type
     if media_type in ['show','episode','season']: media_type = 'show'
     if media_type in ['show_p','season_p']: duration = ''
     if media_type in ['movie','show_p','season_p']: media_type = 'movie'
-
+    outline_a = 32
     rating = str(rating)
     if rating == '10.0': rating = '10'
     if media_type == 'movie':
         poster_width = 1000
         poster_height = 1500
         scale = 1215/1000
-        if resolution == '1080P' and media_type_org not in ['show_p','season_p']:
+        if resolution == '1080P' and media_type_org not in ['show_p','season_p'] and '小时' in duration and '分钟' in duration:
             scale = 1192/1000
             duration = duration.replace(' ','')
-        if rdynamic_range =='DV' and media_type_org not in ['show_p','season_p']:
+        if rdynamic_range =='DV' and media_type_org not in ['show_p','season_p'] and '小时' in duration and '分钟' in duration:
             scale = 1180/1000
             duration = duration.replace(' ','')
     elif media_type == 'show':
         poster_width = 1000
         poster_height = 563
         scale = 700/1000
-    img_path = f'{base_path}/img' 
+    img_path = f'{base_path}/img/empty'
     # 打开原始海报图像
     original_image = Image.open(poster_path)
     resized_image = original_image.resize((poster_width, poster_height))
+
+
     # 创建一个与海报相同尺寸的新图像(RGBA)
     new_image = Image.new("RGBA", resized_image.size)
     new_image.paste(resized_image, (0, 0))
     # 将改变大小后的海报高斯模糊
-    blurred_image = new_image.filter(ImageFilter.GaussianBlur(radius=35))
+    blurred_image = new_image.filter(ImageFilter.GaussianBlur(radius=60))
+
+    radius = int(20 * scale)  # 圆角矩形的半径
+    if media_type == 'movie':
+        x = int(22 * scale)-4  # 距离左侧边缘的距离
+    elif media_type == 'show':
+        x = int(22 * scale)
+    bottom = int(28 * scale)
+    bar_height = int(110 * scale)
+    y = poster_height - bottom - bar_height  # 距离底部的距离
+    right = poster_width - x  # 距离右侧边缘的距离
+    y0 = int(22 * scale)
+    
+    # 获取底部190px的区域
+    bottom_region = blurred_image.crop((0, y - 5, poster_width, poster_height - bottom + 10))
+    # 计算底部区域的亮度
+    brightness = sum(bottom_region.convert("L").getdata()) / (190 * poster_width)
+    brightness = int(brightness)
+    node = 35
+    max_a = 38
+    min_a = 25
+    if brightness > node:
+        outline_a = 0 if media_type == 'show' else 28
+    else:
+        outline_a = int(max_a - (brightness / node) * (max_a - min_a))
+        outline_a = 0
+
     # 创建一个与原始海报相同尺寸的透明黑色层图像
     if media_type == 'movie':
-        black_alpha = 165
+        overlay_alpha = 165
+        if brightness < 60:
+            overlay_alpha = 145
     elif media_type == 'show':
-        black_alpha = 145
-    black_layer = Image.new("RGBA", resized_image.size, (0, 0, 0, black_alpha))
-    # 将高斯模糊后的海报上叠加黑色透明层
-    poster_image = Image.alpha_composite(blurred_image, black_layer)
+        overlay_alpha = 140
+        if brightness < 60:
+            overlay_alpha = 135
+
+    # logger.info(f"此海报亮度：{brightness}")
+    if brightness < 36:
+        if media_type == 'movie':
+            overlay_a = 46
+            if brightness < 19:
+                overlay_a = 58
+        if media_type == 'show':
+            overlay_a = 35
+            if brightness < 19:
+                overlay_a = 40
+        overlay_layer = Image.new("RGBA", resized_image.size, (255, 255, 255, overlay_a))
+        # 使用叠加模式混合两个图像
+        # poster_image = Image.blend(blurred_image, overlay_layer,0.19)
+        poster_image = Image.alpha_composite(blurred_image, overlay_layer)
+        
+    else:
+        # 将高斯模糊后的海报上叠加黑色透明层
+        overlay_layer = Image.new("RGBA", resized_image.size, (0, 0, 0, overlay_alpha))
+        poster_image = Image.alpha_composite(blurred_image, overlay_layer)
+    
     try:
         # 实现黑色透明层与海报图像混合模式：正片叠底效果
         # 获取图像像素数据
@@ -155,16 +257,18 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
             for x0 in range(poster_image.width):
                 r, g, b, a = pixels[x0, y0]
                 pixels[x0, y0] = (r * a // 255, g * a // 255, b * a // 255, a)
+        poster_image = adjust_brightness(poster_image)
         # 饱和度
         enhancer = ImageEnhance.Color(poster_image)
-        if media_type == 'movie': saturation_factor = 1.7  # 饱和度增强因子，大于1增强，小于1减弱
+        if media_type == 'movie': saturation_factor = 1.8  # 饱和度增强因子，大于1增强，小于1减弱
         elif media_type == 'show': saturation_factor = 1.5
         
         enhanced_image = enhancer.enhance(saturation_factor)
         # 色阶（对比度）
         enhancer = ImageEnhance.Contrast(enhanced_image)
-        contrast_factor = 1.65  # 色阶增强因子，大于1增强，小于1减弱
+        contrast_factor = 1.3  # 色阶增强因子，大于1增强，小于1减弱
         poster_image = enhancer.enhance(contrast_factor)
+        
     except Exception as e:
         logger.error(f'{plugins_name}调整色阶、饱和度、混合模式时发生错误，原因：{e}')
     # 创建海报层图像
@@ -173,25 +277,30 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     mask = Image.new("L", poster.size)
     # 在遮罩图像上绘制圆角矩形
     draw = ImageDraw.Draw(mask)
-    radius = int(20 * scale)  # 圆角矩形的半径
-    if media_type == 'movie':
-        x = int(22 * scale)-4  # 距离左侧边缘的距离
-    elif media_type == 'show':
-        x = int(22 * scale)
-    bottom = int(28 * scale)
-    bar_height = int(110 * scale)
-    y = poster.height - bottom - bar_height  # 距离底部的距离
-    right = poster.width - x  # 距离右侧边缘的距离
-    y0 = int(22 * scale)
+
+    # radius = int(20 * scale)  # 圆角矩形的半径
+    # if media_type == 'movie':
+    #     x = int(22 * scale)-4  # 距离左侧边缘的距离
+    # elif media_type == 'show':
+    #     x = int(22 * scale)
+    # bottom = int(28 * scale)
+    # bar_height = int(110 * scale)
+    # y = poster.height - bottom - bar_height  # 距离底部的距离
+    # right = poster.width - x  # 距离右侧边缘的距离
+    # y0 = int(22 * scale)
+
     draw.rounded_rectangle([(x, y), (right, y + bar_height)], radius, fill=255)
     # 创建一个与海报相同尺寸的遮罩图像
     outline = Image.new("RGBA", poster.size)
     # 在遮罩图像上绘制圆角矩形
     draw = ImageDraw.Draw(outline)
+
     if media_type == 'movie':
-        draw.rounded_rectangle([(x-2, y-2), (right+2, y + bar_height+2)], radius+2, fill=(255,255,255,28))
+        draw.rounded_rectangle([(x-2, y-2), (right+2, y + bar_height+2)], radius+2, fill=(255,255,255,outline_a))
     elif media_type == 'show':
-        draw.rounded_rectangle([(x-1, y-1), (right+1, y + bar_height+1)], radius+1, fill=(255,255,255,28))
+        draw.rounded_rectangle([(x-1, y-1), (right+1, y + bar_height+1)], radius+1, fill=(255,255,255,outline_a))
+
+
     # 在新图像上叠加原始海报
     poster.paste(resized_image, (0, 0))
     # 将描边层和海报层叠加
@@ -258,7 +367,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     exif_tags = poster.getexif()
     exif_tags[0x04bc] = "overlay"
     # 保存图像并将EXIF标签写入
-    poster.save(out_path, quality=97, exif=exif_tags)
+    poster.save(out_path, quality=99, exif=exif_tags)
     # 读取图片信息，EXIF标签是否是overlay
     # posterddd = Image.open(out_path)
     # exif_tags = posterddd.getexif()
@@ -334,6 +443,8 @@ def get_episode(media,media_type,lib_name,force_add,restore,show_log):
     for episode in media.episodes():
         add_info_one(episode,'episode','',lib_name,force_add,1,rating,show_year,restore,show_log)
 
+
+
 def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,restore,show_log):
     media_title = ''
     media_s = media
@@ -379,12 +490,11 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
             
             if poster_url:
 
-                img_dir = os.path.join(base_path, f'poster_backup/{lib_name}')
+                img_dir = f"{poster_backup_path}/{lib_name}"
                 img_path = os.path.join(img_dir, f"{media_title}.jpg")
                 if restore:
                     media.uploadPoster(filepath=img_path)
                     break
-
 
                 poster_path,overlay_flag = save_img(media,poster_url,media_title,img_path,img_dir)
                 # 上传海报
@@ -444,6 +554,8 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
             movies_n = len(movies)
             i=1
             for movie in movies:
+                # if i>16:
+                #     return
                 add_info_one(movie,'movie',movies_n,lib_name,force_add,i,'','',restore,show_log)
                 i=i+1
             logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中的电影海报添加媒体信息完成")
@@ -451,6 +563,7 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
             logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有电影，不需要处理")
 
 def add_info_to_posters_main(lib_name,force_add,restore,show_log,only_show):
+    create_backup_note(poster_backup_path)
     try:
         plexserver = PlexServer(plex_url, plex_token) 
     except Exception as e:
