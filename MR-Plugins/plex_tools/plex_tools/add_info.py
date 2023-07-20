@@ -122,7 +122,6 @@ def get_display_title(key):
                 return display_title
     return ''
 
-
 def adjust_brightness(rgba_image, threshold=110):
 
     # 转换为RGB模式
@@ -159,6 +158,32 @@ def adjust_brightness(rgba_image, threshold=110):
     adjusted_image = adjusted_image.convert("RGBA")
     return adjusted_image
 
+def resize_and_fill_canvas(poster_path, poster_width, poster_height):
+    # 打开图片
+    original_image = Image.open(poster_path)
+    # 获取图片和画布的宽高
+    img_width, img_height = original_image.size
+    poster_ratio = poster_width / poster_height
+    img_ratio = img_width / img_height
+    # 计算缩放后的宽高
+    if img_ratio >= poster_ratio:
+        # 以高度为准进行缩放
+        new_width = int(poster_height * img_ratio)
+        new_height = poster_height
+    else:
+        # 以宽度为准进行缩放
+        new_width = poster_width
+        new_height = int(poster_width / img_ratio)
+    # 等比缩放图片
+    resized_image = original_image.resize((new_width, new_height), Image.BICUBIC)
+    # 创建新的画布
+    canvas = Image.new('RGBA', (poster_width, poster_height), (255, 255, 255, 0))
+    # 将图片居中放置在画布上
+    x_offset = (poster_width - new_width) // 2
+    y_offset = (poster_height - new_height) // 2
+    canvas.paste(resized_image, (x_offset, y_offset))
+    return canvas
+
 def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,title):
     media_type_org = media_type
     if media_type in ['show','episode','season']: media_type = 'show'
@@ -177,21 +202,21 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
         if rdynamic_range =='DV' and media_type_org not in ['show_p','season_p'] and '小时' in duration and '分钟' in duration:
             scale = 1180/1000
             duration = duration.replace(' ','')
+        if media_type_org in ['show_p','season_p']:
+            scale = 1198/1000
     elif media_type == 'show':
         poster_width = 1000
         poster_height = 563
         scale = 700/1000
     img_path = f'{base_path}/img/empty'
-    # 打开原始海报图像
-    original_image = Image.open(poster_path)
-    resized_image = original_image.resize((poster_width, poster_height))
-
+    # 将原海报等比缩放后铺满画布
+    resized_image = resize_and_fill_canvas(poster_path, poster_width, poster_height)
 
     # 创建一个与海报相同尺寸的新图像(RGBA)
-    new_image = Image.new("RGBA", resized_image.size)
+    new_image = Image.new("RGBA", (poster_width, poster_height), (0, 0, 0, 255))
     new_image.paste(resized_image, (0, 0))
     # 将改变大小后的海报高斯模糊
-    blurred_image = new_image.filter(ImageFilter.GaussianBlur(radius=60))
+    blurred_image = new_image.filter(ImageFilter.GaussianBlur(radius=77))
 
     radius = int(20 * scale)  # 圆角矩形的半径
     if media_type == 'movie':
@@ -238,14 +263,14 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
             overlay_a = 35
             if brightness < 19:
                 overlay_a = 40
-        overlay_layer = Image.new("RGBA", resized_image.size, (255, 255, 255, overlay_a))
+        overlay_layer = Image.new("RGBA", (poster_width, poster_height), (255, 255, 255, overlay_a))
         # 使用叠加模式混合两个图像
         # poster_image = Image.blend(blurred_image, overlay_layer,0.19)
         poster_image = Image.alpha_composite(blurred_image, overlay_layer)
         
     else:
         # 将高斯模糊后的海报上叠加黑色透明层
-        overlay_layer = Image.new("RGBA", resized_image.size, (0, 0, 0, overlay_alpha))
+        overlay_layer = Image.new("RGBA", (poster_width, poster_height), (0, 0, 0, overlay_alpha))
         poster_image = Image.alpha_composite(blurred_image, overlay_layer)
     
     try:
@@ -274,7 +299,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     # 创建海报层图像
     poster = Image.new("RGBA", (poster_width, poster_height))
     # 创建一个与海报相同尺寸的遮罩图像
-    mask = Image.new("L", poster.size)
+    mask = Image.new("L", (poster_width, poster_height))
     # 在遮罩图像上绘制圆角矩形
     draw = ImageDraw.Draw(mask)
 
@@ -291,7 +316,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
 
     draw.rounded_rectangle([(x, y), (right, y + bar_height)], radius, fill=255)
     # 创建一个与海报相同尺寸的遮罩图像
-    outline = Image.new("RGBA", poster.size)
+    outline = Image.new("RGBA", (poster_width, poster_height))
     # 在遮罩图像上绘制圆角矩形
     draw = ImageDraw.Draw(outline)
 
@@ -310,9 +335,9 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     png_height = int(62 * scale)
     # 分辨率
     resolution_png = Image.open(f"{img_path}/{resolution}.png").convert("RGBA")
-    resolution_png = resolution_png.resize((int(png_height*resolution_png.width/resolution_png.height), png_height))
+    resolution_png = resolution_png.resize((int(png_height*resolution_png.width/resolution_png.height), png_height), Image.LANCZOS)
     # 创建一个与海报图像相同尺寸的图像
-    resolution_image = Image.new("RGBA", poster.size)
+    resolution_image = Image.new("RGBA", (poster_width, poster_height))
     x_resolution = int(x+22 * scale)
     y_resolution = int(y+bar_height/2 - resolution_png.height/2)
     resolution_image.paste(resolution_png, (x_resolution, y_resolution))
@@ -320,9 +345,9 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     # 动态范围
     x_rdynamic_range = int(x_resolution + resolution_png.width + 20 * scale)
     rdynamic_range_png = Image.open(f"{img_path}/{rdynamic_range}.png").convert("RGBA")
-    rdynamic_range_png = rdynamic_range_png.resize((int(png_height*rdynamic_range_png.width/rdynamic_range_png.height), png_height))
+    rdynamic_range_png = rdynamic_range_png.resize((int(png_height*rdynamic_range_png.width/rdynamic_range_png.height), png_height), Image.LANCZOS)
     # 创建一个与海报图像相同尺寸的图像
-    rdynamic_range_image = Image.new("RGBA", poster.size)
+    rdynamic_range_image = Image.new("RGBA", (poster_width, poster_height))
     rdynamic_range_image.paste(rdynamic_range_png, (x_rdynamic_range, y_resolution))
     poster = Image.alpha_composite(poster, rdynamic_range_image)
     # 时长
@@ -442,8 +467,6 @@ def get_episode(media,media_type,lib_name,force_add,restore,show_log):
 
     for episode in media.episodes():
         add_info_one(episode,'episode','',lib_name,force_add,1,rating,show_year,restore,show_log)
-
-
 
 def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,restore,show_log):
     media_title = ''
