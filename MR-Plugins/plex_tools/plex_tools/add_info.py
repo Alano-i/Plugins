@@ -229,21 +229,13 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     right = poster_width - x  # 距离右侧边缘的距离
     y0 = int(22 * scale)
     
-    # 获取底部190px的区域
-    bottom_region = blurred_image.crop((0, y - 5, poster_width, poster_height - bottom + 10))
+    # 获取底部的区域一个小区域
+    bottom_region = new_image.crop((0, y - 2, poster_width, poster_height))
     # 计算底部区域的亮度
-    brightness = sum(bottom_region.convert("L").getdata()) / (190 * poster_width)
+    brightness = sum(bottom_region.convert("L").getdata()) / ((bar_height + 2 + bottom) * poster_width)
     brightness = int(brightness)
-    node = 35
-    max_a = 38
-    min_a = 25
-    if brightness > node:
-        outline_a = 0 if media_type == 'show' else 28
-    else:
-        outline_a = int(max_a - (brightness / node) * (max_a - min_a))
-        outline_a = 0
+    logger.info(f'此海报亮度：{brightness}')
 
-    # 创建一个与原始海报相同尺寸的透明黑色层图像
     if media_type == 'movie':
         overlay_alpha = 165
         if brightness < 60:
@@ -252,9 +244,26 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
         overlay_alpha = 140
         if brightness < 60:
             overlay_alpha = 135
+    node = 35
+    out_line_node = 80
+    max_a = 30
+    min_a = 0
+    if brightness > node:
+        if brightness < out_line_node:
+            outline_middle = max_a
+        else:
+            outline_middle = 0
+        outline_a = 0 if media_type == 'show' else outline_middle
 
-    # logger.info(f"此海报亮度：{brightness}")
-    if brightness < 36:
+        # 黑色背景
+        contrast_factor = 1.65  # 色阶增强因子，大于1增强，小于1减弱
+        # 将高斯模糊后的海报上叠加黑色透明层
+        overlay_layer = Image.new("RGBA", (poster_width, poster_height), (0, 0, 0, overlay_alpha))
+        poster_image = Image.alpha_composite(blurred_image, overlay_layer)
+
+    else:
+        outline_a = 0
+        # 白色背景
         if media_type == 'movie':
             overlay_a = 46
             if brightness < 19:
@@ -267,11 +276,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
         # 使用叠加模式混合两个图像
         # poster_image = Image.blend(blurred_image, overlay_layer,0.19)
         poster_image = Image.alpha_composite(blurred_image, overlay_layer)
-        
-    else:
-        # 将高斯模糊后的海报上叠加黑色透明层
-        overlay_layer = Image.new("RGBA", (poster_width, poster_height), (0, 0, 0, overlay_alpha))
-        poster_image = Image.alpha_composite(blurred_image, overlay_layer)
+        contrast_factor = 1.3  # 色阶增强因子，大于1增强，小于1减弱
     
     try:
         # 实现黑色透明层与海报图像混合模式：正片叠底效果
@@ -282,18 +287,19 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
             for x0 in range(poster_image.width):
                 r, g, b, a = pixels[x0, y0]
                 pixels[x0, y0] = (r * a // 255, g * a // 255, b * a // 255, a)
-        poster_image = adjust_brightness(poster_image)
+        if brightness < 36:
+            poster_image = adjust_brightness(poster_image)
         # 饱和度
         enhancer = ImageEnhance.Color(poster_image)
-        if media_type == 'movie': saturation_factor = 1.8  # 饱和度增强因子，大于1增强，小于1减弱
-        elif media_type == 'show': saturation_factor = 1.5
-        
+        if media_type == 'movie':
+            saturation_factor = 1.8  # 饱和度增强因子，大于1增强，小于1减弱
+        elif media_type == 'show':
+            saturation_factor = 1.5
         enhanced_image = enhancer.enhance(saturation_factor)
         # 色阶（对比度）
         enhancer = ImageEnhance.Contrast(enhanced_image)
-        contrast_factor = 1.3  # 色阶增强因子，大于1增强，小于1减弱
+        # contrast_factor = 1.3  # 色阶增强因子，大于1增强，小于1减弱
         poster_image = enhancer.enhance(contrast_factor)
-        
     except Exception as e:
         logger.error(f'{plugins_name}调整色阶、饱和度、混合模式时发生错误，原因：{e}')
     # 创建海报层图像
@@ -302,17 +308,6 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     mask = Image.new("L", (poster_width, poster_height))
     # 在遮罩图像上绘制圆角矩形
     draw = ImageDraw.Draw(mask)
-
-    # radius = int(20 * scale)  # 圆角矩形的半径
-    # if media_type == 'movie':
-    #     x = int(22 * scale)-4  # 距离左侧边缘的距离
-    # elif media_type == 'show':
-    #     x = int(22 * scale)
-    # bottom = int(28 * scale)
-    # bar_height = int(110 * scale)
-    # y = poster.height - bottom - bar_height  # 距离底部的距离
-    # right = poster.width - x  # 距离右侧边缘的距离
-    # y0 = int(22 * scale)
 
     draw.rounded_rectangle([(x, y), (right, y + bar_height)], radius, fill=255)
     # 创建一个与海报相同尺寸的遮罩图像
@@ -324,7 +319,6 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
         draw.rounded_rectangle([(x-2, y-2), (right+2, y + bar_height+2)], radius+2, fill=(255,255,255,outline_a))
     elif media_type == 'show':
         draw.rounded_rectangle([(x-1, y-1), (right+1, y + bar_height+1)], radius+1, fill=(255,255,255,outline_a))
-
 
     # 在新图像上叠加原始海报
     poster.paste(resized_image, (0, 0))
@@ -577,7 +571,7 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
             movies_n = len(movies)
             i=1
             for movie in movies:
-                # if i>16:
+                # if i>1:
                 #     return
                 add_info_one(movie,'movie',movies_n,lib_name,force_add,i,'','',restore,show_log)
                 i=i+1
