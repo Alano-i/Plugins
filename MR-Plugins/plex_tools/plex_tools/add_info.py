@@ -234,7 +234,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     # 计算底部区域的亮度
     brightness = sum(bottom_region.convert("L").getdata()) / ((bar_height + 2 + bottom) * poster_width)
     brightness = int(brightness)
-    logger.info(f'此海报亮度：{brightness}')
+    # logger.info(f'此海报亮度：{brightness}')
 
     if media_type == 'movie':
         overlay_alpha = 165
