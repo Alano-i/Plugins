@@ -5,6 +5,9 @@ MR插件，剪辑片头片尾，修改元数据，整理系列文件夹，`plex`
 - 自动按每100集自动分组
 - 支持生成 Apple 播客源
 - 支持单独修改音频封面
+  <img width="908" alt="image" src="https://github.com/Alano-i/wecom-notification/assets/68833595/e8258b87-a9a7-4cbc-975b-7a091af069fe">
+
+
 
 ## 使用说明
 - 将 `audio_tools` 文件夹放到 `Plugins` 文件夹。
