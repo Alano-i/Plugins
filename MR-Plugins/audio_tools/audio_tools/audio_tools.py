@@ -13,6 +13,7 @@ from typing import Dict, Any
 import threading
 import time
 import ffmpeg
+from urllib.parse import quote
 import datetime
 import logging
 import shutil
@@ -55,10 +56,11 @@ def hlink(src_base_path, dst_base_path):
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global message_to_uid, channel, pic_url, src_base_path
-    message_to_uid = config.get('uid')
-    src_base_path = config.get('src_base_path')
-    pic_url = config.get('pic_url')
+    global message_to_uid, channel, pic_url, src_base_path,mbot_url
+    message_to_uid = config.get('uid','')
+    src_base_path = config.get('src_base_path','')
+    mbot_url = config.get('mbot_url','')
+    pic_url = config.get('pic_url','')
     if config.get('channel'):
         channel = config.get('channel')
         logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
@@ -72,10 +74,11 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global message_to_uid, channel, pic_url,src_base_path
-    message_to_uid = config.get('uid')
-    src_base_path = config.get('src_base_path')
-    pic_url = config.get('pic_url')
+    global message_to_uid, channel, pic_url, src_base_path,mbot_url
+    message_to_uid = config.get('uid','')
+    src_base_path = config.get('src_base_path','')
+    mbot_url = config.get('mbot_url','')
+    pic_url = config.get('pic_url','')
     if config.get('channel'):
         channel = config.get('channel')
         logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
@@ -238,6 +241,15 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
             logger.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
             continue
 
+def create_hard_link(src_path,dst_path):
+    if os.path.exists(dst_path) or os.path.islink(dst_path):
+        os.remove(dst_path) # 如果目标文件已经存在，删除它
+    # os.link(src_path, dst_path) # 创建硬链接
+    os.symlink(src_path, dst_path) # 创建软链接
+    # shutil.copyfile(src_path, dst_path) # 复制文件
+
+def url_encode(url):
+    return quote(url, safe='/:.')
 
 def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip_configs,authors,year,narrators,series,summary,album,art_album,use_filename,subject):
     # cliped_folder_dir = f'{input_dir}/{cliped_folder}'
@@ -292,11 +304,21 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
             shutil.move(cliped_folder_dir, output_dir)
     except Exception as e:
         logger.error(f"{plugins_name}从移动到 [{output_dir}] 失败，原因：{e}")
-
-    logger.info(f'{plugins_name}已剪辑完成')
-    msg_title = '音频剪辑完成'
-    msg_digest = f'{input_dir} 文件夹内音频已剪辑完成\n存放至 {output_dir}/{cliped_folder}' 
-    push_msg_to_mbot(msg_title, msg_digest)
+    try:
+        cover_image_path = os.path.join(output_dir, cliped_folder,'cover.jpg')
+        cover_image_path_hlink = f"{dst_base_path}/{series}_cover.jpg"
+        create_hard_link(cover_image_path,cover_image_path_hlink)
+        if os.path.exists(cover_image_path_hlink):
+            cover_image_url = f'{mbot_url}/static/podcast/audio/{series}_cover.jpg'
+            cover_image_url = url_encode(cover_image_url)
+        else:
+            cover_image_url = ''
+        logger.info(f'{plugins_name}已剪辑完成')
+        msg_title = f'{series} - 剪辑完成' if series else '音频剪辑完成'
+        msg_digest = f'{input_dir} 文件夹内音频已剪辑完成\n存放至 {output_dir}/{cliped_folder}' 
+    except Exception as e:
+        logger.error(f"{plugins_name}构造消息参数出现错误，原因：{e}")
+    push_msg_to_mbot(msg_title, msg_digest,cover_image_url)
 
 # 将大写的集改为数字
 # def convert_chinese_numbers(text):
@@ -741,11 +763,12 @@ def all_add_tag(output_dir, authors, year, narrators, series, summary, album, ar
             i=i+1
     logger.info(f'{plugins_name}DIY 元数据完成')
 
-def push_msg_to_mbot(msg_title, msg_digest):
+def push_msg_to_mbot(msg_title, msg_digest,cover_image_url):
+    image_url = cover_image_url if cover_image_url else pic_url
     msg_data = {
         'title': msg_title,
         'a': msg_digest,
-        'pic_url': pic_url,
+        'pic_url': image_url,
         'link_url': '',
     }
     try:
