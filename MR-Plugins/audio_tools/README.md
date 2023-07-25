@@ -11,7 +11,7 @@ MR插件，剪辑片头片尾，修改元数据，整理系列文件夹，`plex`
 
 ## 使用说明
 - 将 `audio_tools` 文件夹放到 `Plugins` 文件夹。
-- 重启后如果日志报错：依赖库 `mutagen` `cn2an` 安装失败而导致插件载入失败，请手动进入 MR 命令行安装，安装命令：`pip install mutagen cn2an ffmpeg-python`
+- 重启后如果日志报错：依赖库 `mutagen` `cn2an` `ffmpeg` 安装失败而导致插件载入失败，请手动进入 MR 命令行安装，安装命令：`pip install mutagen cn2an ffmpeg-python`
 - 听有声书我用的 Prologue（美区App Store），支持 Plex。
 - 听有声书也可用生成的播客源 URL 添加到 iOS 自带的播客 App 中。
 
