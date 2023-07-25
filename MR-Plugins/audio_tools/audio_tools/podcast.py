@@ -164,7 +164,7 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
         org_title,pub_year,authors,duration,summary = get_audio_info(audio_file)
         item = SubElement(channel, 'item')
         if not org_title:
-            title_text = os.path.splitext(os.path.basename(audio_file))[0].replace(book_title,"")
+            title_text = os.path.splitext(os.path.basename(audio_file))[0].replace(book_title,"").strip('/')
             title_text = re.sub(r'[《》「」\[\]]', '', title_text).strip()
         else:
             title_text = org_title
@@ -248,10 +248,10 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     if os.path.exists(cover_file):
         # audio_path = '/Media/音乐/有声书/ABC/DEF'
         # src_base_path = '/Media/音乐/有声书'
-        add_path = audio_path.replace(src_base_path,'')
-        cover_file_hlink = f"{dst_base_path}{add_path}/cover.jpg"
+        add_path = audio_path.replace(src_base_path,'').strip('/') # ABC/DEF
+        cover_file_hlink = f"{dst_base_path}/{add_path}/cover.jpg"
         create_hard_link(cover_file,cover_file_hlink)
-        cover_image_url = f"{base_url}{add_path}/cover.jpg"
+        cover_image_url = f"{base_url}/{add_path}/cover.jpg"
     else:
         cover_image_url = ''
     cover_image_url = url_encode(cover_image_url)
@@ -296,7 +296,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
             display_title = book_title
         # with open(out_file, 'w', encoding='utf-8') as f:
         #     f.write(rss_xml)
-        file_name = os.path.basename(out_file)
+        file_name = os.path.basename(out_file).strip('/')
         out_file_hlink = f"{dst_base_path}/{add_path}/{file_name}"
         link = f"{base_url}/{add_path}/{file_name}"
         link = url_encode(link)
