@@ -209,10 +209,11 @@ def save_cover_back(filename,audio_path):
         logger.error(f"保存有声书封面失败，原因：{e}")
 
 def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
+    image_url = cover_image_url if cover_image_url else pic_url
     msg_data = {
         'title': msg_title,
         'a': msg_digest,
-        'pic_url': cover_image_url,
+        'pic_url': image_url,
         'link_url': link_url,
     }
     try:
