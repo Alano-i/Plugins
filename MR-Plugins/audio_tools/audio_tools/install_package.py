@@ -13,10 +13,10 @@ import_list=[
     'ffmpeg'
 ]
 # 判断依赖库是否安装,未安装则安装对应依赖库
-# sourcestr = "https://pypi.tuna.tsinghua.edu.cn/simple/"  # 镜像源
-# sourceurl = "pypi.tuna.tsinghua.edu.cn"
-sourcestr = "http://pypi.douban.com/simple/"  # 镜像源
-sourceurl = "pypi.douban.com"
+sourcestr = "https://pypi.tuna.tsinghua.edu.cn/simple/"  # 镜像源
+sourceurl = "pypi.tuna.tsinghua.edu.cn"
+# sourcestr = "http://pypi.douban.com/simple/"  # 镜像源
+# sourceurl = "pypi.douban.com"
 def GetPackage(PackageName):
     if PackageName == 'ffmpeg':
         PackageName == 'ffmpeg-python'
