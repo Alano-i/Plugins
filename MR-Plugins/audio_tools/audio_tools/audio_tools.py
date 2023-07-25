@@ -3,62 +3,167 @@ import os
 import re
 from cn2an import cn2an
 import mutagen
-from mutagen.mp4 import MP4Cover
 from mutagen.id3 import ID3, APIC
+from mutagen.mp4 import MP4, MP4Cover
+from mutagen.flac import Picture
 from mbot.core.plugins import plugin
 from mbot.core.plugins import PluginContext, PluginMeta
 from mbot.openapi import mbot_api
 from typing import Dict, Any
 import threading
 import time
+import ffmpeg
 import datetime
 import logging
 import shutil
-_LOGGER = logging.getLogger(__name__)
+import subprocess
+from .podcast import podcast_config
+logger = logging.getLogger(__name__)
 server = mbot_api
 plugins_name = '「有声书工具箱」'
 plugins_path = '/data/plugins/audio_clip'
+# src_base_path = "/Media/音乐/有声书"
+dst_base_path = f"/app/frontend/static/podcast/audio"
+exts = ['.m4a', '.mp3', '.flac', '.wav']
+
+def hlink(src_base_path, dst_base_path):
+    try:
+        one = True
+        for root, dirs, files in os.walk(src_base_path):
+            for file_name in files:
+                src_file_path = os.path.join(root, file_name)
+                dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
+                dst_dir_path = os.path.dirname(dst_file_path)
+                if not os.path.exists(dst_dir_path):
+                    os.makedirs(dst_dir_path)
+                if os.path.isfile(src_file_path):
+                    if os.path.exists(dst_file_path) or os.path.islink(dst_file_path):
+                        os.remove(dst_file_path) # 如果目标文件已经存在，删除它
+                    os.symlink(src_file_path, dst_file_path)
+                    # shutil.copyfile(src_file_path, dst_file_path)
+            for dir_name in dirs:
+                src_dir_path = os.path.join(root, dir_name)
+                dst_dir_path = os.path.join(dst_base_path, os.path.relpath(src_dir_path, src_base_path))
+                if not os.path.exists(dst_dir_path):
+                    os.makedirs(dst_dir_path)
+                one = False
+                hlink(src_dir_path, dst_dir_path)
+        # if one:
+        #     logger.info(f'{plugins_name}WEB 素材已软链接到容器')
+    except Exception as e:
+        logger.error(f'{plugins_name}将有声书素材已软链接到容器出错，原因: {e}')
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global message_to_uid, channel, pic_url
+    global message_to_uid, channel, pic_url, src_base_path
     message_to_uid = config.get('uid')
+    src_base_path = config.get('src_base_path')
     pic_url = config.get('pic_url')
     if config.get('channel'):
         channel = config.get('channel')
-        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+        logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     else:
         channel = 'qywx'
     if not message_to_uid:
-        _LOGGER.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
+        logger.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
+    podcast_config(config,dst_base_path)
+    hlink(src_base_path, dst_base_path)
+    logger.info(f'{plugins_name}已加载配置并链接有声书资源到静态目录')
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
-    global message_to_uid, channel, pic_url
+    global message_to_uid, channel, pic_url,src_base_path
     message_to_uid = config.get('uid')
+    src_base_path = config.get('src_base_path')
     pic_url = config.get('pic_url')
     if config.get('channel'):
         channel = config.get('channel')
-        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+        logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     else:
         channel = 'qywx'
     if not message_to_uid:
-        _LOGGER.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
+        logger.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
+    podcast_config(config,dst_base_path)
+    hlink(src_base_path, dst_base_path) 
+    logger.info(f'{plugins_name}已重新加载配置并重新链接有声书资源到静态目录')
+
+def add_cover(output_file,cover_image_path):
+    file_name, file_ext = os.path.splitext(output_file)
+    file_ext = file_ext.lower()
+    if file_ext not in exts:
+        return
+    # 读取音频文件
+    src_audio = mutagen.File(output_file)
+    # 判断音频格式是MP3
+    if isinstance(src_audio, mutagen.mp3.MP3):
+        # 删除旧封面
+        if 'APIC:' in src_audio:
+            del src_audio.tags['APIC:']
+        # 打开图片文件
+        with open(cover_image_path, 'rb') as cover_image:
+            # 创建APIC标签，将图片数据作为封面写入音频文件
+            apic = APIC(
+                encoding=3,  # 3表示UTF-8编码
+                mime='image/jpeg',  # 图片格式，这里假设是JPEG格式，如果是其他格式请修改
+                type=3,  # 3表示封面
+                desc=u'Cover',  # 描述
+                data=cover_image.read()  # 图片数据
+            )
+            # 将APIC标签添加到音频文件的metadata中
+            src_audio.tags.add(apic)
+            # 保存修改后的音频文件
+            src_audio.save()
+    # 判断音频格式是M4A
+    elif isinstance(src_audio, mutagen.mp4.MP4):
+        # 删除旧封面
+        if 'covr' in src_audio:
+            del src_audio['covr']
+        # 打开图片文件
+        with open(cover_image_path, 'rb') as cover_image:
+            # 创建MP4Cover对象，将图片数据作为封面写入音频文件
+            cover = MP4Cover(cover_image.read(), imageformat=MP4Cover.FORMAT_JPEG)
+            # 将封面数据添加到音频文件的metadata中
+            src_audio['covr'] = [cover]
+            # 保存修改后的音频文件
+            src_audio.save()
+
+    # 判断音频格式是FLAC
+    elif isinstance(src_audio, mutagen.flac.FLAC):
+        # 删除旧封面
+        if 'pictures' in src_audio:
+            del src_audio['pictures']
+        # 打开图片文件
+        with open(cover_image_path, 'rb') as cover_image:
+            # 创建Picture对象，将图片数据作为封面写入音频文件
+            pic = Picture()
+            pic.type = 3  # 3表示封面
+            pic.desc = 'Cover'  # 描述
+            pic.mime = 'image/jpeg'  # 图片格式，这里假设是JPEG格式，如果是其他格式请修改
+            pic.data = cover_image.read()  # 图片数据
+            # 将Picture对象添加到音频文件的metadata中
+            src_audio.add_picture(pic)
+            # 保存修改后的音频文件
+            src_audio.save()
+
+def save_cover(input_file,cover_file):
+    try:
+        ffmpeg.input(input_file).output(cover_file, map='0:v', f='image2').run(overwrite_output=True)
+    except Exception as e:
+        pass
 
 def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, album, art_album, group_now, use_filename, subject):
-    global has_cover_jpg
-    exts = ['.m4a', '.mp3', '.flac', '.wav']
+    global local_has_cover
     files_num = len(filenames_group)
     for i, filename in enumerate(filenames_group):
         try:
             percent_num = round(((i+1)/files_num)*100, 1)
             clip_percent = f"{percent_num}%"
             if clip_percent == '100.0%':
-                _LOGGER.info(f"{plugins_name}开始剪辑 {group_now} 分组第 {i+1} 个文件：['{filename}']，已完成 100%，这是当前分组需要处理的最后一个文件")
+                logger.info(f"{plugins_name}开始剪辑 {group_now} 分组第 {i+1} 个文件：['{filename}']，已完成 100%，这是当前分组需要处理的最后一个文件")
             else:
                 now_video_count = int(files_num - i - 1)
                 if datetime.datetime.now().second % 5 == 0 or i==0:
-                    _LOGGER.info(f"{plugins_name}开始剪辑 {group_now} 分组第 {i+1} 个文件：['{filename}']，已完成 {clip_percent}，当前分组剩余 {now_video_count} 个文件需要处理")
+                    logger.info(f"{plugins_name}开始剪辑 {group_now} 分组第 {i+1} 个文件：['{filename}']，已完成 {clip_percent}，当前分组剩余 {now_video_count} 个文件需要处理")
             file_name, file_ext = os.path.splitext(filename)
             file_ext = file_ext.lower()
             # 判断是否为音频文件
@@ -68,50 +173,69 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
                 cover_art_path = os.path.join(cliped_folder_dir, 'cover.jpg')
                 input_file = os.path.join(input_dir, filename)
                 output_file = os.path.join(input_dir, cliped_folder, filename)
-                # command = f'ffmpeg -i "{input_file}" -ss {audio_start} -to $(echo "$(ffprobe -i "{input_file}" -show_entries format=duration -v quiet -of csv="p=0")-{audio_end}" | bc) -c:v copy -c:a copy -map 0 -map_metadata 0 -metadata:s:v:0 comment="Cover" "{output_file}" -y'
-                command = f'ffmpeg -i "{input_file}" -ss {audio_start} -to $(echo "$(ffprobe -i "{input_file}" -show_entries format=duration -v quiet -of csv="p=0")-{audio_end}" | bc) -c copy -map_metadata 0 "{output_file}" -y'
-                os.system(command)
-                cover_audio = mutagen.File(input_file)
-                src_audio = mutagen.File(output_file)
-                if file_ext == '.m4a':
-                    # # 获取封面数据
-                    if 'covr' in cover_audio:
-                        cover_data = cover_audio['covr'][0]
-                        # 创建封面对象
-                        cover = MP4Cover(cover_data)
-                        # 添加封面对象到tags中
-                        src_audio.tags['covr'] = [cover]
-                        src_audio.save()
-                        # 将封面存到本地
-                        if not has_cover_jpg:
-                            with open(cover_art_path, 'wb') as f:
-                                f.write(cover_data)
-                            has_cover_jpg = True
-                elif file_ext == '.mp3':
-                    for key, value in cover_audio.tags.items():
-                        if 'APIC:' in key:
-                            cover_data = value.data
-                            src_audio.tags.add(value)
-                            src_audio.save()
-                            # 将封面存到本地
-                            if not has_cover_jpg:
-                                with open(cover_art_path, 'wb') as f:
-                                    f.write(cover_data)
-                                has_cover_jpg = True
-                            break
-                # elif filename.endswith('.flac'):
-                elif file_ext == '.flac':
-                    if 'metadata_block_picture' in cover_audio.tags:
-                        cover_data = cover_audio.tags['metadata_block_picture'][0]
-                        # 将原始文件中的图片块复制到目标文件中
-                        src_audio.tags['metadata_block_picture'] = cover_data
-                        src_audio.save()
-                # cliped_folder_dir = f'{input_dir}/{cliped_folder}'
+                # command = f'ffmpeg -i "{input_file}" -ss {audio_start} -to $(echo "$(ffprobe -i "{input_file}" -show_entries format=duration -v quiet -of csv="p=0")-{audio_end}" | bc) -c copy -map_metadata 0 "{output_file}" -y'
+                # os.system(command)
+                # 获取总时长
+                probe = ffmpeg.probe(input_file)
+                duration = float(probe['format']['duration'])
+                # 重新定位开始时间和结束时间
+                audio_start_seconds = min(float(audio_start), duration)
+                audio_end_seconds = max(duration - float(audio_end) - float(audio_start), 0)
+                ffmpeg.input(input_file, ss=audio_start_seconds, t=audio_end_seconds).output(output_file, c='copy').run(overwrite_output=True)
+                
+                # 若本地不存在cover.jpg,则保存音频中的封面
+                if not os.path.exists(cover_art_path):
+                    save_cover(input_file,cover_art_path)
+                if local_has_cover:
+                    add_cover(output_file,cover_art_path)
+
+########################################################################################################################
+
+                # cover_audio = mutagen.File(input_file)
+                # src_audio = mutagen.File(output_file)
+                # if file_ext == '.m4a':
+                #     # # 获取封面数据
+                #     if 'covr' in cover_audio:
+                #         cover_data = cover_audio['covr'][0]
+                #         # 创建封面对象
+                #         cover = MP4Cover(cover_data)
+                #         # 添加封面对象到tags中
+                #         src_audio.tags['covr'] = [cover]
+                #         src_audio.save()
+                #         # 将封面存到本地
+                #         if not os.path.exists(cover_art_path) and not local_has_cover:
+                #             with open(cover_art_path, 'wb') as f:
+                #                 f.write(bytes(cover_data))
+                #             local_has_cover = True
+                #         else:
+                #             local_has_cover = True
+                # elif file_ext == '.mp3':
+                #     for key, value in cover_audio.tags.items():
+                #         if 'APIC:' in key:
+                #             cover_data = value.data
+                #             src_audio.tags.add(value)
+                #             src_audio.save()
+                #             # 将封面存到本地
+                #             if not os.path.exists(cover_art_path) and not local_has_cover:
+                #                 with open(cover_art_path, 'wb') as f:
+                #                     f.write(bytes(cover_data))
+                #                 local_has_cover = True
+                #             else:
+                #                 local_has_cover = True
+                #             break
+                # elif file_ext == '.flac':
+                #     if 'metadata_block_picture' in cover_audio.tags:
+                #         cover_data = cover_audio.tags['metadata_block_picture'][0]
+                #         # 将原始文件中的图片块复制到目标文件中
+                #         src_audio.tags['metadata_block_picture'] = cover_data
+                #         src_audio.save()
+
+################################################################################################################
                 if clip_configs == 'clip_and_move':
                     thread_move_to_dir(cliped_folder_dir,filename,authors,year,narrators,series,album,art_album,use_filename,subject)
 
         except Exception as e:
-            _LOGGER.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
+            logger.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
             continue
 
 
@@ -121,13 +245,13 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     audio_end = int(audio_end)
     # 创建输出目录
     os.makedirs(os.path.join(input_dir, cliped_folder), exist_ok=True)
-    global has_cover_jpg
-    has_cover_jpg = False
+    global local_has_cover
+    local_has_cover = False
     # 遍历输入目录中的所有文件
     filenames = os.listdir(input_dir)
     for filename in filenames:
         if filename.lower() == 'cover.jpg' or filename.lower() == 'cover.png':
-            has_cover_jpg = True
+            local_has_cover = True
             # 构建源文件和目标文件的路径
             src_cover_path = os.path.join(input_dir, filename)
             dst_cover_path = os.path.join(cliped_folder_dir, filename)
@@ -135,7 +259,7 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
                 # 复制文件
                 shutil.copy(src_cover_path, dst_cover_path)
             except Exception as e:
-                _LOGGER.error(f"{plugins_name}本地有封面，但将封面移到 [{cliped_folder_dir}] 失败，原因：{e}")
+                logger.error(f"{plugins_name}本地有封面，但将封面复制到 [{cliped_folder_dir}] 失败，原因：{e}")
             break
     filenames_num = len(filenames)
     threading_num = 1
@@ -148,12 +272,12 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     # 将视频名称序列分成 threading_clip_num 个一组的列表
     filenames_groups = [filenames[mnx:mnx+threading_clip_num] for mnx in range(0, filenames_num, threading_clip_num)]
     all_group_num = len(filenames_groups)
-    _LOGGER.info(f"{plugins_name} 启动 {all_group_num} 个线程执行剪辑任务，每 5 秒打印一次进度")
+    logger.info(f"{plugins_name} 启动 {all_group_num} 个线程执行剪辑任务，每 5 秒打印一次进度")
     threads = []  
     for group_num, filenames_group in enumerate(filenames_groups):
         # group_num 从0开始递增
         group_now = f"{group_num+1}/{all_group_num}"
-        _LOGGER.warning(f"{plugins_name}开始剪辑第 {group_now} 个分组")
+        logger.warning(f"{plugins_name}开始剪辑第 {group_now} 个分组")
         # 多线程
         thread = threading.Thread(target=thread_audio_clip, args=(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, album, art_album, group_now, use_filename, subject))
         thread.start()
@@ -162,17 +286,16 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     # 等待所有线程执行完毕
     for t in threads:
         t.join()
-    _LOGGER.info(f"{plugins_name}所有 {all_group_num} 个分组已全部剪辑完成")
+    logger.info(f"{plugins_name}所有 {all_group_num} 个分组已全部剪辑完成")
     try:
         if os.path.normcase(os.path.abspath(input_dir)) != os.path.normcase(os.path.abspath(output_dir)):
             shutil.move(cliped_folder_dir, output_dir)
     except Exception as e:
-        _LOGGER.error(f"{plugins_name}从移动到 [{output_dir}] 失败，原因：{e}")
+        logger.error(f"{plugins_name}从移动到 [{output_dir}] 失败，原因：{e}")
 
-    _LOGGER.info(f'{plugins_name}已剪辑完成')
+    logger.info(f'{plugins_name}已剪辑完成')
     msg_title = '音频剪辑完成'
-    msg_digest = f'{input_dir} 文件夹内音频已剪辑完成\n存放至 {output_dir}/{cliped_folder}'
-    # pic_url = 'https://alist.walkcs.com:88/d/TrueNas/appdata/movie-robot/data/plugins/audio_tools/logo.jpg?sign=LofxutiWFV6W--B7KdzcEXWZvWk3KwKS6_oD63u-c6w=:0'  
+    msg_digest = f'{input_dir} 文件夹内音频已剪辑完成\n存放至 {output_dir}/{cliped_folder}' 
     push_msg_to_mbot(msg_title, msg_digest)
 
 # 将大写的集改为数字
@@ -284,7 +407,7 @@ def extract_filename(filename,series):
         # if filename_text:
         #     trck_num = extract_number(filename_text)
     except Exception as e:
-        _LOGGER.error(f"{plugins_name}处理 ['{filename_text_ori}'] 文件名时出错了: {e}")
+        logger.error(f"{plugins_name}处理 ['{filename_text_ori}'] 文件名时出错了: {e}")
         filename_text = filename_text_ori
     return filename_text
 
@@ -319,7 +442,7 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
             if 'TALB' in audio.tags:
                 org_album = audio.tags['TALB'].text[0]
             if org_album:
-                authors = org_album
+                authors = org_album or authors
             else:
                 authors = get_book_name(folder_name) or authors
         ######################################################################
@@ -426,7 +549,7 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
         audio['artist'] = "新作者"
         audio['composer'] = "演播者"
         audio['mvnm'] = "系列"
-        audio['date'] = "2055"
+        audio['date'] = "2018"
         audio['album'] = "新专辑"
         audio['genre'] = "题材"
         audio['tracknumber'] = "音频序号"
@@ -440,7 +563,7 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
             audio['genre'] = subject
         # 音频序号
         if trck_num:
-            audio['tracknumber'] = trck_num
+            audio['tracknumber'] = str(trck_num)
         # 使用文件名作为元数据标题
         if use_filename:
             audio['title'] = filename_text
@@ -498,7 +621,7 @@ def move_to_dir(output_dir, authors, year, narrators, series, album, art_album, 
     for filename in os.listdir(dir_path):
         thread_move_to_dir(dir_path, filename, authors, year, narrators, series,album, art_album, use_filename, subject)
     if clip_configs != 'clip_and_move':
-        _LOGGER.info(f'{plugins_name}添加元数据并分配到子文件夹完成')
+        logger.info(f'{plugins_name}添加元数据并分配到子文件夹完成')
 
 def diy_abs(folder_path, series, authors, narrators, year):
     # 处理当前文件夹中的 metadata.abs 文件
@@ -507,7 +630,7 @@ def diy_abs(folder_path, series, authors, narrators, year):
         try:
             edit_abs(metadata_path, None, series, authors, narrators, year)
         except Exception as e:
-            _LOGGER.error(f"{plugins_name}处理 ['{folder_path}'] 文件夹中的 metadata.abs 文件出错了: {e}")
+            logger.error(f"{plugins_name}处理 ['{folder_path}'] 文件夹中的 metadata.abs 文件出错了: {e}")
     # 遍历所有子文件夹
     for subdir in os.listdir(folder_path):
         subdir_path = os.path.join(folder_path, subdir)
@@ -518,9 +641,9 @@ def diy_abs(folder_path, series, authors, narrators, year):
                 try:
                     edit_abs(metadata_path, subdir, series, authors, narrators, year)
                 except Exception as e:
-                    _LOGGER.error(f"{plugins_name}处理 ['{subdir_path}'] 文件夹中的 metadata.abs 文件出错了: {e}")
+                    logger.error(f"{plugins_name}处理 ['{subdir_path}'] 文件夹中的 metadata.abs 文件出错了: {e}")
                     continue
-    _LOGGER.info(f'{plugins_name}DIY 元数据完成（修改为 Audiobookshelf 能识别的元数据）')
+    logger.info(f'{plugins_name}DIY 元数据完成（修改为 Audiobookshelf 能识别的元数据）')
 
 def edit_abs(metadata_path, subdir, series, authors, narrators, year):
             # metadata_path = '/a/b/metadata.abs' 这样的完整路径
@@ -569,7 +692,7 @@ def move_out(output_dir):
                 dst_path = os.path.join(output_dir, file)
                 # 移动文件
                 shutil.move(src_path, dst_path)
-    _LOGGER.info(f'{plugins_name}音频已从子文件夹全部移到 {output_dir}')
+    logger.info(f'{plugins_name}音频已从子文件夹全部移到 {output_dir}')
 
 def match_subfolder(filename,series):
     # 处理文件名规范为 0236 xxxx 或者 第0236集 格式
@@ -588,8 +711,9 @@ def match_subfolder(filename,series):
     return subfolder,filename_text
 
 # 处理output_dir文件夹及其子文件夹下的文件
-def all_add_tag(output_dir, authors, year, narrators, series, album, art_album,use_filename,subject):
+def all_add_tag(output_dir, authors, year, narrators, series, album, art_album,use_filename,subject,diy_cover):
     # 遍历目录中的所有文件和子文件夹
+    i=0
     for root, dirs, files in os.walk(output_dir):
         for filename in files:
             # album 变量有值时将其赋给 subfolder 变量，否则将 subfolder 变量的值保持不变
@@ -597,8 +721,14 @@ def all_add_tag(output_dir, authors, year, narrators, series, album, art_album,u
             subfolder = album or subfolder
             # 处理文件, 跳过文件夹
             file_path = os.path.join(root, filename)
+            if datetime.datetime.now().second % 10 == 0 or i==0:
+                logger.info(f"{plugins_name}开始处理: {file_path}")
             add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder, use_filename, subject, filename_text)
-    _LOGGER.info(f'{plugins_name}DIY 元数据完成')
+            if diy_cover:
+                cover_art_path = os.path.join(output_dir, 'cover.jpg')
+                add_cover(file_path,cover_art_path)
+            i=i+1
+    logger.info(f'{plugins_name}DIY 元数据完成')
 
 def push_msg_to_mbot(msg_title, msg_digest):
     msg_data = {
@@ -613,7 +743,7 @@ def push_msg_to_mbot(msg_title, msg_digest):
                 server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data, to_uid=_, to_channel_name = channel)
         else:
             server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data)
-        _LOGGER.info(f'{plugins_name}已推送消息')
+        logger.info(f'{plugins_name}已推送消息')
         return
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}推送消息异常, 原因: {e}')
+        logger.error(f'{plugins_name}推送消息异常, 原因: {e}')
