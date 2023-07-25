@@ -105,6 +105,12 @@ def get_audio_info(file_path):
                     authors = audio.tags['TPE1'].text[0]
                 else:
                     authors = ''
+                # 简介
+                if 'TXXX:summary' in audio.tags:
+                    # 获取TXXX标签"summary"的值
+                    summary = audio.tags.getall('TXXX:summary')[0].text[0]
+                else:
+                    authors = ''
             if ext == '.m4a':
                 # 标题
                 org_title = audio.tags.get('©nam', [''])[0]
@@ -112,13 +118,16 @@ def get_audio_info(file_path):
                 year = audio.tags.get('©day', [''])[0]
                 # 艺术家
                 authors = audio.tags.get('©ART', [''])[0]
+                # 简介
+                summary = audio.tags.get('summ', [''])[0]
             if ext == '.flac':
                 org_title = audio.get('title', [''])[0]
                 year = audio.get('date', [''])[0]
                 authors = audio.get('artist', [''])[0]
+                summary = audio.get('SUMMARY', [''])[0]
     except Exception as e:
         logger.error(f"获取音频基本信息出错，原因：{e}")
-    return org_title,year,authors,duration_formatted
+    return org_title,year,authors,duration_formatted,summary
 
 def get_audio_files(directory):
     audio_extensions = ['.mp3', '.m4a', '.flac']
@@ -132,8 +141,11 @@ def get_audio_files(directory):
 
 def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author, index_range,audio_path,book_title,podcast_url):
     rss = Element('rss', attrib={'xmlns:itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'version': '2.0'})
-    if not podcast_author:
-        aa,bb,podcast_author,cc = get_audio_info(audio_files_batch[0])
+    if not podcast_author or not podcast_summary:
+        aa,bb,podcast_au,cc,podcast_summ = get_audio_info(audio_files_batch[0])
+    podcast_author = podcast_author or podcast_au
+    podcast_summary = podcast_summary or podcast_summ
+
     channel = SubElement(rss, 'channel')
     SubElement(channel, 'podcast_url').text = podcast_url
     SubElement(channel, 'title').text = podcast_title
@@ -149,7 +161,7 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
     pub_date = datetime.now()
     # xxxx = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
     for i, audio_file in enumerate(audio_files_batch, start=index_range[0]):
-        org_title,pub_year,authors,duration = get_audio_info(audio_file)
+        org_title,pub_year,authors,duration,summary = get_audio_info(audio_file)
         item = SubElement(channel, 'item')
         if not org_title:
             title_text = os.path.splitext(os.path.basename(audio_file))[0].replace(book_title,"")
