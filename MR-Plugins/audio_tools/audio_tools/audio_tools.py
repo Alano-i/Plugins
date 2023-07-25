@@ -151,7 +151,7 @@ def save_cover(input_file,cover_file):
     except Exception as e:
         pass
 
-def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, album, art_album, group_now, use_filename, subject):
+def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, summary, album, art_album, group_now, use_filename, subject):
     global local_has_cover
     files_num = len(filenames_group)
     for i, filename in enumerate(filenames_group):
@@ -232,14 +232,14 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
 
 ################################################################################################################
                 if clip_configs == 'clip_and_move':
-                    thread_move_to_dir(cliped_folder_dir,filename,authors,year,narrators,series,album,art_album,use_filename,subject)
+                    thread_move_to_dir(cliped_folder_dir,filename,authors,year,narrators,series,summary,album,art_album,use_filename,subject)
 
         except Exception as e:
             logger.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
             continue
 
 
-def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip_configs,authors,year,narrators,series,album,art_album,use_filename,subject):
+def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip_configs,authors,year,narrators,series,summary,album,art_album,use_filename,subject):
     # cliped_folder_dir = f'{input_dir}/{cliped_folder}'
     cliped_folder_dir = os.path.join(input_dir, cliped_folder)
     audio_end = int(audio_end)
@@ -279,7 +279,7 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
         group_now = f"{group_num+1}/{all_group_num}"
         logger.warning(f"{plugins_name}开始剪辑第 {group_now} 个分组")
         # 多线程
-        thread = threading.Thread(target=thread_audio_clip, args=(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, album, art_album, group_now, use_filename, subject))
+        thread = threading.Thread(target=thread_audio_clip, args=(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, summary, album, art_album, group_now, use_filename, subject))
         thread.start()
         threads.append(thread)
         time.sleep(1)
@@ -412,7 +412,7 @@ def extract_filename(filename,series):
     return filename_text
 
 # 添加元数据
-def add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder, use_filename, subject, filename_text):
+def add_tag(file_path, authors, year, narrators, series, summary, album, art_album, subfolder, use_filename, subject, filename_text):
     """
     mp3、flac格式: 自定义标签 MVNM 为系列, 标签键: MVNM,  标签类型: 普通文本,  标签值: 系列文本
     m4a格式: 自定义标签 ----:com.apple.iTunes:series 为系列, 标签键: ----:com.apple.iTunes:series,  标签类型: 普通文本,  标签值: 系列文本
@@ -479,6 +479,11 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
             # audio.tags.setall('TXXX', [new_TXXX_mvn_frame])
             audio.tags.add(new_TXXX_mvn_frame)
             audio.tags.add(new_TXXX_MVNM_frame)
+        # 简介
+        if summary:
+            new_TXXX_summary_frame = mutagen.id3.TXXX(encoding=3, desc='summary', text=[summary])
+            audio.tags.add(new_TXXX_summary_frame)
+
         if art_album:
             # 专辑艺术家
             new_TPE2_frame = mutagen.id3.TPE2(encoding=3, text=[art_album])
@@ -519,6 +524,9 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
             audio.tags['MVNM'] = series
             # 设置series标签（系列）
             audio['----:com.apple.iTunes:series'] = mutagen.mp4.MP4FreeForm(series.encode())
+        # 简介
+        if summary:
+            audio.tags['summ'] = summary
         # 专辑名称 标签
         if album:
             audio.tags['©alb'] = album
@@ -570,6 +578,9 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
         # 系列名称 自定义标签
         if series:
             audio['mvnm'] = series
+        # 简介    
+        if summary:
+            audio['summary'] = summary
         # 专辑名称 标签
         if album:
             audio['album'] = album
@@ -590,7 +601,7 @@ def add_tag(file_path, authors, year, narrators, series, album, art_album, subfo
         audio.save()
 
 # 线程任务文件分配到文件夹中
-def thread_move_to_dir(dir_path, filename, authors, year, narrators, series, album, art_album, use_filename, subject):
+def thread_move_to_dir(dir_path, filename, authors, year, narrators, series, summary, album, art_album, use_filename, subject):
     src_file_path = os.path.join(dir_path, filename)
     # 只处理文件, 跳过文件夹
     if os.path.isfile(src_file_path):
@@ -598,7 +609,7 @@ def thread_move_to_dir(dir_path, filename, authors, year, narrators, series, alb
         subfolder,filename_text = match_subfolder(filename,series)
         subfolder = album or subfolder
         # 添加tag
-        add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder, use_filename, subject, filename_text)
+        add_tag(file_path, authors, year, narrators, series, summary, album, art_album, subfolder, use_filename, subject, filename_text)
         if subfolder:    
             # 创建子文件夹, 如果不存在
             subfolder_path = os.path.join(dir_path, subfolder)
@@ -612,14 +623,14 @@ def thread_move_to_dir(dir_path, filename, authors, year, narrators, series, alb
             shutil.move(src_file_path, dst_file_path)
 
 # 文件分配到文件夹中
-def move_to_dir(output_dir, authors, year, narrators, series, album, art_album, clip_configs, use_filename, subject):
+def move_to_dir(output_dir, authors, year, narrators, series, summary, album, art_album, clip_configs, use_filename, subject):
     dir_path = output_dir
     # 如果目录不存在, 则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     # 遍历目录中的所有文件
     for filename in os.listdir(dir_path):
-        thread_move_to_dir(dir_path, filename, authors, year, narrators, series,album, art_album, use_filename, subject)
+        thread_move_to_dir(dir_path, filename, authors, year, narrators, series, summary, album, art_album, use_filename, subject)
     if clip_configs != 'clip_and_move':
         logger.info(f'{plugins_name}添加元数据并分配到子文件夹完成')
 
@@ -711,7 +722,7 @@ def match_subfolder(filename,series):
     return subfolder,filename_text
 
 # 处理output_dir文件夹及其子文件夹下的文件
-def all_add_tag(output_dir, authors, year, narrators, series, album, art_album,use_filename,subject,diy_cover):
+def all_add_tag(output_dir, authors, year, narrators, series, summary, album, art_album,use_filename,subject,diy_cover):
     # 遍历目录中的所有文件和子文件夹
     i=0
     for root, dirs, files in os.walk(output_dir):
@@ -723,7 +734,7 @@ def all_add_tag(output_dir, authors, year, narrators, series, album, art_album,u
             file_path = os.path.join(root, filename)
             if datetime.datetime.now().second % 10 == 0 or i==0:
                 logger.info(f"{plugins_name}开始处理: {file_path}")
-            add_tag(file_path, authors, year, narrators, series, album, art_album, subfolder, use_filename, subject, filename_text)
+            add_tag(file_path, authors, year, narrators, series, summary, album, art_album, subfolder, use_filename, subject, filename_text)
             if diy_cover:
                 cover_art_path = os.path.join(output_dir, 'cover.jpg')
                 add_cover(file_path,cover_art_path)
