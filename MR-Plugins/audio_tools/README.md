@@ -21,7 +21,8 @@ MR插件，剪辑片头片尾，修改元数据，整理系列文件夹，`plex`
 <img width="753" alt="image" src="https://github.com/Alano-i/wecom-notification/assets/68833595/406258b9-7404-4078-a8ca-f78d9b6f74ef">
 
 ## 配置简要说明示例
-![image](https://github.com/Alano-i/wecom-notification/assets/68833595/a64f06a4-c2c6-409e-bcf5-9ec92be84200)
+<img width="584" alt="image" src="https://github.com/Alano-i/wecom-notification/assets/68833595/632d9dce-c4a5-4c3a-b77f-92f8a9cb49f9">
+
 
 
 ## 如果觉得好用的话可以请我喝杯咖啡
