@@ -156,7 +156,7 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
         else:
             title_text = org_title
         SubElement(item, 'title').text = title_text
-        audio_url = f'{base_url}/{os.path.basename(audio_path)}{audio_file.replace(audio_path,"")}'
+        audio_url = f'{base_url}{audio_path.replace(src_base_path,"")}{audio_file.replace(audio_path,"")}'
         audio_url = url_encode(audio_url)
         SubElement(item, 'enclosure', attrib={'url': audio_url, 'type': 'audio/mpeg'})
         SubElement(item, 'guid').text = f'{base_url}/{os.path.basename(audio_file)}'
@@ -226,9 +226,12 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     cover_file = os.path.join(audio_path, "cover.jpg")
     if audio_files and not os.path.exists(cover_file): save_cover(audio_files[0],audio_path)
     if os.path.exists(cover_file):
-        cover_file_hlink = f"{dst_base_path}/{os.path.basename(audio_path)}/cover.jpg"
+        # audio_path = '/Media/音乐/有声书/ABC/DEF'
+        # src_base_path = '/Media/音乐/有声书'
+        add_path = audio_path.replace(src_base_path,'')
+        cover_file_hlink = f"{dst_base_path}{add_path}/cover.jpg"
         create_hard_link(cover_file,cover_file_hlink)
-        cover_image_url = f"{base_url}/{os.path.basename(audio_path)}/cover.jpg"
+        cover_image_url = f"{base_url}{add_path}/cover.jpg"
     else:
         cover_image_url = ''
     cover_image_url = url_encode(cover_image_url)
@@ -274,8 +277,8 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         # with open(out_file, 'w', encoding='utf-8') as f:
         #     f.write(rss_xml)
         file_name = os.path.basename(out_file)
-        out_file_hlink = f"{dst_base_path}/{os.path.basename(audio_path)}/{file_name}"
-        link = f"{base_url}/{os.path.basename(audio_path)}/{file_name}"
+        out_file_hlink = f"{dst_base_path}/{add_path}/{file_name}"
+        link = f"{base_url}/{add_path}/{file_name}"
         link = url_encode(link)
         rss_xml = create_itunes_rss_xml(
             audio_files_batch,
