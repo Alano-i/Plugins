@@ -2,8 +2,8 @@
   "name": "audio_tools",
   "title": "有声书工具箱",
   "author": "Alano",
-  "description": "剪辑片头片尾，修改元数据，整理系列文件夹，plex Audiobookshelf 可识别。",
-  "version": "1.2",
+  "description": "剪辑片头片尾，修改元数据，制作播客源，plex Audiobookshelf 可识别。",
+  "version": "1.5",
   "requirements": null,
   "configField": [
     {
@@ -28,6 +28,20 @@
       "label": "推送消息封面",
       "helperText": "",
       "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/audio_tools/audio_tools/logo.jpg"
+    },
+    {
+      "fieldName": "mbot_url",
+      "fieldType": "String",
+      "label": "Mbot外网访问URL，示例：http://mbot.xx.com",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "src_base_path",
+      "fieldType": "String",
+      "label": "有声书文件夹",
+      "helperText": "",
+      "defaultValue": ""
     }
   ],
   "logoUrl": "/plugins/audio_tools/logo.jpg",
