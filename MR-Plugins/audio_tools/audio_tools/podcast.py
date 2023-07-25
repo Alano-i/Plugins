@@ -156,10 +156,10 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
         else:
             title_text = org_title
         SubElement(item, 'title').text = title_text
-        audio_url = f'{base_url}{audio_path.replace(src_base_path,"")}{audio_file.replace(audio_path,"")}'
-        audio_url = url_encode(audio_url)
+        audio_url_m = f'{base_url}{audio_path.replace(src_base_path,"")}{audio_file.replace(audio_path,"")}'
+        audio_url = url_encode(audio_url_m)
         SubElement(item, 'enclosure', attrib={'url': audio_url, 'type': 'audio/mpeg'})
-        SubElement(item, 'guid').text = f'{base_url}/{os.path.basename(audio_file)}'
+        SubElement(item, 'guid').text = audio_url_m
         if pub_year:
             try:
                 pub_year = int(str(pub_year))
