@@ -7,6 +7,7 @@ from xml.dom import minidom
 import mutagen
 from datetime import timedelta
 import logging
+import ffmpeg
 from urllib.parse import quote
 from mbot.openapi import mbot_api
 server = mbot_api
@@ -172,8 +173,14 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
         pub_date += timedelta(minutes=1)
     return minidom.parseString(tostring(rss)).toprettyxml(indent='    ')
 
+def save_cover(input_file,audio_path):
+    try:
+        cover_art_path = os.path.join(audio_path, 'cover.jpg')
+        ffmpeg.input(input_file).output(cover_art_path, map='0:v', f='image2').run(overwrite_output=True)
+    except Exception as e:
+        pass
 
-def save_cover(filename,audio_path):
+def save_cover_back(filename,audio_path):
     try:
         exts = ['.m4a', '.mp3']
         file_name, file_ext = os.path.splitext(filename)
