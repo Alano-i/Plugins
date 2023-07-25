@@ -3,12 +3,14 @@ MR插件，剪辑片头片尾，修改元数据，整理系列文件夹，`plex`
 - 片头片尾的时间，需要自行获取
 - 自定义元数据，按提示填写即可
 - 自动按每100集自动分组
+- 支持生成 Apple 播客源
+- 支持单独修改音频封面
 
 ## 使用说明
 - 将 `audio_tools` 文件夹放到 `Plugins` 文件夹。
-- 重启后如果日志报错：依赖库 `mutagen` `cn2an` 安装失败而导致插件载入失败，请手动进入 MR 命令行安装，安装命令：`pip install mutagen cn2an`
-- 需要  `apt update`   `apt install bc -y`
+- 重启后如果日志报错：依赖库 `mutagen` `cn2an` 安装失败而导致插件载入失败，请手动进入 MR 命令行安装，安装命令：`pip install mutagen cn2an ffmpeg-python`
 - 听有声书我用的 Prologue（美区App Store），支持 Plex。
+- 听有声书也可用生成的播客源 URL 添加到 iOS 自带的播客 App 中。
 
 ## 整理完成之后效果如下
 <img width="1258" alt="image" src="https://github.com/Alano-i/wecom-notification/assets/68833595/cd0d43a1-813c-4d99-a1b4-01d89fd417c8">
