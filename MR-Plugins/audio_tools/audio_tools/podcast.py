@@ -208,11 +208,11 @@ def save_cover_back(filename,audio_path):
     except Exception as e:
         logger.error(f"保存有声书封面失败，原因：{e}")
 
-def push_msg_to_mbot(msg_title, msg_digest, link_url):
+def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
     msg_data = {
         'title': msg_title,
         'a': msg_digest,
-        'pic_url': pic_url,
+        'pic_url': cover_image_url,
         'link_url': link_url,
     }
     try:
@@ -309,4 +309,4 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
     msg_title = f"{book_title} - 已生成播客源URL"
     msg_digest = link_url
-    push_msg_to_mbot(msg_title, msg_digest,link_url)
+    push_msg_to_mbot(msg_title, msg_digest,link_url,cover_image_url)
