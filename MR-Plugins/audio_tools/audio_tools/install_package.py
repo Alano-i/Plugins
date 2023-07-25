@@ -29,7 +29,7 @@ def GetPackage(PackageName):
         install_log = os.popen(comand)
         # logger.error(f"「每天60秒读懂世界 - 安装依赖脚本」安装日志：{install_log}")
         logger.info(f'{plugins_name} - 安装依赖脚本, 安装依赖日志如下:\n{install_log.read()}')
-        logger.warning(f'{plugins_name} - 安装依赖脚本, 如果下方报错：依赖库安装失败导致插件载入失败，请手动进入 MR 命令行安装，安装命令：pip install mutagen cn2an')
+        logger.warning(f'{plugins_name} - 安装依赖脚本, 如果下方报错：依赖库安装失败导致插件载入失败，请手动进入 MR 命令行安装，安装命令：pip install mutagen cn2an ffmpeg-python')
         # os.system(f'{comand} | tee /data/plugins/daily_news/install.log')
     except Exception as e:
         logger.error(f"{plugins_name} - 安装依赖脚本, 安装依赖库失败！原因：{e}")
