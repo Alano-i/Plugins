@@ -82,6 +82,8 @@ def get_audio_info(file_path):
     year = ''
     authors = ''
     duration_formatted = ''
+    summary = ''
+    trck_num = ''
     try:
         ext = os.path.splitext(file_path)[1].lower()
         audio = mutagen.File(file_path)
@@ -91,25 +93,34 @@ def get_audio_info(file_path):
             duration_formatted = str(timedelta(seconds=duration))
             if ext == '.mp3':
                 # 读取原音频标题
-                if 'TIT2' in audio.tags:
+                try:
                     org_title = audio.tags['TIT2'].text[0]
-                else:
+                except Exception as e:
                     org_title = ''
                 # 年份
-                if 'TDRC' in audio.tags:
+                try:
                     year = audio.tags['TDRC'].text[0]
-                else:
+                except Exception as e:
                     year = ''
                 # 艺术家
-                if 'TPE1' in audio.tags:
+                try:
                     authors = audio.tags['TPE1'].text[0]
-                else:
+                except Exception as e:
                     authors = ''
+
+                # 音轨序号
+                try:
+                    trck_num = audio.tags['TRCK'].text[0]
+                    if '/' in trck_num:
+                        trck_num = trck_num.split('/')[0]
+                except Exception as e:
+                    trck_num = ''
                 # 简介
-                if 'TXXX:summary' in audio.tags:
+                # if 'TXXX:summary' in audio.tags:
+                try:
                     # 获取TXXX标签"summary"的值
                     summary = audio.tags.getall('TXXX:summary')[0].text[0]
-                else:
+                except Exception as e:
                     authors = ''
             if ext == '.m4a':
                 # 标题
@@ -120,14 +131,16 @@ def get_audio_info(file_path):
                 authors = audio.tags.get('©ART', [''])[0]
                 # 简介
                 summary = audio.tags.get('summ', [''])[0]
+                trck_num = audio.tags.get('trkn', [('','')])[0][0]
             if ext == '.flac':
                 org_title = audio.get('title', [''])[0]
                 year = audio.get('date', [''])[0]
                 authors = audio.get('artist', [''])[0]
                 summary = audio.get('SUMMARY', [''])[0]
+                trck_num = audio.get('tracknumber', [''])[0]
     except Exception as e:
         logger.error(f"获取音频基本信息出错，原因：{e}")
-    return org_title,year,authors,duration_formatted,summary
+    return org_title,year,authors,duration_formatted,summary,trck_num
 
 def get_audio_files(directory):
     audio_extensions = ['.mp3', '.m4a', '.flac']
@@ -139,49 +152,70 @@ def get_audio_files(directory):
     return sorted(audio_files, key=lambda x: os.path.basename(x))  # 升序 01 02 03
     # return sorted(audio_files, key=lambda x: os.path.basename(x), reverse=True)  # 降序 03 02 01
 
-def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author, index_range,audio_path,book_title,podcast_url):
+def get_season_episode(trck_num,is_group):
+    season_num = ''
+    episode_num = ''
+    if trck_num:
+        try:
+            trck_num = int(trck_num)  # 确保trck_num是整数类型
+        except Exception as e:
+            trck_num = 0
+        if is_group:
+            season_num = max(((trck_num - 1) // 100),0)
+        else:
+            season_num = max(((trck_num - 1) // 100+1),0)
+        episode_num = trck_num
+    if season_num == 0 or not season_num: season_num = '1'
+    if episode_num == 0: episode_num = ''
+    return str(season_num), str(episode_num)
+
+def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group):
     rss = Element('rss', attrib={'xmlns:itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'version': '2.0'})
     if not podcast_author or not podcast_summary:
-        aa,bb,podcast_au,cc,podcast_summ = get_audio_info(audio_files_batch[0])
+        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0])
     podcast_author = podcast_author or podcast_au
     podcast_summary = podcast_summary or podcast_summ
 
     channel = SubElement(rss, 'channel')
     SubElement(channel, 'podcast_url').text = podcast_url
     SubElement(channel, 'title').text = podcast_title
-    # SubElement(channel, 'link').text = "https://www.apple.com.cn/apple-podcasts/"
     SubElement(channel, 'link').text = cover_image_url
     SubElement(channel, 'language').text = 'zh-cn'
-    SubElement(channel, 'itunes:summary').text = podcast_summary
-    SubElement(channel, 'itunes:category', attrib={'text': podcast_category})
     SubElement(channel, 'itunes:author').text = podcast_author
-    # Use itunes:image instead of image
-    SubElement(channel, 'itunes:image', attrib={'href': cover_image_url})
-    SubElement(channel, 'description').text = podcast_summary  # Set description as well
+    SubElement(channel, 'itunes:summary').text = podcast_summary # 简介
+    SubElement(channel, 'itunes:type').text = "serial"
+    SubElement(channel, 'itunes:explicit').text = "false"   # 是否存在露骨内容
+    SubElement(channel, 'itunes:category', attrib={'text': podcast_category})
+    SubElement(channel, 'itunes:image', attrib={'href': cover_image_url}) # 封面
+    SubElement(channel, 'description').text = podcast_summary  # 简介
     pub_date = datetime.now()
-    # xxxx = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
-    for i, audio_file in enumerate(audio_files_batch, start=index_range[0]):
-        org_title,pub_year,authors,duration,summary = get_audio_info(audio_file)
+    for i, audio_file in enumerate(audio_files_batch, start=1):
+        org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file)
+        season_num, episode_num = get_season_episode(trck_num,is_group)
         item = SubElement(channel, 'item')
         if not org_title:
             title_text = os.path.splitext(os.path.basename(audio_file))[0].replace(book_title,"").strip('/')
             title_text = re.sub(r'[《》「」\[\]]', '', title_text).strip()
         else:
             title_text = org_title
-        SubElement(item, 'title').text = title_text
+        SubElement(item, 'itunes:episodeType').text = "full"  # 完整的内容，可选trailer:预告  bonus:类似特别篇
+        SubElement(item, 'itunes:season').text = season_num  # 季编号
+        SubElement(item, 'itunes:episode').text = episode_num    # 集编号
+        SubElement(item, 'title').text = title_text    # 集标题
         audio_url_m = f'{base_url}{audio_path.replace(src_base_path,"")}{audio_file.replace(audio_path,"")}'
         audio_url = url_encode(audio_url_m)
-        SubElement(item, 'enclosure', attrib={'url': audio_url, 'type': 'audio/mpeg'})
-        SubElement(item, 'guid').text = audio_url_m
+        SubElement(item, 'enclosure', attrib={'url': audio_url, 'type': 'audio/mpeg'})   # 指向音频文件的url
+        SubElement(item, 'guid').text = audio_url_m    # 全局唯一标识符
         if pub_year:
             try:
                 pub_year = int(str(pub_year))
             except Exception as e:
-                pass
+                pub_year = ''
             if isinstance(pub_year, int) and len(str(pub_year)) == 4:
                 pub_date = pub_date.replace(year=int(pub_year))
         SubElement(item, 'pubDate').text = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
         SubElement(item, 'itunes:duration').text = duration  # Replace with actual duration if available
+        SubElement(item, 'itunes:explicit').text = 'false'  # 是否存在露骨内容
         pub_date += timedelta(minutes=1)
     return minidom.parseString(tostring(rss)).toprettyxml(indent='    ')
 
@@ -245,80 +279,43 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     audio_files = get_audio_files(audio_path)
     cover_file = os.path.join(audio_path, "cover.jpg")
     if audio_files and not os.path.exists(cover_file): save_cover(audio_files[0],audio_path)
+    # audio_path = '/Media/音乐/有声书/ABC/DEF'
+    # src_base_path = '/Media/音乐/有声书'
+    add_path = audio_path.replace(src_base_path,'').strip('/') # ABC/DEF
     if os.path.exists(cover_file):
-        # audio_path = '/Media/音乐/有声书/ABC/DEF'
-        # src_base_path = '/Media/音乐/有声书'
-        add_path = audio_path.replace(src_base_path,'').strip('/') # ABC/DEF
         cover_file_hlink = f"{dst_base_path}/{add_path}/cover.jpg"
         create_hard_link(cover_file,cover_file_hlink)
         cover_image_url = f"{base_url}/{add_path}/cover.jpg"
     else:
         cover_image_url = ''
     cover_image_url = url_encode(cover_image_url)
-    if is_group:
-        batch_size = 100
-        num_batches = (len(audio_files) + batch_size - 1) // batch_size
-    else:
-        batch_size = len(audio_files)
-        num_batches = 1
-    link_group = []
-    for batch_num in range(num_batches):
-        start_index = batch_num * batch_size
-        end_index = start_index + batch_size
-        audio_files_batch = audio_files[start_index:end_index]
-        index_range = (start_index + 1, min(start_index + batch_size, len(audio_files)))
-        if is_group:
-            podcast_title = f'{book_title} {index_range[0]}-{index_range[1]}'
-        else:
-            podcast_title = f'{book_title}'
-        # rss_xml = create_itunes_rss_xml(
-        #     audio_files_batch,
-        #     base_url,
-        #     cover_image_url,
-        #     podcast_title,
-        #     podcast_summary,
-        #     podcast_category,
-        #     podcast_author,
-        #     index_range,
-        #     audio_path,
-        #     book_title,
-        #     podcast_url
-        # )
-        """
-        dst_base_path = "/app/frontend/static/podcast/audio"
-        audio_path = "/Media/音乐/有声书/三国"
-        """
-        if is_group:
-            out_file = f'{audio_path}/{book_title} {index_range[0]}-{index_range[1]}.xml'
-            display_title = f"{book_title} {index_range[0]}-{index_range[1]}"
-        else:
-            out_file = f'{audio_path}/{book_title}.xml'
-            display_title = book_title
-        # with open(out_file, 'w', encoding='utf-8') as f:
-        #     f.write(rss_xml)
-        file_name = os.path.basename(out_file).strip('/')
-        out_file_hlink = f"{dst_base_path}/{add_path}/{file_name}"
-        link = f"{base_url}/{add_path}/{file_name}"
-        link = url_encode(link)
-        rss_xml = create_itunes_rss_xml(
-            audio_files_batch,
-            base_url,
-            cover_image_url,
-            podcast_title,
-            podcast_summary,
-            podcast_category,
-            podcast_author,
-            index_range,
-            audio_path,
-            book_title,
-            link
-        )
-        with open(out_file, 'w', encoding='utf-8') as f:
-            f.write(rss_xml)
-        create_hard_link(out_file,out_file_hlink)
-        update_xml_url(f"{src_base_path}/podcast.json",display_title,link)
-        link_group.append(link)
-    link_url = '\n'.join(link_group)
+    podcast_title = book_title
+    out_file = f'{audio_path}/{book_title}.xml'
+    display_title = book_title
+    # index_range = (1, len(audio_files))
+
+    file_name = os.path.basename(out_file).strip('/')
+    out_file_hlink = f"{dst_base_path}/{add_path}/{file_name}"
+    link = f"{base_url}/{add_path}/{file_name}"
+    link = url_encode(link)
+    rss_xml = create_itunes_rss_xml(
+        audio_files,
+        base_url,
+        cover_image_url,
+        podcast_title,
+        podcast_summary,
+        podcast_category,
+        podcast_author,
+        audio_path,
+        book_title,
+        link,
+        is_group
+    )
+    with open(out_file, 'w', encoding='utf-8') as f:
+        f.write(rss_xml)
+    create_hard_link(out_file,out_file_hlink)
+    update_xml_url(f"{src_base_path}/podcast.json",display_title,link)        
+    link_url = link
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
     msg_title = f"{book_title} - 已生成播客源URL"
     msg_digest = link_url
