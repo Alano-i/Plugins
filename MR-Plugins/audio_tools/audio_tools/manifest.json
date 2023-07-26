@@ -39,7 +39,7 @@
     {
       "fieldName": "src_base_path",
       "fieldType": "String",
-      "label": "有声书文件夹",
+      "label": "有声书父文件夹",
       "helperText": "",
       "defaultValue": ""
     }
