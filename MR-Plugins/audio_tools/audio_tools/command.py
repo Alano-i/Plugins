@@ -100,11 +100,11 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
                 podcast_category: ArgSchema(ArgType.String, '分类', '', default_value='', required=False),
                 podcast_author: ArgSchema(ArgType.String, '作者', '', default_value='', required=False),
-                is_group_config: ArgSchema(ArgType.Enum, '按每100集进行分组，默认关闭', '', enum_values=lambda: use_filename_config_list, default_value='off', multi_value=False, required=False)):
+                is_group_config: ArgSchema(ArgType.Enum, '第1季强制200集，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
     is_group = bool(is_group_config and is_group_config.lower() != 'off')
     book_title_new = book_title
     try:
-        logger.info(f"{plugins_name}任务 - 生成播客源 URL\n书名：['{book_title}']\n输入路径：['{audio_paths}']\n有声书简介：['{podcast_summary}']\n有声书分类：['{podcast_category}']\n作者：['{podcast_author}']\n开启每100集分组：{is_group}")
+        logger.info(f"{plugins_name}任务 - 生成播客源 URL\n书名：['{book_title}']\n输入路径：['{audio_paths}']\n有声书简介：['{podcast_summary}']\n有声书分类：['{podcast_category}']\n作者：['{podcast_author}']\n第1季强制200集：{is_group}")
         audio_path_list = audio_paths.split('\n')
         for i, audio_path in enumerate(audio_path_list):
             if not book_title:
