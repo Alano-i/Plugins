@@ -36,7 +36,6 @@ def create_hard_link(src_path,dst_path):
 
 def update_xml_url(file_path,display_title,link):
     try:
-        # 判断文件是否存在
         if not os.path.exists(file_path):
             # 文件不存在，初始化一个空的JSON内容
             json_data = {}
@@ -107,7 +106,6 @@ def get_audio_info(file_path):
                     authors = audio.tags['TPE1'].text[0]
                 except Exception as e:
                     authors = ''
-
                 # 音轨序号
                 try:
                     trck_num = audio.tags['TRCK'].text[0]
@@ -157,7 +155,7 @@ def get_season_episode(trck_num,is_group):
     episode_num = ''
     if trck_num:
         try:
-            trck_num = int(trck_num)  # 确保trck_num是整数类型
+            trck_num = int(trck_num)
         except Exception as e:
             trck_num = 0
         if is_group:
@@ -175,7 +173,6 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
         aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0])
     podcast_author = podcast_author or podcast_au
     podcast_summary = podcast_summary or podcast_summ
-
     channel = SubElement(rss, 'channel')
     SubElement(channel, 'podcast_url').text = podcast_url
     SubElement(channel, 'title').text = podcast_title
@@ -292,8 +289,6 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     podcast_title = book_title
     out_file = f'{audio_path}/{book_title}.xml'
     display_title = book_title
-    # index_range = (1, len(audio_files))
-
     file_name = os.path.basename(out_file).strip('/')
     out_file_hlink = f"{dst_base_path}/{add_path}/{file_name}"
     link = f"{base_url}/{add_path}/{file_name}"
