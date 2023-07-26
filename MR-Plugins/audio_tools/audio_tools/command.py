@@ -137,8 +137,10 @@ def add_cover_m_echo(ctx: PluginCommandContext,
     return PluginCommandResponse(True, f'添加封面任务完成')
 
 @plugin.command(name='get_xml_url', title='查看已生成播客源', desc='查看已生成 Apple 播客源 URL', icon='RssFeedSharp',run_in_background=True)
-def get_xml_url_echo(ctx: PluginCommandContext):
-    get_xml_url()
+def get_xml_url_echo(ctx: PluginCommandContext,
+                send_sms_config: ArgSchema(ArgType.Enum, '推送消息，默认关闭', '开启后，有多少个播客源就将收到多少条消息', enum_values=lambda: use_filename_config_list, default_value='off', multi_value=False, required=False)):
+    send_sms = bool(send_sms_config and send_sms_config.lower() != 'off')
+    get_xml_url(send_sms)
     return PluginCommandResponse(True, f'已生成播客源 RSS URL 获取完成')
 
 @plugin.command(name='diy_abs', title='修改metadata.abs', desc='修改 Audiobookshelf 元数据', icon='SwitchAccessShortcutAdd',run_in_background=True)
