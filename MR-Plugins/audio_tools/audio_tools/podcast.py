@@ -34,7 +34,7 @@ def create_hard_link(src_path,dst_path):
     os.symlink(src_path, dst_path) # 创建软链接
     # shutil.copyfile(src_path, dst_path) # 复制文件
 
-def update_xml_url(file_path,display_title,link):
+def update_xml_url(file_path,display_title,link,cover_image_url):
     try:
         if not os.path.exists(file_path):
             # 文件不存在，初始化一个空的JSON内容
@@ -43,7 +43,10 @@ def update_xml_url(file_path,display_title,link):
                 json.dump(json_data, file, indent=4, ensure_ascii=False)
         # 定义新增的内容
         new_content = {
-            display_title: link
+            display_title: {
+                "podcast_url": link,
+                "cover_url": cover_image_url
+            }
         }
         # 读取原始JSON文件内容
         try:
@@ -60,7 +63,7 @@ def update_xml_url(file_path,display_title,link):
     except Exception as e:
         logger.error(f"保存播客链接到json文件出错，原因：{e}")
 
-def get_xml_url():
+def get_xml_url(send_sms):
     file_path = f"{src_base_path}/podcast.json"
     # 判断文件是否存在
     if not os.path.exists(file_path):
@@ -70,7 +73,17 @@ def get_xml_url():
         with open(file_path, "r") as file:
             original_data = json.load(file)
         if original_data:
-            result = "\n".join([f"{key}：{value}" for key, value in original_data.items()])
+            # result = "\n".join([f"{key}：{value['podcast_url']}" for key, value in original_data.items()])
+            result_list = []
+            for key, value in original_data.items():
+                result_list.append(f"{key}：{value['podcast_url']}")
+                if send_sms:
+                    msg_title = f"{key} - 播客源URL"
+                    msg_digest = f"轻点卡片 - 再点右上角 - 在默认浏览器中打开，可快速添加至播客App中。"
+                    link_url = value['podcast_url']
+                    cover_image_url = value['cover_url']
+                    push_msg_to_mbot(msg_title, msg_digest,link_url,cover_image_url)
+            result = "\n".join(result_list)
             if result:
                 logger.info(f"已生成的有声书播客 RSS URL 如下：\n{result}")
     except Exception as e:
@@ -310,7 +323,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     with open(out_file, 'w', encoding='utf-8') as f:
         f.write(rss_xml)
     create_hard_link(out_file,out_file_hlink)
-    update_xml_url(f"{src_base_path}/podcast.json",display_title,link)        
+    update_xml_url(f"{src_base_path}/podcast.json",display_title,link,cover_image_url)        
     link_url = link
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
     msg_title = f"{book_title} - 播客源URL"
