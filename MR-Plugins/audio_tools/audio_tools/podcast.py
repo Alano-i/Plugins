@@ -253,6 +253,7 @@ def save_cover_back(filename,audio_path):
 
 def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
     image_url = cover_image_url if cover_image_url else pic_url
+    link_url = f"podcast:{link_url}" if link_url else ''
     msg_data = {
         'title': msg_title,
         'a': msg_digest,
@@ -312,6 +313,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     update_xml_url(f"{src_base_path}/podcast.json",display_title,link)        
     link_url = link
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
-    msg_title = f"{book_title} - 已生成播客源URL"
-    msg_digest = link_url
+    msg_title = f"{book_title} - 播客源URL"
+    # msg_digest = f"{link_url}\n\n轻点卡片 - 再点右上角 - 在默认浏览器中打开，可快速添加至播客App中。"
+    msg_digest = f"轻点卡片 - 再点右上角 - 在默认浏览器中打开，可快速添加至播客App中。"
     push_msg_to_mbot(msg_title, msg_digest,link_url,cover_image_url)
