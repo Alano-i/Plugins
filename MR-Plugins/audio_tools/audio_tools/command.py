@@ -109,6 +109,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
             audio_path = f"{output_dir}/{cliped_folder}"
             is_group = True
             is_clip = True
+            time.sleep(5)
             podcast_main(series, audio_path, podcast_summary, subject, authors, is_group,is_clip)
         except Exception as e:
             logger.error(f"「生成播客源」失败，原因：{e}")
