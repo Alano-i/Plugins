@@ -124,6 +124,7 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 is_clip_config: ArgSchema(ArgType.Enum, '此书是否运行过“音频剪辑”，默认已剪辑', '', enum_values=lambda: run_list, default_value='on', multi_value=False, required=False)):
     # audio_paths = /Media/有声书/三国
     # src_base_path = /Media/有声书
+    state = False
     if src_base_path not in audio_paths:
         audio_paths = f"/{src_base_path.strip('/')}/{audio_paths.strip('/')}"
     audio_paths = f"/{audio_paths.strip('/')}"
