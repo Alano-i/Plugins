@@ -78,7 +78,7 @@ def get_filename(audio_file,book_title):
     title_text = re.sub(r'[《》「」\[\]]', '', title_text).strip()
     return title_text
 
-def get_audio_info(file_path,book_title,is_clip):
+def get_audio_info(file_path,book_title,is_clip,fill_num):
     org_title = ''
     year = ''
     authors = ''
@@ -172,23 +172,12 @@ def get_audio_info(file_path,book_title,is_clip):
                     year = audio.get('date', [''])[0]
                     authors = audio.get('artist', [''])[0]
                     trck_num = audio.get('tracknumber', [''])[0]
-                # title_text = get_filename(file_path,book_title)
-                org_title = sortout_filename(file_path,book_title)
+                org_title = sortout_filename(os.path.basename(file_path),book_title,fill_num)
                 if not trck_num:
                     trck_num = extract_number(org_title)
             except Exception as e:
                 logger.error(f"获取音频基本信息出错，原因：{e}")
     return org_title,year,authors,duration_formatted,summary,trck_num
-
-def get_audio_files(directory):
-    audio_extensions = ['.mp3', '.m4a', '.flac']
-    audio_files = []
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if os.path.splitext(file)[1].lower() in audio_extensions:
-                audio_files.append(os.path.join(root, file))
-    return sorted(audio_files, key=lambda x: os.path.basename(x))  # 升序 01 02 03
-    # return sorted(audio_files, key=lambda x: os.path.basename(x), reverse=True)  # 降序 03 02 01
 
 def get_season_episode(trck_num,is_group):
     season_num = ''
@@ -207,10 +196,10 @@ def get_season_episode(trck_num,is_group):
     if episode_num == 0: episode_num = ''
     return str(season_num), str(episode_num)
 
-def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group,is_clip):
+def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group,is_clip,fill_num):
     rss = Element('rss', attrib={'xmlns:itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'version': '2.0'})
     if not podcast_author or not podcast_summary:
-        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0],book_title,is_clip)
+        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0],book_title,is_clip,fill_num)
     podcast_author = podcast_author or podcast_au
     podcast_summary = podcast_summary or podcast_summ
     channel = SubElement(rss, 'channel')
@@ -228,7 +217,7 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
     pub_date = datetime.now()
     for i, audio_file in enumerate(audio_files_batch, start=1):
 
-        org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file,book_title,is_clip)
+        org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file,book_title,is_clip,fill_num)
         season_num, episode_num = get_season_episode(trck_num,is_group)
         item = SubElement(channel, 'item')
         if not org_title:
@@ -318,7 +307,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
         return False
     base_url = f'{mbot_url}/static/podcast/audio'
-    audio_files = get_audio_files(audio_path)
+    audio_files,fill_num = get_audio_files(audio_path)
     cover_file = os.path.join(audio_path, "cover.jpg")
     if audio_files and not os.path.exists(cover_file): save_cover(audio_files[0],audio_path)
     # audio_path = '/Media/有声书/ABC/DEF'
@@ -350,7 +339,8 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         book_title,
         link,
         is_group,
-        is_clip
+        is_clip,
+        fill_num
     )
     write_xml_file(out_file,rss_xml)
     create_hard_link(out_file,out_file_hlink)
