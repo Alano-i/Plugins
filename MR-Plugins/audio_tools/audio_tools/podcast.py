@@ -15,7 +15,7 @@ from mbot.openapi import mbot_api
 server = mbot_api
 logger = logging.getLogger(__name__)
 # dst_base_path = "/app/frontend/static/podcast/audio"
-# src_base_path = '/Media/音乐/有声书'
+# src_base_path = '/Media/有声书'
 plugins_name = '「有声书工具箱」'
 
 def podcast_config(config,path):
@@ -326,7 +326,7 @@ def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
         logger.error(f'{plugins_name}推送消息异常, 原因: {e}')
 
 def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group):
-    audio_path = f"/{src_base_path.strip('/')}/{book_title}" if audio_path == "must_replace_path" else ''
+    audio_path = f"/{src_base_path.strip('/')}/{book_title}" if audio_path == "must_replace_path" else audio_path
     if not audio_path:
         logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
         return False
@@ -334,8 +334,8 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     audio_files = get_audio_files(audio_path)
     cover_file = os.path.join(audio_path, "cover.jpg")
     if audio_files and not os.path.exists(cover_file): save_cover(audio_files[0],audio_path)
-    # audio_path = '/Media/音乐/有声书/ABC/DEF'
-    # src_base_path = '/Media/音乐/有声书'
+    # audio_path = '/Media/有声书/ABC/DEF'
+    # src_base_path = '/Media/有声书'
     add_path = audio_path.replace(src_base_path,'').strip('/') # ABC/DEF
     if os.path.exists(cover_file):
         cover_file_hlink = f"{dst_base_path}/{add_path}/cover.jpg"
