@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 server = mbot_api
 plugins_name = '「有声书工具箱」'
 plugins_path = '/data/plugins/audio_clip'
-# src_base_path = "/Media/音乐/有声书"
+# src_base_path = "/Media/有声书"
 dst_base_path = f"/app/frontend/static/podcast/audio"
 exts = ['.m4a', '.mp3', '.flac', '.wav']
 
