@@ -96,11 +96,15 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
 @plugin.command(name='poscast_m', title='生成播客源', desc='生成 Apple 播客源 URL', icon='Podcasts',run_in_background=True)
 def poscast_m_echo(ctx: PluginCommandContext,
                 book_title: ArgSchema(ArgType.String, '书名', '', default_value = '', required=False),
-                audio_paths: ArgSchema(ArgType.String, '输入路径', '支持多条，一行一条/Media/音乐/有声书/', default_value='', required=True),
+                audio_paths: ArgSchema(ArgType.String, '输入路径', '支持多条，一行一条/Media/音乐/有声书/', default_value='', required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
                 podcast_category: ArgSchema(ArgType.String, '分类', '', default_value='', required=False),
                 podcast_author: ArgSchema(ArgType.String, '作者', '', default_value='', required=False),
                 is_group_config: ArgSchema(ArgType.Enum, '第1季强制200集，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
+    
+    if not book_title and not audio_paths:
+        logger.info(f"{plugins_name}未设置书名和路径，请设置后重试")
+        return
     is_group = bool(is_group_config and is_group_config.lower() != 'off')
     book_title_new = book_title
     try:
@@ -109,12 +113,18 @@ def poscast_m_echo(ctx: PluginCommandContext,
         for i, audio_path in enumerate(audio_path_list):
             if not book_title:
                 book_title_new = os.path.basename(audio_path).strip('/')
-            podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,is_group)
+            else:
+                if not audio_path:
+                    audio_path = 'must_replace_path'
+            state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,is_group)
 
     except Exception as e:
         logger.error(f"「生成播客源」失败，原因：{e}")
         return PluginCommandResponse(False, f'生成博客源 RSS XML 任务失败')
-    return PluginCommandResponse(True, f'生成博客源 RSS XML 任务完成')
+    if state:
+        return PluginCommandResponse(True, f'生成博客源 RSS XML 任务完成')
+    else:
+        return PluginCommandResponse(False, f'生成博客源 RSS XML 任务失败')
 
 @plugin.command(name='add_cover_m', title='修改音频封面', desc='修改音频封面', icon='Image',run_in_background=True)
 def add_cover_m_echo(ctx: PluginCommandContext,
