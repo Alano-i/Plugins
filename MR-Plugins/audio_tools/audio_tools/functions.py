@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 plugins_name = '「有声书工具箱」'
 # 将大写的集改为数字
-def convert_chinese_numbers(text):
+def convert_chinese_numbers(text,fill_num):
     """
     输入：xxx 第五百二十三集 xxx 输出：xxx 第0523集 xxx
     """
@@ -19,7 +19,8 @@ def convert_chinese_numbers(text):
     if match:
         num = match.group(1)
         if not num.isdigit():
-            num = str(cn2an(num)).zfill(4)
+            num = str(cn2an(num))
+            num = str(int(num)).zfill(fill_num)
         chapter = match.group(3)
         if chapter:
             chapter = chapter.strip()
@@ -29,21 +30,21 @@ def convert_chinese_numbers(text):
         return new_text
     return text
 
-def convert_num(text):
+def convert_num(text,fill_num):
     # 使用正则表达式提取数字部分和剩余文本部分
     """
     输入：第68集 轮月 输出：0068 轮月
     """
     match = re.search(r'第\s*(\d+)\s*(集|章|回)\s*(.+)', text)
     if match:
-        number = match.group(1).zfill(4)
+        number = str(int(match.group(1))).zfill(fill_num)
         rest_of_string = match.group(3)
         result = number + " " + rest_of_string
         return result
     else:
         return text
     
-def is_valid_format(text):
+def is_valid_format(text,fill_num):
     # pattern = r'^第\s*(\d+)\s*集$'
     """
     输入：三国 第068集 输出：第0068集
@@ -52,18 +53,18 @@ def is_valid_format(text):
     match = re.match(pattern, text)
     
     if match:
-        number = match.group(1).zfill(4)
+        number = str(int(match.group(1))).zfill(fill_num)
         return True, f'第{number}集'
     else:
         return False, text
 
-def add_space(text):
+def add_space(text,fill_num):
     """
     输入：0068轮月 输出：0068 轮月
     """
     match = re.search(r'(\d+)(.+)', text)
     if match:
-        number = match.group(1).zfill(4)
+        number = str(int(match.group(1))).zfill(fill_num)
         rest_of_string = match.group(2).strip()
         if rest_of_string.startswith(("-", "_")):
             rest_of_string = rest_of_string.lstrip("-_").strip()
@@ -99,7 +100,8 @@ def get_book_name(text):
         return ''
 
 # 处理文件名规范为 0236 xxxx 或者 第0236集 格式
-def sortout_filename(filename,series):
+def sortout_filename(filename,series,fill_num):
+    fill_num = int(fill_num)
     """
     传入文件路径，filename = '/a/file.mp3'
     """
@@ -111,19 +113,23 @@ def sortout_filename(filename,series):
         filename_text = filename_text.replace(series, '').strip()
     try:
         if filename_text.isdigit():
-            filename_text = f'第{filename_text.zfill(4)}集'
+            filename_text = f'第{filename_text.zfill(fill_num)}集'
         else:
-            filename_text = convert_chinese_numbers(filename_text)
-            filename_text = convert_num(filename_text)
-            need_flag, filename_text = is_valid_format(filename_text)
+            filename_text = convert_chinese_numbers(filename_text,fill_num)
+            filename_text = convert_num(filename_text,fill_num)
+            need_flag, filename_text = is_valid_format(filename_text,fill_num)
             if not need_flag:
-                filename_text = add_space(filename_text)
+                filename_text = add_space(filename_text,fill_num)
         # if filename_text:
         #     trck_num = extract_number(filename_text)
     except Exception as e:
         logger.error(f"{plugins_name}处理 ['{filename_text_ori}'] 文件名时出错了: {e}")
         filename_text = filename_text_ori
     return filename_text
+
+# filename = '005 第3选择.mp3'
+# series = ''
+# xxx = sortout_filename(filename,series,3)
 
 def url_encode(url):
     return quote(url, safe='/:.')
@@ -193,3 +199,19 @@ def hlink(src_base_path, dst_base_path):
         #     logger.info(f'{plugins_name}WEB 素材已软链接到容器')
     except Exception as e:
         logger.error(f'{plugins_name}将有声书素材已软链接到容器出错，原因: {e}')
+def get_fill_num(num):
+    fill_num = 2 if num < 100 else 3 if num < 1000 else 4
+    return fill_num
+
+def get_audio_files(directory):
+    # 获取文件夹及其子文件夹中的所有音频文件
+    audio_extensions = ['.mp3', '.m4a', '.flac']
+    audio_files = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if os.path.splitext(file)[1].lower() in audio_extensions:
+                audio_files.append(os.path.join(root, file))
+    audio_num = len(audio_files)
+    fill_num = get_fill_num(audio_num)
+    return sorted(audio_files, key=lambda x: os.path.basename(x)),fill_num  # 升序 01 02 03
+    # return sorted(audio_files, key=lambda x: os.path.basename(x), reverse=True)  # 降序 03 02 01
