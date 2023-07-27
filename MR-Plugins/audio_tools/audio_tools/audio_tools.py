@@ -17,78 +17,29 @@ from urllib.parse import quote
 import datetime
 import logging
 import shutil
-import subprocess
-from .podcast import podcast_config
+from .functions import *
 logger = logging.getLogger(__name__)
 server = mbot_api
-plugins_name = '「有声书工具箱」'
-plugins_path = '/data/plugins/audio_clip'
+# plugins_name = '「有声书工具箱」'
+# plugins_path = '/data/plugins/audio_clip'
 # src_base_path = "/Media/有声书"
-dst_base_path = f"/app/frontend/static/podcast/audio"
-exts = ['.m4a', '.mp3', '.flac', '.wav']
+# dst_base_path = f"/app/frontend/static/podcast/audio"
+# exts = ['.m4a', '.mp3', '.flac', '.wav']
 
-def hlink(src_base_path, dst_base_path):
-    try:
-        one = True
-        for root, dirs, files in os.walk(src_base_path):
-            for file_name in files:
-                src_file_path = os.path.join(root, file_name)
-                dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
-                dst_dir_path = os.path.dirname(dst_file_path)
-                if not os.path.exists(dst_dir_path):
-                    os.makedirs(dst_dir_path)
-                if os.path.isfile(src_file_path):
-                    if os.path.exists(dst_file_path) or os.path.islink(dst_file_path):
-                        os.remove(dst_file_path) # 如果目标文件已经存在，删除它
-                    os.symlink(src_file_path, dst_file_path)
-                    # shutil.copyfile(src_file_path, dst_file_path)
-            for dir_name in dirs:
-                src_dir_path = os.path.join(root, dir_name)
-                dst_dir_path = os.path.join(dst_base_path, os.path.relpath(src_dir_path, src_base_path))
-                if not os.path.exists(dst_dir_path):
-                    os.makedirs(dst_dir_path)
-                one = False
-                hlink(src_dir_path, dst_dir_path)
-        # if one:
-        #     logger.info(f'{plugins_name}WEB 素材已软链接到容器')
-    except Exception as e:
-        logger.error(f'{plugins_name}将有声书素材已软链接到容器出错，原因: {e}')
-
-@plugin.after_setup
-def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
-    global message_to_uid, channel, pic_url, src_base_path,mbot_url
-    message_to_uid = config.get('uid','')
-    src_base_path = config.get('src_base_path','')
+def audio_tools_config(config):
+    global mbot_url,pic_url,message_to_uid,src_base_path,channel,plugins_name,dst_base_path,exts
     mbot_url = config.get('mbot_url','')
     pic_url = config.get('pic_url','')
-    if config.get('channel'):
-        channel = config.get('channel')
-        logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
-    else:
-        channel = 'qywx'
-    if not message_to_uid:
-        logger.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
-    podcast_config(config,dst_base_path)
-    hlink(src_base_path, dst_base_path)
-    logger.info(f'{plugins_name}已加载配置并链接有声书资源到静态目录')
-
-@plugin.config_changed
-def config_changed(config: Dict[str, Any]):
-    global message_to_uid, channel, pic_url, src_base_path,mbot_url
     message_to_uid = config.get('uid','')
     src_base_path = config.get('src_base_path','')
-    mbot_url = config.get('mbot_url','')
-    pic_url = config.get('pic_url','')
-    if config.get('channel'):
-        channel = config.get('channel')
-        logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
-    else:
-        channel = 'qywx'
+    channel = config.get('channel','qywx')
+
+    logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     if not message_to_uid:
         logger.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
-    podcast_config(config,dst_base_path)
-    hlink(src_base_path, dst_base_path) 
-    logger.info(f'{plugins_name}已重新加载配置并重新链接有声书资源到静态目录')
+    plugins_name = config.get('plugins_name','')
+    dst_base_path = config.get('dst_base_path','')
+    exts = config.get('exts','')
 
 def add_cover(output_file,cover_image_path):
     file_name, file_ext = os.path.splitext(output_file)
@@ -241,16 +192,6 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
             logger.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
             continue
 
-def create_hard_link(src_path,dst_path):
-    if os.path.exists(dst_path) or os.path.islink(dst_path):
-        os.remove(dst_path) # 如果目标文件已经存在，删除它
-    # os.link(src_path, dst_path) # 创建硬链接
-    os.symlink(src_path, dst_path) # 创建软链接
-    # shutil.copyfile(src_path, dst_path) # 复制文件
-
-def url_encode(url):
-    return quote(url, safe='/:.')
-
 def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip_configs,authors,year,narrators,series,summary,album,art_album,use_filename,subject):
     # cliped_folder_dir = f'{input_dir}/{cliped_folder}'
     cliped_folder_dir = os.path.join(input_dir, cliped_folder)
@@ -319,119 +260,6 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     except Exception as e:
         logger.error(f"{plugins_name}构造消息参数出现错误，原因：{e}")
     push_msg_to_mbot(msg_title, msg_digest,cover_image_url)
-
-# 将大写的集改为数字
-# def convert_chinese_numbers(text):
-#     text = text.strip()
-#     chapter_start = text.find('第')
-#     chapter_end = text.find('集')
-#     if chapter_end < 0:
-#         chapter_end = text.find('章')
-#     if chapter_start != -1 and chapter_end != -1:
-#         chinese_number = text[chapter_start + 1:chapter_end].strip()
-#         if not chinese_number.isdigit():
-#             arabic_number = str(cn2an(chinese_number)).zfill(4)
-#             new_line = text[:chapter_start + 1] + arabic_number + text[chapter_end:]
-#             return new_line
-#     return text
-
-# 将大写的集改为数字
-def convert_chinese_numbers(text):
-    pattern = r'第\s*([0-9一二三四五六七八九十零百千万]+)\s*(集|章|回)(?:\s*(.+))?'
-    match = re.search(pattern, text)
-    if match:
-        num = match.group(1)
-        if not num.isdigit():
-            num = str(cn2an(num)).zfill(4)
-        chapter = match.group(3)
-        if chapter:
-            chapter = chapter.strip()
-        else:
-            chapter = ''
-        new_text = f"第{num}集 {chapter}".strip()
-        return new_text
-    return text
-
-def convert_num(text):
-    # 使用正则表达式提取数字部分和剩余文本部分
-    match = re.search(r'第\s*(\d+)\s*(集|章|回)\s*(.+)', text)
-    if match:
-        number = match.group(1).zfill(4)
-        rest_of_string = match.group(3)
-        result = number + " " + rest_of_string
-        return result
-    else:
-        return text
-    
-def is_valid_format(text):
-    # pattern = r'^第\s*(\d+)\s*集$'
-    pattern = r'.*第\s*(\d+)\s*集$'
-    match = re.match(pattern, text)
-    
-    if match:
-        number = match.group(1).zfill(4)
-        return True, f'第{number}集'
-    else:
-        return False, text
-
-def add_space(text):
-    match = re.search(r'(\d+)(.+)', text)
-    if match:
-        number = match.group(1).zfill(4)
-        rest_of_string = match.group(2).strip()
-        if rest_of_string.startswith(("-", "_")):
-            rest_of_string = rest_of_string.lstrip("-_").strip()
-
-            result = number + " " + rest_of_string            
-        else:
-            result = number + " " + rest_of_string
-
-        return result
-    return text
-
-def extract_number(text):
-    # 使用正则表达式匹配数字
-    match = re.search(r'\d+', text)
-    if match:
-        # 提取第一个匹配到的数字并转换为整数
-        number = int(match.group())
-        return number
-    else:
-        return ''
-    
-def get_book_name(text):
-    # 使用正则表达式匹配书名
-    pattern = r"^([\u4e00-\u9fa5]+[\w\s·]+)"
-    match = re.search(pattern, text)
-    if match:
-        new_text = match.group(0).strip()
-        return new_text
-    else:
-        return ''
-
-# 处理文件名规范为 0236 xxxx 或者 第0236集 格式
-def extract_filename(filename,series):
-    # 获取文件名（不带后缀）
-    filename_text = os.path.splitext(filename)[0]
-    filename_text_ori = filename_text
-    # 去掉文件名中的书名，只保留当前音频的名称
-    if series:
-        filename_text = filename_text.replace(series, '').strip()
-    try:
-        if filename_text.isdigit():
-            filename_text = f'第{filename_text.zfill(4)}集'
-        else:
-            filename_text = convert_chinese_numbers(filename_text)
-            filename_text = convert_num(filename_text)
-            need_flag, filename_text = is_valid_format(filename_text)
-            if not need_flag:
-                filename_text = add_space(filename_text)
-        # if filename_text:
-        #     trck_num = extract_number(filename_text)
-    except Exception as e:
-        logger.error(f"{plugins_name}处理 ['{filename_text_ori}'] 文件名时出错了: {e}")
-        filename_text = filename_text_ori
-    return filename_text
 
 # 添加元数据
 def add_tag(file_path, authors, year, narrators, series, summary, album, art_album, subfolder, use_filename, subject, filename_text):
@@ -729,7 +557,7 @@ def move_out(output_dir):
 
 def match_subfolder(filename,series):
     # 处理文件名规范为 0236 xxxx 或者 第0236集 格式
-    filename_text = extract_filename(filename,series)
+    filename_text = sortout_filename(filename,series)
     subfolder = ''
     # 从文件名中获取数字
     match = re.search(r'(\d+)', filename_text)
