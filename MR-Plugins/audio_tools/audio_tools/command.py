@@ -137,10 +137,9 @@ def poscast_m_echo(ctx: PluginCommandContext,
         logger.info(f"{plugins_name}任务 - 生成播客源 URL\n书名：['{book_title}']\n输入路径：['{audio_paths}']\n有声书简介：['{podcast_summary}']\n有声书分类：['{podcast_category}']\n作者：['{podcast_author}']\n第1季强制200集：{is_group}")
         audio_path_list = audio_paths.split('\n')
         for i, audio_path in enumerate(audio_path_list):
-
-            if src_base_path not in audio_path:
+            if src_base_path not in audio_path and audio_path:
                 audio_path = f"/{src_base_path.strip('/')}/{audio_path.strip('/')}"
-            audio_path = f"/{audio_path.strip('/')}"
+                audio_path = f"/{audio_path.strip('/')}"
 
             if not book_title:
                 book_title_new = os.path.basename(audio_path).strip('/')
@@ -148,7 +147,6 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 if not audio_path:
                     audio_path = f"/{src_base_path.strip('/')}/{book_title}"
             state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,is_group,is_clip)
-
     except Exception as e:
         logger.error(f"「生成播客源」失败，原因：{e}")
         return PluginCommandResponse(False, f'生成博客源 RSS XML 任务失败')
@@ -188,7 +186,7 @@ def get_xml_url_echo(ctx: PluginCommandContext,
 def diy_abs_echo(ctx: PluginCommandContext,
                 folder_path: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='/Media/有声书/', required=True),
                 series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value='', required=False),
-                podcast_summary: ArgSchema(ArgType.String, '简介', '用于生成播客简介', default_value='', required=False),
+                podcast_summary: ArgSchema(ArgType.String, '简介，用于生成播客简介', '', default_value='', required=False),
                 authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value='', required=False),
                 narrators: ArgSchema(ArgType.String, '演播者，多个示例：演播A,,演播B,,', '', default_value='', required=False),
                 year: ArgSchema(ArgType.String, '发布年份', '', default_value='', required=False)):
@@ -201,11 +199,11 @@ def diy_abs_echo(ctx: PluginCommandContext,
 def move_to_dir_echo(ctx: PluginCommandContext,
                 move_out_configs: ArgSchema(ArgType.Enum, '选择运行的操作，默认：🔖 DIY元数据', '', enum_values=lambda: move_out_config, default_value='diy', multi_value=False, required=False),
                 output_dir: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='', required=True),
+                series: ArgSchema(ArgType.String, '书名', '', default_value='', required=True),
                 authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value='', required=False),
                 use_filename_config: ArgSchema(ArgType.Enum, '文件名作为标题，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
                 narrators: ArgSchema(ArgType.String, '演播者，多个示例：演播A,,演播B,,', '', default_value='', required=False),
-                series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value='', required=False),
-                podcast_summary: ArgSchema(ArgType.String, '简介', '用于生成播客简介', default_value='', required=False),
+                podcast_summary: ArgSchema(ArgType.String, '简介，用于生成播客简介', '', default_value='', required=False),
                 year: ArgSchema(ArgType.String, '发布年份', '', default_value='', required=False),
                 album: ArgSchema(ArgType.String, '专辑：留空则自动按每100集划分', '', default_value='', required=False),
                 art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value='', required=False),
