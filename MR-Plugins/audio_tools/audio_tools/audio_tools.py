@@ -105,7 +105,7 @@ def save_cover(input_file,cover_file):
     except Exception as e:
         pass
 
-def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, summary, album, art_album, group_now, use_filename, subject):
+def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, summary, album, art_album, group_now, use_filename, subject,fill_num):
     global local_has_cover
     files_num = len(filenames_group)
     for i, filename in enumerate(filenames_group):
@@ -186,7 +186,7 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
 
 ################################################################################################################
                 if clip_configs == 'clip_and_move':
-                    thread_move_to_dir(cliped_folder_dir,filename,authors,year,narrators,series,summary,album,art_album,use_filename,subject)
+                    thread_move_to_dir(cliped_folder_dir,filename,authors,year,narrators,series,summary,album,art_album,use_filename,subject,fill_num)
 
         except Exception as e:
             logger.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
@@ -215,6 +215,8 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
                 logger.error(f"{plugins_name}本地有封面，但将封面复制到 [{cliped_folder_dir}] 失败，原因：{e}")
             break
     filenames_num = len(filenames)
+    fill_num = get_fill_num(filenames_num)
+
     threading_num = 1
     if filenames_num >= 50:
         threading_num = 10
@@ -232,7 +234,7 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
         group_now = f"{group_num+1}/{all_group_num}"
         logger.warning(f"{plugins_name}开始剪辑第 {group_now} 个分组")
         # 多线程
-        thread = threading.Thread(target=thread_audio_clip, args=(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, summary, album, art_album, group_now, use_filename, subject))
+        thread = threading.Thread(target=thread_audio_clip, args=(filenames_group, input_dir, cliped_folder, audio_start, audio_end, clip_configs, authors, year, narrators, series, summary, album, art_album, group_now, use_filename, subject,fill_num))
         thread.start()
         threads.append(thread)
         time.sleep(1)
@@ -451,12 +453,12 @@ def add_tag(file_path, authors, year, narrators, series, summary, album, art_alb
         audio.save()
 
 # 线程任务文件分配到文件夹中
-def thread_move_to_dir(dir_path, filename, authors, year, narrators, series, summary, album, art_album, use_filename, subject):
+def thread_move_to_dir(dir_path, filename, authors, year, narrators, series, summary, album, art_album, use_filename, subject,fill_num):
     src_file_path = os.path.join(dir_path, filename)
     # 只处理文件, 跳过文件夹
     if os.path.isfile(src_file_path):
         file_path = src_file_path
-        subfolder,filename_text = match_subfolder(filename,series)
+        subfolder,filename_text = match_subfolder(filename,series,fill_num)
         subfolder = album or subfolder
         # 添加tag
         add_tag(file_path, authors, year, narrators, series, summary, album, art_album, subfolder, use_filename, subject, filename_text)
@@ -555,9 +557,9 @@ def move_out(output_dir):
                 shutil.move(src_path, dst_path)
     logger.info(f'{plugins_name}音频已从子文件夹全部移到 {output_dir}')
 
-def match_subfolder(filename,series):
+def match_subfolder(filename,series,fill_num):
     # 处理文件名规范为 0236 xxxx 或者 第0236集 格式
-    filename_text = sortout_filename(filename,series)
+    filename_text = sortout_filename(filename,series,fill_num)
     subfolder = ''
     # 从文件名中获取数字
     match = re.search(r'(\d+)', filename_text)
@@ -574,21 +576,22 @@ def match_subfolder(filename,series):
 # 处理output_dir文件夹及其子文件夹下的文件
 def all_add_tag(output_dir, authors, year, narrators, series, summary, album, art_album,use_filename,subject,diy_cover):
     # 遍历目录中的所有文件和子文件夹
+    files,fill_num = get_audio_files(output_dir)
     i=0
-    for root, dirs, files in os.walk(output_dir):
-        for filename in files:
-            # album 变量有值时将其赋给 subfolder 变量，否则将 subfolder 变量的值保持不变
-            subfolder,filename_text = match_subfolder(filename,series)
-            subfolder = album or subfolder
-            # 处理文件, 跳过文件夹
-            file_path = os.path.join(root, filename)
-            if datetime.datetime.now().second % 10 == 0 or i==0:
-                logger.info(f"{plugins_name}开始处理: {file_path}")
-            add_tag(file_path, authors, year, narrators, series, summary, album, art_album, subfolder, use_filename, subject, filename_text)
-            if diy_cover:
-                cover_art_path = os.path.join(output_dir, 'cover.jpg')
-                add_cover(file_path,cover_art_path)
-            i=i+1
+    for file_path in files:
+        filename = os.path.basename(file_path)
+        # album 变量有值时将其赋给 subfolder 变量，否则将 subfolder 变量的值保持不变
+        subfolder,filename_text = match_subfolder(filename,series,fill_num)
+        subfolder = album or subfolder
+        # 处理文件, 跳过文件夹
+        # file_path = os.path.join(root, filename)
+        if datetime.datetime.now().second % 10 == 0 or i==0:
+            logger.info(f"{plugins_name}开始处理: {file_path}")
+        add_tag(file_path, authors, year, narrators, series, summary, album, art_album, subfolder, use_filename, subject, filename_text)
+        if diy_cover:
+            cover_art_path = os.path.join(output_dir, 'cover.jpg')
+            add_cover(file_path,cover_art_path)
+        i=i+1
     logger.info(f'{plugins_name}DIY 元数据完成')
 
 def push_msg_to_mbot(msg_title, msg_digest,cover_image_url):
