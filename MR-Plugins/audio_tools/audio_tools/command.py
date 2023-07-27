@@ -49,11 +49,11 @@ use_filename_config_list = [
 if server.common.get_cache('audio_clip', 'input_dirs'):
     last_time_input_dirs = uptime_input_dirs = server.common.get_cache('audio_clip', 'input_dirs')
 else:
-    last_time_input_dirs = '/Media/音乐/有声书/123456'
+    last_time_input_dirs = '/Media/有声书/123456'
 
 @plugin.command(name='audio_clip_m', title='音频剪辑', desc='剪辑片头片尾，修改整理元数据', icon='LibraryMusic',run_in_background=True)
 def audio_clip_m_echo(ctx: PluginCommandContext,
-                input_dirs: ArgSchema(ArgType.String, last_time_input_dirs, '输入路径,末尾不带/，支持多条，一行一条/Media/音乐/有声书/', default_value = last_time_input_dirs, required=False),
+                input_dirs: ArgSchema(ArgType.String, last_time_input_dirs, '输入路径,末尾不带/，支持多条，一行一条/Media/有声书/', default_value = last_time_input_dirs, required=False),
                 output_dir: ArgSchema(ArgType.String, '输出路径', '', default_value=None, required=False),
                 cliped_folder: ArgSchema(ArgType.String, '已剪辑存放路径，默认：已剪辑', '', default_value='已剪辑', required=False),
                 audio_start: ArgSchema(ArgType.String, '剪辑开始时间', '默认：0，单位：秒', default_value='0', required=False),
@@ -96,7 +96,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
 @plugin.command(name='poscast_m', title='生成播客源', desc='生成 Apple 播客源 URL', icon='Podcasts',run_in_background=True)
 def poscast_m_echo(ctx: PluginCommandContext,
                 book_title: ArgSchema(ArgType.String, '书名', '', default_value = '', required=False),
-                audio_paths: ArgSchema(ArgType.String, '输入路径', '支持多条，一行一条/Media/音乐/有声书/', default_value='', required=False),
+                audio_paths: ArgSchema(ArgType.String, '输入路径', '支持多条，一行一条/Media/有声书/', default_value='', required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
                 podcast_category: ArgSchema(ArgType.String, '分类', '', default_value='', required=False),
                 podcast_author: ArgSchema(ArgType.String, '作者', '', default_value='', required=False),
@@ -128,7 +128,7 @@ def poscast_m_echo(ctx: PluginCommandContext,
 
 @plugin.command(name='add_cover_m', title='修改音频封面', desc='修改音频封面', icon='Image',run_in_background=True)
 def add_cover_m_echo(ctx: PluginCommandContext,
-                audio_path: ArgSchema(ArgType.String, '输入路径', '/Media/音乐/有声书/', default_value='', required=True)):
+                audio_path: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='', required=True)):
     cover_art_path = os.path.join(audio_path, 'cover.jpg')
     logger.info(f"cover_art_path: {cover_art_path}")
     i=0
@@ -155,7 +155,7 @@ def get_xml_url_echo(ctx: PluginCommandContext,
 
 @plugin.command(name='diy_abs', title='修改metadata.abs', desc='修改 Audiobookshelf 元数据', icon='SwitchAccessShortcutAdd',run_in_background=True)
 def diy_abs_echo(ctx: PluginCommandContext,
-                folder_path: ArgSchema(ArgType.String, '输入路径', '/Media/音乐/有声书/', default_value='/Media/音乐/有声书/', required=True),
+                folder_path: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='/Media/有声书/', required=True),
                 series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value=None, required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '用于生成播客简介', default_value='', required=False),
                 authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value=None, required=False),
@@ -169,7 +169,7 @@ def diy_abs_echo(ctx: PluginCommandContext,
 @plugin.command(name='move_to_dir', title='整理有声书', desc='分配到子文件夹 1-100 101-200 201-300, 并添加元数据', icon='RuleFolder',run_in_background=True)
 def move_to_dir_echo(ctx: PluginCommandContext,
                 move_out_configs: ArgSchema(ArgType.Enum, '选择运行的操作，默认：运行整理并添加元数据', '', enum_values=lambda: move_out_config, default_value='add_and_move', multi_value=False, required=False),
-                output_dir: ArgSchema(ArgType.String, '输入路径', '/Media/音乐/有声书/', default_value=None, required=True),
+                output_dir: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value=None, required=True),
                 authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value=None, required=False),
                 use_filename_config: ArgSchema(ArgType.Enum, '文件名作为标题，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
                 narrators: ArgSchema(ArgType.String, '演播者，多个示例：演播A,,演播B,,', '', default_value=None, required=False),
