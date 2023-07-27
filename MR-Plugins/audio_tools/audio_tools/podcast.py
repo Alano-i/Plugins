@@ -1,83 +1,28 @@
 import os
 import re
-import io
-import json
 from datetime import datetime, timedelta
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
 import mutagen
-import time
 from datetime import timedelta
 import logging
 import ffmpeg
-from urllib.parse import quote
+from .functions import *
 from mbot.openapi import mbot_api
 server = mbot_api
 logger = logging.getLogger(__name__)
 # dst_base_path = "/app/frontend/static/podcast/audio"
 # src_base_path = '/Media/有声书'
-plugins_name = '「有声书工具箱」'
 
-def podcast_config(config,path):
-    global mbot_url,dst_base_path,pic_url,message_to_uid,src_base_path,channel
+def podcast_config(config):
+    global mbot_url,src_base_path,dst_base_path,pic_url,message_to_uid,channel,plugins_name
     mbot_url = config.get('mbot_url','')
     src_base_path = config.get('src_base_path','')
-    dst_base_path = path
+    dst_base_path = config.get('dst_base_path','')
     pic_url = config.get('pic_url','')
     message_to_uid = config.get('uid','')
     channel = config.get('channel','qywx')
-
-def url_encode(url):
-    return quote(url, safe='/:.')
-
-# def write_json_file(file_path,json_data):
-#     for i in range(3):
-#         try:
-#             with open(file_path, 'w', encoding='utf-8') as fp:
-#                 json.dump(json_data, fp, ensure_ascii=False,indent=4)
-#         except Exception as e:
-#             logger.error(f'{plugins_name}{i+1}/3 次写入新json数据到文件出错，原因: {e}')
-#             time.sleep(3)
-#             continue
-
-def write_json_file(file_path, json_data):
-    for i in range(3):
-        try:
-            with io.open(file_path, 'w', encoding='utf-8') as fp:
-                json.dump(json_data, fp, ensure_ascii=False, indent=4)
-        except Exception as e:
-            logger.error(f'{plugins_name}{i+1}/3 次写入新json数据到文件出错，原因: {e}')
-            time.sleep(3)
-            continue
-
-def write_xml_file(file_path,xml_data):
-    for i in range(3):
-        try:
-            with io.open(file_path, 'w', encoding='utf-8') as fp:
-                fp.write(xml_data)
-        except Exception as e:
-            logger.error(f'{plugins_name}{i+1}/3 次写入新xml数据到文件出错，原因: {e}')
-            time.sleep(3)
-            continue
-def read_json_file(file_path):
-    json_data = {}
-    for i in range(3):
-        try:
-            # 打开原始 JSON 文件
-            with io.open(file_path, 'r', encoding='utf-8') as f:
-                json_data = json.load(f)
-        except Exception as e:
-            logger.error(f'{plugins_name}{i+1}/3 次读取json文件出错，原因: {e}')
-            time.sleep(3)
-            continue
-    return json_data
-
-def create_hard_link(src_path,dst_path):
-    if os.path.exists(dst_path) or os.path.islink(dst_path):
-        os.remove(dst_path) # 如果目标文件已经存在，删除它
-    # os.link(src_path, dst_path) # 创建硬链接
-    os.symlink(src_path, dst_path) # 创建软链接
-    # shutil.copyfile(src_path, dst_path) # 复制文件
+    plugins_name = config.get('plugins_name','')
 
 def update_xml_url(file_path,display_title,link,cover_image_url):
     try:
@@ -113,7 +58,6 @@ def get_xml_url(send_sms):
     try:
         original_data = read_json_file(file_path)
         if original_data:
-            # result = "\n".join([f"{key}：{value['podcast_url']}" for key, value in original_data.items()])
             result_list = []
             for key, value in original_data.items():
                 result_list.append(f"{key}：{value['podcast_url']}")
@@ -129,68 +73,111 @@ def get_xml_url(send_sms):
     except Exception as e:
         logger.error(f"保存播客链接到json文件出错，原因：{e}")
 
-def get_audio_info(file_path):
+def get_filename(audio_file,book_title):
+    title_text = os.path.splitext(os.path.basename(audio_file))[0].replace(book_title,"").strip('/')
+    title_text = re.sub(r'[《》「」\[\]]', '', title_text).strip()
+    return title_text
+
+def get_audio_info(file_path,book_title,is_clip):
     org_title = ''
     year = ''
     authors = ''
     duration_formatted = ''
     summary = ''
     trck_num = ''
-    try:
-        ext = os.path.splitext(file_path)[1].lower()
-        audio = mutagen.File(file_path)
-        if audio:
-            # 时长
-            duration = int(audio.info.length)
-            duration_formatted = str(timedelta(seconds=duration))
-            if ext == '.mp3':
-                # 读取原音频标题
-                try:
-                    org_title = audio.tags['TIT2'].text[0]
-                except Exception as e:
-                    org_title = ''
-                # 年份
-                try:
-                    year = audio.tags['TDRC'].text[0]
-                except Exception as e:
-                    year = ''
-                # 艺术家
-                try:
-                    authors = audio.tags['TPE1'].text[0]
-                except Exception as e:
-                    authors = ''
-                # 音轨序号
-                try:
-                    trck_num = audio.tags['TRCK'].text[0]
-                    if '/' in trck_num:
-                        trck_num = trck_num.split('/')[0]
-                except Exception as e:
-                    trck_num = ''
-                # 简介
-                # if 'TXXX:summary' in audio.tags:
-                try:
-                    # 获取TXXX标签"summary"的值
-                    summary = audio.tags.getall('TXXX:summary')[0].text[0]
-                except Exception as e:
-                    authors = ''
-            if ext == '.m4a':
-                # 标题
-                org_title = audio.tags.get('©nam', [''])[0]
-                # 年份
-                year = audio.tags.get('©day', [''])[0]
-                # 艺术家
-                authors = audio.tags.get('©ART', [''])[0]
-                # 简介
-                summary = audio.tags.get('summ', [''])[0]
-                trck_num = audio.tags.get('trkn', [('','')])[0][0]
-            if ext == '.flac':
-                org_title = audio.get('title', [''])[0]
-                year = audio.get('date', [''])[0]
-                authors = audio.get('artist', [''])[0]
-                summary = audio.get('SUMMARY', [''])[0]
-                trck_num = audio.get('tracknumber', [''])[0]
-    except Exception as e:
-        logger.error(f"获取音频基本信息出错，原因：{e}")
+    ext = os.path.splitext(file_path)[1].lower()
+    audio = mutagen.File(file_path)
+    if audio:
+        # 时长
+        duration = int(audio.info.length)
+        duration_formatted = str(timedelta(seconds=duration))
+        if is_clip:
+            try:
+                if ext == '.mp3':
+                    # 读取原音频标题
+                    try:
+                        org_title = audio.tags['TIT2'].text[0]
+                    except Exception as e:
+                        org_title = ''
+                    # 年份
+                    try:
+                        year = audio.tags['TDRC'].text[0]
+                    except Exception as e:
+                        year = ''
+                    # 艺术家
+                    try:
+                        authors = audio.tags['TPE1'].text[0]
+                    except Exception as e:
+                        authors = ''
+                    # 音轨序号
+                    try:
+                        trck_num = audio.tags['TRCK'].text[0]
+                        if '/' in trck_num:
+                            trck_num = trck_num.split('/')[0]
+                    except Exception as e:
+                        trck_num = ''
+                    # 简介
+                    # if 'TXXX:summary' in audio.tags:
+                    try:
+                        # 获取TXXX标签"summary"的值
+                        summary = audio.tags.getall('TXXX:summary')[0].text[0]
+                    except Exception as e:
+                        summary = ''
+                if ext == '.m4a':
+                    # 标题
+                    org_title = audio.tags.get('©nam', [''])[0]
+                    # 年份
+                    year = audio.tags.get('©day', [''])[0]
+                    # 艺术家
+                    authors = audio.tags.get('©ART', [''])[0]
+                    # 简介
+                    summary = audio.tags.get('summ', [''])[0]
+                    trck_num = audio.tags.get('trkn', [('','')])[0][0]
+                if ext == '.flac':
+                    org_title = audio.get('title', [''])[0]
+                    year = audio.get('date', [''])[0]
+                    authors = audio.get('artist', [''])[0]
+                    summary = audio.get('SUMMARY', [''])[0]
+                    trck_num = audio.get('tracknumber', [''])[0]
+            except Exception as e:
+                logger.error(f"获取音频基本信息出错，原因：{e}")
+        else:
+            try:
+                if ext == '.mp3':
+                    # 年份
+                    try:
+                        year = audio.tags['TDRC'].text[0]
+                    except Exception as e:
+                        year = ''
+                    # 艺术家
+                    try:
+                        authors = audio.tags['TPE1'].text[0]
+                    except Exception as e:
+                        authors = ''
+                    # 音轨序号
+                    try:
+                        trck_num = audio.tags['TRCK'].text[0]
+                        if '/' in trck_num:
+                            trck_num = trck_num.split('/')[0]
+                    except Exception as e:
+                        trck_num = ''
+                if ext == '.m4a':
+                    # 年份
+                    year = audio.tags.get('©day', [''])[0]
+                    # 艺术家
+                    authors = audio.tags.get('©ART', [''])[0]
+                    # 简介
+                    trck_num = audio.tags.get('trkn', [('','')])[0][0]
+                if ext == '.flac':
+                    year = audio.get('date', [''])[0]
+                    authors = audio.get('artist', [''])[0]
+                    trck_num = audio.get('tracknumber', [''])[0]
+                # title_text = get_filename(file_path,book_title)
+                org_title = sortout_filename(file_path,book_title)
+                if not trck_num:
+                    trck_num = extract_number(org_title)
+            except Exception as e:
+                logger.error(f"获取音频基本信息出错，原因：{e}")
     return org_title,year,authors,duration_formatted,summary,trck_num
 
 def get_audio_files(directory):
@@ -220,10 +207,10 @@ def get_season_episode(trck_num,is_group):
     if episode_num == 0: episode_num = ''
     return str(season_num), str(episode_num)
 
-def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group):
+def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group,is_clip):
     rss = Element('rss', attrib={'xmlns:itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'version': '2.0'})
     if not podcast_author or not podcast_summary:
-        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0])
+        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0],book_title,is_clip)
     podcast_author = podcast_author or podcast_au
     podcast_summary = podcast_summary or podcast_summ
     channel = SubElement(rss, 'channel')
@@ -240,12 +227,12 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
     SubElement(channel, 'description').text = podcast_summary  # 简介
     pub_date = datetime.now()
     for i, audio_file in enumerate(audio_files_batch, start=1):
-        org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file)
+
+        org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file,book_title,is_clip)
         season_num, episode_num = get_season_episode(trck_num,is_group)
         item = SubElement(channel, 'item')
         if not org_title:
-            title_text = os.path.splitext(os.path.basename(audio_file))[0].replace(book_title,"").strip('/')
-            title_text = re.sub(r'[《》「」\[\]]', '', title_text).strip()
+            title_text = get_filename(audio_file,book_title)
         else:
             title_text = org_title
         SubElement(item, 'itunes:episodeType').text = "full"  # 完整的内容，可选trailer:预告  bonus:类似特别篇
@@ -266,7 +253,8 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
         SubElement(item, 'pubDate').text = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
         SubElement(item, 'itunes:duration').text = duration  # Replace with actual duration if available
         SubElement(item, 'itunes:explicit').text = 'false'  # 是否存在露骨内容
-        pub_date += timedelta(minutes=1)
+        # pub_date += timedelta(minutes=1)
+        pub_date += timedelta(seconds=10)
     return minidom.parseString(tostring(rss)).toprettyxml(indent='    ')
 
 def save_cover(input_file,audio_path):
@@ -325,8 +313,7 @@ def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
     except Exception as e:
         logger.error(f'{plugins_name}推送消息异常, 原因: {e}')
 
-def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group):
-    audio_path = f"/{src_base_path.strip('/')}/{book_title}" if audio_path == "must_replace_path" else audio_path
+def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group,is_clip):
     if not audio_path:
         logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
         return False
@@ -362,7 +349,8 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         audio_path,
         book_title,
         link,
-        is_group
+        is_group,
+        is_clip
     )
     write_xml_file(out_file,rss_xml)
     create_hard_link(out_file,out_file_hlink)
