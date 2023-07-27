@@ -69,21 +69,22 @@ def cmd_config(config):
 
 @plugin.command(name='audio_clip_m', title='音频剪辑', desc='剪辑片头片尾，修改整理元数据', icon='LibraryMusic',run_in_background=True)
 def audio_clip_m_echo(ctx: PluginCommandContext,
-                input_dirs: ArgSchema(ArgType.String, last_time_input_dirs, '输入路径,末尾不带/，支持多条，一行一条/Media/有声书', default_value = last_time_input_dirs, required=False),
-                output_dir: ArgSchema(ArgType.String, '输出路径', '', default_value='', required=False),
-                cliped_folder: ArgSchema(ArgType.String, '已剪辑存放路径，默认：已剪辑', '', default_value='已剪辑', required=False),
-                audio_start: ArgSchema(ArgType.String, '剪辑开始时间', '默认：0，单位：秒', default_value='0', required=False),
-                audio_end: ArgSchema(ArgType.String, '剪辑结束倒数秒数', '默认：0，单位：秒', default_value='0', required=False),
+                input_dirs: ArgSchema(ArgType.String, last_time_input_dirs, '输入路径,末尾不带/，支持多条，一行一条 /Media/有声书', default_value = last_time_input_dirs, required=False),
+                output_dir: ArgSchema(ArgType.String, '输出路径，默认：输入路径', '', default_value='', required=False),
+                series: ArgSchema(ArgType.String, '书名', '', default_value='', required=True),
+                cliped_folder: ArgSchema(ArgType.String, '已剪辑存放路径，默认：书名', '', default_value='', required=False),
+                audio_start: ArgSchema(ArgType.String, '剪辑开始时间，默认：0，单位：秒', '', default_value='0', required=False),
+                audio_end: ArgSchema(ArgType.String, '剪辑结束倒数秒数，默认：0，单位：秒', '', default_value='0', required=False),
                 clip_configs: ArgSchema(ArgType.Enum, '选择运行的操作，默认：剪辑、整理、添加元数据', '若仅剪辑，下方参数不生效。', enum_values=lambda: clip_config, default_value='clip_and_move', multi_value=False, required=False),
                 use_filename_config: ArgSchema(ArgType.Enum, '文件名作为标题，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
                 authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value='', required=False),
                 narrators: ArgSchema(ArgType.String, '演播者，多个示例：演播A,,演播B,,', '', default_value='', required=False),
-                series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value='', required=False),
                 year: ArgSchema(ArgType.String, '发布年份', '', default_value='', required=False),
                 albums: ArgSchema(ArgType.String, '专辑：留空则自动按每100集划分', '', default_value='', required=False),
                 art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value='', required=False),
                 subject: ArgSchema(ArgType.String, '题材，例如：武侠，相声', '', default_value='', required=False),
-                podcast_summary: ArgSchema(ArgType.String, '简介', '用于生成播客简介', default_value='', required=False)):
+                podcast_summary: ArgSchema(ArgType.String, '简介，用于生成播客简介', '', default_value='', required=False)):
+    cliped_folder = cliped_folder or series
     if '影音视界' in input_dirs:
         input_dirs = f"/Media{input_dirs.split('影音视界')[1]}"
     output_dir = output_dir or input_dirs
