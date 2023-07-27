@@ -3,7 +3,7 @@
   "title": "有声书工具箱",
   "author": "Alano",
   "description": "剪辑片头片尾，修改元数据，制作播客源，plex Audiobookshelf 可识别。",
-  "version": "1.5",
+  "version": "1.8",
   "requirements": null,
   "configField": [
     {
