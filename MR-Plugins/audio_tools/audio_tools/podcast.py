@@ -1,10 +1,12 @@
 import os
 import re
+import io
 import json
 from datetime import datetime, timedelta
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
 import mutagen
+import time
 from datetime import timedelta
 import logging
 import ffmpeg
@@ -13,6 +15,7 @@ from mbot.openapi import mbot_api
 server = mbot_api
 logger = logging.getLogger(__name__)
 # dst_base_path = "/app/frontend/static/podcast/audio"
+# src_base_path = '/Media/音乐/有声书'
 plugins_name = '「有声书工具箱」'
 
 def podcast_config(config,path):
@@ -27,6 +30,48 @@ def podcast_config(config,path):
 def url_encode(url):
     return quote(url, safe='/:.')
 
+# def write_json_file(file_path,json_data):
+#     for i in range(3):
+#         try:
+#             with open(file_path, 'w', encoding='utf-8') as fp:
+#                 json.dump(json_data, fp, ensure_ascii=False,indent=4)
+#         except Exception as e:
+#             logger.error(f'{plugins_name}{i+1}/3 次写入新json数据到文件出错，原因: {e}')
+#             time.sleep(3)
+#             continue
+
+def write_json_file(file_path, json_data):
+    for i in range(3):
+        try:
+            with io.open(file_path, 'w', encoding='utf-8') as fp:
+                json.dump(json_data, fp, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f'{plugins_name}{i+1}/3 次写入新json数据到文件出错，原因: {e}')
+            time.sleep(3)
+            continue
+
+def write_xml_file(file_path,xml_data):
+    for i in range(3):
+        try:
+            with io.open(file_path, 'w', encoding='utf-8') as fp:
+                fp.write(xml_data)
+        except Exception as e:
+            logger.error(f'{plugins_name}{i+1}/3 次写入新xml数据到文件出错，原因: {e}')
+            time.sleep(3)
+            continue
+def read_json_file(file_path):
+    json_data = {}
+    for i in range(3):
+        try:
+            # 打开原始 JSON 文件
+            with io.open(file_path, 'r', encoding='utf-8') as f:
+                json_data = json.load(f)
+        except Exception as e:
+            logger.error(f'{plugins_name}{i+1}/3 次读取json文件出错，原因: {e}')
+            time.sleep(3)
+            continue
+    return json_data
+
 def create_hard_link(src_path,dst_path):
     if os.path.exists(dst_path) or os.path.islink(dst_path):
         os.remove(dst_path) # 如果目标文件已经存在，删除它
@@ -39,8 +84,7 @@ def update_xml_url(file_path,display_title,link,cover_image_url):
         if not os.path.exists(file_path):
             # 文件不存在，初始化一个空的JSON内容
             json_data = {}
-            with open(file_path, "w") as file:
-                json.dump(json_data, file, indent=4, ensure_ascii=False)
+            write_json_file(file_path,json_data)
         # 定义新增的内容
         new_content = {
             display_title: {
@@ -49,17 +93,14 @@ def update_xml_url(file_path,display_title,link,cover_image_url):
             }
         }
         # 读取原始JSON文件内容
-        try:
-            with open(file_path, "r") as file:
-                original_data = json.load(file)
-        except Exception as e:
-            original_data = {}
+        original_data = read_json_file(file_path)
         # 合并新增内容到原始内容
         original_data.update(new_content)
         # 将更新后的内容写回到同一文件中
-        with open(file_path, "w") as file:
-            json.dump(original_data, file, indent=4, ensure_ascii=False)
+        write_json_file(file_path,original_data)
         logger.info(f'{file_path} 文件已更新')
+        # json_dst_path = f"{dst_base_path}/podcast.json"
+        # create_hard_link(file_path,json_dst_path)
     except Exception as e:
         logger.error(f"保存播客链接到json文件出错，原因：{e}")
 
@@ -70,8 +111,7 @@ def get_xml_url(send_sms):
         logger.error(f"保存播客链接的json文件不存在，可能还从未生成！")
     # 读取原始JSON文件内容
     try:
-        with open(file_path, "r") as file:
-            original_data = json.load(file)
+        original_data = read_json_file(file_path)
         if original_data:
             # result = "\n".join([f"{key}：{value['podcast_url']}" for key, value in original_data.items()])
             result_list = []
@@ -286,6 +326,10 @@ def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
         logger.error(f'{plugins_name}推送消息异常, 原因: {e}')
 
 def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group):
+    audio_path = f"/{src_base_path.strip('/')}/{book_title}" if audio_path == "must_replace_path" else ''
+    if not audio_path:
+        logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
+        return False
     base_url = f'{mbot_url}/static/podcast/audio'
     audio_files = get_audio_files(audio_path)
     cover_file = os.path.join(audio_path, "cover.jpg")
@@ -320,8 +364,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         link,
         is_group
     )
-    with open(out_file, 'w', encoding='utf-8') as f:
-        f.write(rss_xml)
+    write_xml_file(out_file,rss_xml)
     create_hard_link(out_file,out_file_hlink)
     update_xml_url(f"{src_base_path}/podcast.json",display_title,link,cover_image_url)        
     link_url = link
@@ -330,3 +373,4 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     # msg_digest = f"{link_url}\n\n轻点卡片 - 再点右上角 - 在默认浏览器中打开，可快速添加至播客App中。"
     msg_digest = f"轻点卡片 - 再点右上角 - 在默认浏览器中打开，可快速添加至播客App中。"
     push_msg_to_mbot(msg_title, msg_digest,link_url,cover_image_url)
+    return True
