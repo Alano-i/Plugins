@@ -116,7 +116,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
 @plugin.command(name='poscast_m', title='生成播客源', desc='生成 Apple 播客源 URL', icon='Podcasts',run_in_background=True)
 def poscast_m_echo(ctx: PluginCommandContext,
                 book_title: ArgSchema(ArgType.String, '书名', '', default_value = '', required=False),
-                audio_paths: ArgSchema(ArgType.String, '输入文件夹名称或完整路径', '多条路径仅支持完整路径，一行一条 /Media/有声书/', default_value='', required=False),
+                audio_paths: ArgSchema(ArgType.String, '输入文件夹名称或完整路径', '支持多条，一行一条 /Media/有声书/', default_value='', required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
                 podcast_category: ArgSchema(ArgType.String, '分类', '', default_value='', required=False),
                 podcast_author: ArgSchema(ArgType.String, '作者', '', default_value='', required=False),
@@ -125,9 +125,9 @@ def poscast_m_echo(ctx: PluginCommandContext,
     # audio_paths = /Media/有声书/三国
     # src_base_path = /Media/有声书
     state = False
-    if src_base_path not in audio_paths:
-        audio_paths = f"/{src_base_path.strip('/')}/{audio_paths.strip('/')}"
-    audio_paths = f"/{audio_paths.strip('/')}"
+    # if src_base_path not in audio_paths:
+    #     audio_paths = f"/{src_base_path.strip('/')}/{audio_paths.strip('/')}"
+    # audio_paths = f"/{audio_paths.strip('/')}"
     if not book_title and not audio_paths:
         logger.info(f"{plugins_name}未设置书名和路径，请设置后重试")
         return
@@ -138,6 +138,11 @@ def poscast_m_echo(ctx: PluginCommandContext,
         logger.info(f"{plugins_name}任务 - 生成播客源 URL\n书名：['{book_title}']\n输入路径：['{audio_paths}']\n有声书简介：['{podcast_summary}']\n有声书分类：['{podcast_category}']\n作者：['{podcast_author}']\n第1季强制200集：{is_group}")
         audio_path_list = audio_paths.split('\n')
         for i, audio_path in enumerate(audio_path_list):
+
+            if src_base_path not in audio_path:
+                audio_path = f"/{src_base_path.strip('/')}/{audio_path.strip('/')}"
+            audio_path = f"/{audio_path.strip('/')}"
+
             if not book_title:
                 book_title_new = os.path.basename(audio_path).strip('/')
             else:
@@ -195,7 +200,7 @@ def diy_abs_echo(ctx: PluginCommandContext,
 
 @plugin.command(name='move_to_dir', title='整理有声书', desc='分配到子文件夹 1-100 101-200 201-300, 并添加元数据', icon='RuleFolder',run_in_background=True)
 def move_to_dir_echo(ctx: PluginCommandContext,
-                move_out_configs: ArgSchema(ArgType.Enum, '选择运行的操作，默认：运行整理并添加元数据', '', enum_values=lambda: move_out_config, default_value='add_and_move', multi_value=False, required=False),
+                move_out_configs: ArgSchema(ArgType.Enum, '选择运行的操作，默认：🔖 DIY元数据', '', enum_values=lambda: move_out_config, default_value='diy', multi_value=False, required=False),
                 output_dir: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value=None, required=True),
                 authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value=None, required=False),
                 use_filename_config: ArgSchema(ArgType.Enum, '文件名作为标题，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
@@ -207,6 +212,8 @@ def move_to_dir_echo(ctx: PluginCommandContext,
                 art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value=None, required=False),
                 subject: ArgSchema(ArgType.String, '题材，例如：武侠，相声', '', default_value=None, required=False),
                 diy_cover_config: ArgSchema(ArgType.Enum, '修改封面，默认关闭', '需要输入文件夹下有cover.jpg', enum_values=lambda: use_filename_config_list, default_value='off', multi_value=False, required=False)):
+    if '影音视界' in output_dir:
+        output_dir = f"/Media{output_dir.split('影音视界')[1]}"
     use_filename = bool(use_filename_config and use_filename_config.lower() != 'off')
     diy_cover = bool(diy_cover_config and diy_cover_config.lower() != 'off')
     logger.info(f"{plugins_name}任务\n开始整理系列文件夹\n输入路径：[{output_dir}]\n系列：['{series}']\n作者：['{authors}']\n演播者：['{narrators}']\n发布年份：['{year}']")
