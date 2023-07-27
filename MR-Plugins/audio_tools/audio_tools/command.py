@@ -1,12 +1,13 @@
 from mbot.core.plugins import plugin, PluginCommandContext, PluginCommandResponse,PluginMeta
 from mbot.openapi import mbot_api
 from mbot.core.params import ArgSchema, ArgType
-from .audio_tools import audio_clip, move_to_dir, diy_abs, move_out,all_add_tag,add_cover
+from .audio_tools import audio_clip, move_to_dir, diy_abs, move_out, all_add_tag, add_cover
 from .podcast import podcast_main,get_xml_url
 import logging
 import datetime
 import time
 import os
+from .functions import *
 server = mbot_api
 logger = logging.getLogger(__name__)
 plugins_name = '「有声书工具箱」'
@@ -46,14 +47,29 @@ use_filename_config_list = [
         "value": 'off'
     }
 ]
+run_list = [
+    {
+        "name": "✅ 已剪辑",
+        "value": 'on'
+    },
+    {
+        "name": "📴 未剪辑",
+        "value": 'off'
+    }
+]
 if server.common.get_cache('audio_clip', 'input_dirs'):
     last_time_input_dirs = uptime_input_dirs = server.common.get_cache('audio_clip', 'input_dirs')
 else:
     last_time_input_dirs = '/Media/有声书/123456'
 
+def cmd_config(config):
+    global src_base_path,dst_base_path
+    src_base_path = config.get('src_base_path','')
+    dst_base_path = config.get('dst_base_path','')
+
 @plugin.command(name='audio_clip_m', title='音频剪辑', desc='剪辑片头片尾，修改整理元数据', icon='LibraryMusic',run_in_background=True)
 def audio_clip_m_echo(ctx: PluginCommandContext,
-                input_dirs: ArgSchema(ArgType.String, last_time_input_dirs, '输入路径,末尾不带/，支持多条，一行一条/Media/有声书/', default_value = last_time_input_dirs, required=False),
+                input_dirs: ArgSchema(ArgType.String, last_time_input_dirs, '输入路径,末尾不带/，支持多条，一行一条/Media/有声书', default_value = last_time_input_dirs, required=False),
                 output_dir: ArgSchema(ArgType.String, '输出路径', '', default_value=None, required=False),
                 cliped_folder: ArgSchema(ArgType.String, '已剪辑存放路径，默认：已剪辑', '', default_value='已剪辑', required=False),
                 audio_start: ArgSchema(ArgType.String, '剪辑开始时间', '默认：0，单位：秒', default_value='0', required=False),
@@ -68,13 +84,13 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
                 art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value=None, required=False),
                 subject: ArgSchema(ArgType.String, '题材，例如：武侠，相声', '', default_value=None, required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '用于生成播客简介', default_value='', required=False)):
+    if '影音视界' in input_dirs:
+        input_dirs = f"/Media{input_dirs.split('影音视界')[1]}"
     output_dir = output_dir or input_dirs
     use_filename = bool(use_filename_config and use_filename_config.lower() != 'off')
     logger.info(f"{plugins_name}任务\n开始运行音频剪辑\n输入路径：[{input_dirs}]\n输出路径：[{output_dir}/{cliped_folder}]\n开始时间：[{audio_start}]\n结束倒数秒数：[{audio_end}]\n\n整理参数如下：\n系列：['{series}']\n作者：['{authors}']\n演播者：['{narrators}']\n发布年份：['{year}']\n专辑：['{albums}']\n专辑艺术家：['{art_album}']")
-    
+
     server.common.set_cache('audio_clip', 'input_dirs', input_dirs)
-    
-    
     input_dirs_s = input_dirs.split('\n')
     if albums:
         albums_s = albums.split('\n')
@@ -86,9 +102,13 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
         audio_clip(input_dir,output_dir,cliped_folder,audio_start,audio_end,clip_configs,authors,year,narrators,series,podcast_summary,album,art_album,use_filename,subject)
         time.sleep(5)
         try:
+            # dst_base_path = "/app/frontend/static/podcast/audio"
+            # src_base_path = '/Media/有声书'
+            hlink(src_base_path, dst_base_path)
             audio_path = f"{output_dir}/{cliped_folder}"
             is_group = True
-            podcast_main(series, audio_path, podcast_summary, subject, authors, is_group)
+            is_clip = True
+            podcast_main(series, audio_path, podcast_summary, subject, authors, is_group,is_clip)
         except Exception as e:
             logger.error(f"「生成播客源」失败，原因：{e}")
     return PluginCommandResponse(True, f'音频剪辑任务完成')
@@ -96,16 +116,22 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
 @plugin.command(name='poscast_m', title='生成播客源', desc='生成 Apple 播客源 URL', icon='Podcasts',run_in_background=True)
 def poscast_m_echo(ctx: PluginCommandContext,
                 book_title: ArgSchema(ArgType.String, '书名', '', default_value = '', required=False),
-                audio_paths: ArgSchema(ArgType.String, '输入路径', '支持多条，一行一条/Media/有声书/', default_value='', required=False),
+                audio_paths: ArgSchema(ArgType.String, '输入文件夹名称或完整路径', '多条路径仅支持完整路径，一行一条 /Media/有声书/', default_value='', required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
                 podcast_category: ArgSchema(ArgType.String, '分类', '', default_value='', required=False),
                 podcast_author: ArgSchema(ArgType.String, '作者', '', default_value='', required=False),
-                is_group_config: ArgSchema(ArgType.Enum, '第1季强制200集，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
-    
+                is_group_config: ArgSchema(ArgType.Enum, '第1季强制200集，默认开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
+                is_clip_config: ArgSchema(ArgType.Enum, '此书是否运行过“音频剪辑”，默认已剪辑', '', enum_values=lambda: run_list, default_value='on', multi_value=False, required=False)):
+    # audio_paths = /Media/有声书/三国
+    # src_base_path = /Media/有声书
+    if src_base_path not in audio_paths:
+        audio_paths = f"/{src_base_path.strip('/')}/{audio_paths.strip('/')}"
+    audio_paths = f"/{audio_paths.strip('/')}"
     if not book_title and not audio_paths:
         logger.info(f"{plugins_name}未设置书名和路径，请设置后重试")
         return
     is_group = bool(is_group_config and is_group_config.lower() != 'off')
+    is_clip = bool(is_clip_config and is_clip_config.lower() != 'off')
     book_title_new = book_title
     try:
         logger.info(f"{plugins_name}任务 - 生成播客源 URL\n书名：['{book_title}']\n输入路径：['{audio_paths}']\n有声书简介：['{podcast_summary}']\n有声书分类：['{podcast_category}']\n作者：['{podcast_author}']\n第1季强制200集：{is_group}")
@@ -115,8 +141,8 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 book_title_new = os.path.basename(audio_path).strip('/')
             else:
                 if not audio_path:
-                    audio_path = 'must_replace_path'
-            state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,is_group)
+                    audio_path = f"/{src_base_path.strip('/')}/{book_title}"
+            state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,is_group,is_clip)
 
     except Exception as e:
         logger.error(f"「生成播客源」失败，原因：{e}")
