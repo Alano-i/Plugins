@@ -44,22 +44,16 @@ def update_xml_url(file_path,display_title,link,cover_image_url):
         # 将更新后的内容写回到同一文件中
         write_json_file(file_path,original_data)
         logger.info(f'{file_path} 文件已更新')
-        # json_dst_path = f"{dst_base_path}/podcast.json"
-        # create_hard_link(file_path,json_dst_path)
+        json_dst_path = f"{dst_base_path}/podcast.json"
+        create_hard_link(file_path,json_dst_path)
     except Exception as e:
         logger.error(f"保存播客链接到json文件出错，原因：{e}")
 
-def get_xml_url(send_sms):
-    file_path = f"{src_base_path}/podcast.json"
-    # 判断文件是否存在
-    if not os.path.exists(file_path):
-        logger.error(f"保存播客链接的json文件不存在，可能还从未生成！")
-    # 读取原始JSON文件内容
+def get_xml_url(json_data, send_sms):
     try:
-        original_data = read_json_file(file_path)
-        if original_data:
+        if json_data:
             result_list = []
-            for key, value in original_data.items():
+            for key, value in json_data.items():
                 result_list.append(f"{key}：{value['podcast_url']}")
                 if send_sms:
                     msg_title = f"{key} - 播客源URL"
@@ -71,14 +65,14 @@ def get_xml_url(send_sms):
             if result:
                 logger.info(f"已生成的有声书播客 RSS URL 如下：\n{result}")
     except Exception as e:
-        logger.error(f"保存播客链接到json文件出错，原因：{e}")
+        logger.error(f"获取播客链接出错，原因：{e}")
 
 def get_filename(audio_file,book_title):
     title_text = os.path.splitext(os.path.basename(audio_file))[0].replace(book_title,"").strip('/')
     title_text = re.sub(r'[《》「」\[\]]', '', title_text).strip()
     return title_text
 
-def get_audio_info(file_path,book_title,is_clip,fill_num):
+def get_audio_info(file_path,book_title,short_filename,fill_num):
     org_title = ''
     year = ''
     authors = ''
@@ -91,92 +85,59 @@ def get_audio_info(file_path,book_title,is_clip,fill_num):
         # 时长
         duration = int(audio.info.length)
         duration_formatted = str(timedelta(seconds=duration))
-        if is_clip:
-            try:
-                if ext == '.mp3':
-                    # 读取原音频标题
-                    try:
-                        org_title = audio.tags['TIT2'].text[0]
-                    except Exception as e:
-                        org_title = ''
-                    # 年份
-                    try:
-                        year = audio.tags['TDRC'].text[0]
-                    except Exception as e:
-                        year = ''
-                    # 艺术家
-                    try:
-                        authors = audio.tags['TPE1'].text[0]
-                    except Exception as e:
-                        authors = ''
-                    # 音轨序号
-                    try:
-                        trck_num = audio.tags['TRCK'].text[0]
-                        if '/' in trck_num:
-                            trck_num = trck_num.split('/')[0]
-                    except Exception as e:
-                        trck_num = ''
-                    # 简介
-                    # if 'TXXX:summary' in audio.tags:
-                    try:
-                        # 获取TXXX标签"summary"的值
-                        summary = audio.tags.getall('TXXX:summary')[0].text[0]
-                    except Exception as e:
-                        summary = ''
-                if ext == '.m4a':
-                    # 标题
-                    org_title = audio.tags.get('©nam', [''])[0]
-                    # 年份
-                    year = audio.tags.get('©day', [''])[0]
-                    # 艺术家
-                    authors = audio.tags.get('©ART', [''])[0]
-                    # 简介
-                    summary = audio.tags.get('summ', [''])[0]
-                    trck_num = audio.tags.get('trkn', [('','')])[0][0]
-                if ext == '.flac':
-                    org_title = audio.get('title', [''])[0]
-                    year = audio.get('date', [''])[0]
-                    authors = audio.get('artist', [''])[0]
-                    summary = audio.get('SUMMARY', [''])[0]
-                    trck_num = audio.get('tracknumber', [''])[0]
-            except Exception as e:
-                logger.error(f"获取音频基本信息出错，原因：{e}")
-        else:
-            try:
-                if ext == '.mp3':
-                    # 年份
-                    try:
-                        year = audio.tags['TDRC'].text[0]
-                    except Exception as e:
-                        year = ''
-                    # 艺术家
-                    try:
-                        authors = audio.tags['TPE1'].text[0]
-                    except Exception as e:
-                        authors = ''
-                    # 音轨序号
-                    try:
-                        trck_num = audio.tags['TRCK'].text[0]
-                        if '/' in trck_num:
-                            trck_num = trck_num.split('/')[0]
-                    except Exception as e:
-                        trck_num = ''
-                if ext == '.m4a':
-                    # 年份
-                    year = audio.tags.get('©day', [''])[0]
-                    # 艺术家
-                    authors = audio.tags.get('©ART', [''])[0]
-                    # 简介
-                    trck_num = audio.tags.get('trkn', [('','')])[0][0]
-                if ext == '.flac':
-                    year = audio.get('date', [''])[0]
-                    authors = audio.get('artist', [''])[0]
-                    trck_num = audio.get('tracknumber', [''])[0]
+        try:
+            if ext == '.mp3':
+                # 读取原音频标题
+                try:
+                    org_title = audio.tags['TIT2'].text[0]
+                except Exception as e:
+                    org_title = ''
+                # 年份
+                try:
+                    year = audio.tags['TDRC'].text[0]
+                except Exception as e:
+                    year = ''
+                # 艺术家
+                try:
+                    authors = audio.tags['TPE1'].text[0]
+                except Exception as e:
+                    authors = ''
+                # 音轨序号
+                try:
+                    trck_num = audio.tags['TRCK'].text[0]
+                    if '/' in trck_num:
+                        trck_num = trck_num.split('/')[0]
+                except Exception as e:
+                    trck_num = ''
+                # 简介
+                # if 'TXXX:summary' in audio.tags:
+                try:
+                    # 获取TXXX标签"summary"的值
+                    summary = audio.tags.getall('TXXX:summary')[0].text[0]
+                except Exception as e:
+                    summary = ''
+            if ext == '.m4a':
+                # 标题
+                org_title = audio.tags.get('©nam', [''])[0]
+                # 年份
+                year = audio.tags.get('©day', [''])[0]
+                # 艺术家
+                authors = audio.tags.get('©ART', [''])[0]
+                # 简介
+                summary = audio.tags.get('summ', [''])[0]
+                trck_num = audio.tags.get('trkn', [('','')])[0][0]
+            if ext == '.flac':
+                org_title = audio.get('title', [''])[0]
+                year = audio.get('date', [''])[0]
+                authors = audio.get('artist', [''])[0]
+                summary = audio.get('SUMMARY', [''])[0]
+                trck_num = audio.get('tracknumber', [''])[0]
+            if short_filename:
                 org_title = sortout_filename(os.path.basename(file_path),book_title,fill_num)
                 if not trck_num:
                     trck_num = extract_number(org_title)
-            except Exception as e:
-                logger.error(f"获取音频基本信息出错，原因：{e}")
+        except Exception as e:
+            logger.error(f"获取音频基本信息出错，原因：{e}")
     return org_title,year,authors,duration_formatted,summary,trck_num
 
 def get_season_episode(trck_num,is_group):
@@ -196,10 +157,10 @@ def get_season_episode(trck_num,is_group):
     if episode_num == 0: episode_num = ''
     return str(season_num), str(episode_num)
 
-def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group,is_clip,fill_num):
+def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group,short_filename,fill_num):
     rss = Element('rss', attrib={'xmlns:itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'version': '2.0'})
     if not podcast_author or not podcast_summary:
-        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0],book_title,is_clip,fill_num)
+        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0],book_title,short_filename,fill_num)
     podcast_author = podcast_author or podcast_au
     podcast_summary = podcast_summary or podcast_summ
     channel = SubElement(rss, 'channel')
@@ -217,7 +178,7 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
     pub_date = datetime.now()
     for i, audio_file in enumerate(audio_files_batch, start=1):
 
-        org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file,book_title,is_clip,fill_num)
+        org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file,book_title,short_filename,fill_num)
         season_num, episode_num = get_season_episode(trck_num,is_group)
         item = SubElement(channel, 'item')
         if not org_title:
@@ -302,7 +263,7 @@ def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
     except Exception as e:
         logger.error(f'{plugins_name}推送消息异常, 原因: {e}')
 
-def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group,is_clip):
+def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group,short_filename):
     if not audio_path:
         logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
         return False
@@ -339,7 +300,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         book_title,
         link,
         is_group,
-        is_clip,
+        short_filename,
         fill_num
     )
     write_xml_file(out_file,rss_xml)
