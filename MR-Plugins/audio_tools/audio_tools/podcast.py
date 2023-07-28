@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 # src_base_path = '/Media/有声书'
 
 def podcast_config(config):
-    global mbot_url,src_base_path,dst_base_path,pic_url,message_to_uid,channel,plugins_name
+    global mbot_url,src_base_path,dst_base_path,pic_url,message_to_uid,channel,plugins_name,src_base_path_music,src_base_path_book
     mbot_url = config.get('mbot_url','')
-    src_base_path = config.get('src_base_path','')
+    src_base_path_book = config.get('src_base_path_book','')
+    src_base_path_music = config.get('src_base_path_music','')
     dst_base_path = config.get('dst_base_path','')
     pic_url = config.get('pic_url','')
     message_to_uid = config.get('uid','')
@@ -80,64 +81,73 @@ def get_audio_info(file_path,book_title,short_filename,fill_num):
     summary = ''
     trck_num = ''
     ext = os.path.splitext(file_path)[1].lower()
-    audio = mutagen.File(file_path)
+    try:
+        audio = mutagen.File(file_path)
+    except Exception as e:
+        logger.warning(f"{plugins_name}获取音频 ['{file_path}'] 出错，原因：{e}")
+        org_title = os.path.splitext(os.path.basename(file_path))[0]
+        return org_title,year,authors,duration_formatted,summary,trck_num
     if audio:
         # 时长
         duration = int(audio.info.length)
         duration_formatted = str(timedelta(seconds=duration))
-        try:
-            if ext == '.mp3':
-                # 读取原音频标题
-                try:
-                    org_title = audio.tags['TIT2'].text[0]
-                except Exception as e:
-                    org_title = ''
-                # 年份
-                try:
-                    year = audio.tags['TDRC'].text[0]
-                except Exception as e:
-                    year = ''
-                # 艺术家
-                try:
-                    authors = audio.tags['TPE1'].text[0]
-                except Exception as e:
-                    authors = ''
-                # 音轨序号
-                try:
-                    trck_num = audio.tags['TRCK'].text[0]
-                    if '/' in trck_num:
-                        trck_num = trck_num.split('/')[0]
-                except Exception as e:
-                    trck_num = ''
-                # 简介
-                # if 'TXXX:summary' in audio.tags:
-                try:
-                    # 获取TXXX标签"summary"的值
-                    summary = audio.tags.getall('TXXX:summary')[0].text[0]
-                except Exception as e:
-                    summary = ''
-            if ext == '.m4a':
-                # 标题
-                org_title = audio.tags.get('©nam', [''])[0]
-                # 年份
-                year = audio.tags.get('©day', [''])[0]
-                # 艺术家
-                authors = audio.tags.get('©ART', [''])[0]
-                # 简介
-                summary = audio.tags.get('summ', [''])[0]
-                trck_num = audio.tags.get('trkn', [('','')])[0][0]
-            if ext == '.flac':
-                org_title = audio.get('title', [''])[0]
-                year = audio.get('date', [''])[0]
-                authors = audio.get('artist', [''])[0]
-                summary = audio.get('SUMMARY', [''])[0]
-                trck_num = audio.get('tracknumber', [''])[0]
-            if short_filename:
-                org_title = sortout_filename(os.path.basename(file_path),book_title,fill_num)
-                if not trck_num:
-                    trck_num = extract_number(org_title)
-        except Exception as e:
-            logger.error(f"获取音频基本信息出错，原因：{e}")
+        if book:
+            try:
+                if ext == '.mp3':
+                    # 读取原音频标题
+                    try:
+                        org_title = audio.tags['TIT2'].text[0]
+                    except Exception as e:
+                        org_title = ''
+                    # 年份
+                    try:
+                        year = audio.tags['TDRC'].text[0]
+                    except Exception as e:
+                        year = ''
+                    # 艺术家
+                    try:
+                        authors = audio.tags['TPE1'].text[0]
+                    except Exception as e:
+                        authors = ''
+                    # 音轨序号
+                    try:
+                        trck_num = audio.tags['TRCK'].text[0]
+                        if '/' in trck_num:
+                            trck_num = trck_num.split('/')[0]
+                    except Exception as e:
+                        trck_num = ''
+                    # 简介
+                    # if 'TXXX:summary' in audio.tags:
+                    try:
+                        # 获取TXXX标签"summary"的值
+                        summary = audio.tags.getall('TXXX:summary')[0].text[0]
+                    except Exception as e:
+                        summary = ''
+                if ext == '.m4a':
+                    # 标题
+                    org_title = audio.tags.get('©nam', [''])[0]
+                    # 年份
+                    year = audio.tags.get('©day', [''])[0]
+                    # 艺术家
+                    authors = audio.tags.get('©ART', [''])[0]
+                    # 简介
+                    summary = audio.tags.get('summ', [''])[0]
+                    trck_num = audio.tags.get('trkn', [('','')])[0][0]
+                if ext == '.flac':
+                    org_title = audio.get('title', [''])[0]
+                    year = audio.get('date', [''])[0]
+                    authors = audio.get('artist', [''])[0]
+                    summary = audio.get('SUMMARY', [''])[0]
+                    trck_num = audio.get('tracknumber', [''])[0]
+                if short_filename:
+                    org_title = sortout_filename(os.path.basename(file_path),book_title,fill_num)
+                    if not trck_num:
+                        trck_num = extract_number(org_title)
+            except Exception as e:
+                logger.error(f"{plugins_name}获取音频 ['{file_path}'] 基本信息出错，原因：{e}")
+        else:
+            org_title = os.path.splitext(os.path.basename(file_path))[0]
+
     return org_title,year,authors,duration_formatted,summary,trck_num
 
 def get_season_episode(trck_num,is_group):
@@ -179,6 +189,7 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
     for i, audio_file in enumerate(audio_files_batch, start=1):
 
         org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file,book_title,short_filename,fill_num)
+        if not book: trck_num = i
         season_num, episode_num = get_season_episode(trck_num,is_group)
         item = SubElement(channel, 'item')
         if not org_title:
@@ -240,7 +251,7 @@ def save_cover_back(filename,audio_path):
                             f.write(bytes(cover_data))
                         break
     except Exception as e:
-        logger.error(f"保存有声书封面失败，原因：{e}")
+        logger.error(f"{plugins_name}保存有声书 ['{filename}'] 封面失败，原因：{e}")
 
 def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
     image_url = cover_image_url if cover_image_url else pic_url
@@ -263,7 +274,10 @@ def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
     except Exception as e:
         logger.error(f'{plugins_name}推送消息异常, 原因: {e}')
 
-def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group,short_filename):
+def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group,short_filename,is_book):
+    global src_base_path,book
+    src_base_path = src_base_path_book if is_book else src_base_path_music
+    book = is_book
     if not audio_path:
         logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
         return False
@@ -305,7 +319,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     )
     write_xml_file(out_file,rss_xml)
     create_hard_link(out_file,out_file_hlink)
-    update_xml_url(f"{src_base_path}/podcast.json",display_title,link,cover_image_url)        
+    update_xml_url(f"{src_base_path_book}/podcast.json",display_title,link,cover_image_url)        
     link_url = link
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
     msg_title = f"{book_title} - 播客源URL"
