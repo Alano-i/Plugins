@@ -562,6 +562,7 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
                     for episode in show.episodes():
                         add_info_one(episode,'episode','',lib_name,force_add,i,rating,show_year,restore,show_log)
                         i=i+1
+                # return
             logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中的剧集海报添加媒体信息完成")
         else:
             logger.info(f"{plugins_name}媒体库 ['{lib_name}'] 中没有剧集，不需要处理")
@@ -590,8 +591,3 @@ def add_info_to_posters_main(lib_name,force_add,restore,show_log,only_show):
         add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show)
     except Exception as e:
         logger.error(f"{plugins_name}海报添加信息出现错误! 原因：{e}")
-
-        # logger.warning(f"videoResolution:{videoResolution}")
-        # logger.warning(f"display_title:{display_title}")
-        # logger.warning(f"duration:{duration}")
-        # logger.warning(f"rating:{rating}")
