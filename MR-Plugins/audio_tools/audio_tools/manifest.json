@@ -3,7 +3,7 @@
   "title": "有声书工具箱",
   "author": "Alano",
   "description": "剪辑片头片尾，修改元数据，制作播客源，plex Audiobookshelf 可识别。",
-  "version": "1.8",
+  "version": "1.9",
   "requirements": null,
   "configField": [
     {
@@ -37,10 +37,17 @@
       "defaultValue": ""
     },
     {
-      "fieldName": "src_base_path",
+      "fieldName": "src_base_path_book",
       "fieldType": "String",
       "label": "有声书父文件夹",
       "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "src_base_path_music",
+      "fieldType": "String",
+      "label": "音乐父文件夹",
+      "helperText": "若音频数量较大，请耐心等待处理完成。",
       "defaultValue": ""
     }
   ],
