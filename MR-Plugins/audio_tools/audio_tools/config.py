@@ -24,12 +24,14 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     config['exts'] = exts
     config['dst_base_path'] = dst_base_path
 
-    src_base_path = config.get('src_base_path','')
+    src_base_path_music = config.get('src_base_path_music','')
+    src_base_path_book = config.get('src_base_path_book','')
     audio_tools_config(config)
     podcast_config(config)
     cmd_config(config)
-    hlink(src_base_path, dst_base_path)
-    logger.info(f'{plugins_name}已加载配置并链接有声书资源到静态目录')
+    hlink(src_base_path_book, dst_base_path)
+    hlink(src_base_path_music, dst_base_path)
+    logger.info(f'{plugins_name}已加载配置并链接有声书、音乐资源到静态目录')
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
@@ -38,9 +40,11 @@ def config_changed(config: Dict[str, Any]):
     config['exts'] = exts
     config['dst_base_path'] = dst_base_path
 
-    src_base_path = config.get('src_base_path','')
+    src_base_path_music = config.get('src_base_path_music','')
+    src_base_path_book = config.get('src_base_path_book','')
     audio_tools_config(config)
     podcast_config(config)
     cmd_config(config)
-    hlink(src_base_path, dst_base_path)
-    logger.info(f'{plugins_name}已加载配置并链接有声书资源到静态目录')
+    hlink(src_base_path_book, dst_base_path)
+    hlink(src_base_path_music, dst_base_path)
+    logger.info(f'{plugins_name}已保存配置并链接有声书、音乐资源到静态目录')
