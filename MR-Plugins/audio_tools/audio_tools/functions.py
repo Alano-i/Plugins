@@ -215,3 +215,7 @@ def get_audio_files(directory):
     fill_num = get_fill_num(audio_num)
     return sorted(audio_files, key=lambda x: os.path.basename(x)),fill_num  # 升序 01 02 03
     # return sorted(audio_files, key=lambda x: os.path.basename(x), reverse=True)  # 降序 03 02 01
+
+def process_path(path):
+    path = f"/{path.strip('/')}" if path else path
+    return path
