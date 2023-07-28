@@ -2,7 +2,7 @@
   "name": "plex_tools",
   "title": "Plex工具箱",
   "author": "BeiMou(yewei)",
-  "description": "下载完成后，自动进行整理。",
+  "description": "➊自动翻译标签 ➋拼音排序 ➌添加TOP250标签 ➍筛选Fanart封面 ➎为海报添加媒体信息",
   "version": "3.1",
   "requirements": null,
   "configField": [
