@@ -82,7 +82,6 @@ def get_rss_url():
         logger.warning(f"保存播客URL的json文件不存在，可能还从未生成！")
         json_data = {}
         return no_data
-    file_path = f"{src_base_path}/podcast.json"
     json_data = read_json_file(file_path)
     if json_data:
         url_list = []
