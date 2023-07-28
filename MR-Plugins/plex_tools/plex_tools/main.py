@@ -228,6 +228,25 @@ def process_recent():
         add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
     logger.info(f"{plugins_name}为海报添加媒体信息完成，已自动跳过处理过的海报")
 
+@plugin.task('re_add_all', '「更新海报信息」', cron_expression='10 1 * * 2,5')
+def re_add_all():
+    if str(libstr).lower() == 'all' or not libstr:
+        try:
+            libtables = plex_sortout.get_library()
+            libtable = [value['value'] for value in libtables]
+        except Exception as e:
+            logger.error(f"{plugins_name}获取所有媒体库出错，原因：{e}")
+    else:
+        libtable=libstr.split(',')
+    show_log = False
+    force_add = True
+    restore = False
+    only_show = False
+    logger.info(f"{plugins_name}开始为所有库中的所有海报重新添加媒体信息，已添加信息的海报将重新添加，主要为了更新评分，每周2和周5凌晨1点10分执行一次")
+    for i in range(len(libtable)):
+        add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
+    logger.info(f"{plugins_name}为重新为海报添加媒体信息完成，评分信息已是更新到最新")
+
 
 @plugin.task('set_plex', '「检查 PLEX 设置」', cron_expression='15 */2 * * *')
 def set_plex_ckeck():
