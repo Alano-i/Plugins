@@ -214,7 +214,7 @@ def add_cover_m_echo(ctx: PluginCommandContext,
 @plugin.command(name='get_xml_url', title='获取已生成播客源', desc='查看Apple播客源URL，并推送通知，点通知快速添加到播客App', icon='RssFeedSharp',run_in_background=True)
 def get_xml_url_echo(ctx: PluginCommandContext, 
                 url_list_config: ArgSchema(ArgType.Enum, '📕 选择书名，留空选择全部', '', enum_values=get_rss_url, default_value='all', multi_value=True, required=False),
-                send_sms_config: ArgSchema(ArgType.Enum, '推送消息，默认：✅ 开启', '开启后，有多少个播客源就将收到多少条消息', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
+                send_sms_config: ArgSchema(ArgType.Enum, '推送消息，默认：✅ 开启', '开启后，选了多少个播客源就将收到多少条消息', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
 
     if not url_list_config or not json_data:
         return PluginCommandResponse(True, f'播客源 RSS URL 获取失败，可能还从未生成')
