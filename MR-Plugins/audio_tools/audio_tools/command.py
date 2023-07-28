@@ -47,16 +47,6 @@ use_filename_config_list = [
         "value": 'off'
     }
 ]
-run_list = [
-    {
-        "name": "✅ 已剪辑",
-        "value": 'on'
-    },
-    {
-        "name": "📴 未剪辑",
-        "value": 'off'
-    }
-]
 if server.common.get_cache('audio_clip', 'input_dirs'):
     last_time_input_dirs = uptime_input_dirs = server.common.get_cache('audio_clip', 'input_dirs')
 else:
@@ -114,7 +104,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
                 audio_start: ArgSchema(ArgType.String, '剪片头开始时间，默认：0，单位：秒', '', default_value='0', required=False),
                 audio_end: ArgSchema(ArgType.String, '剪片尾倒数时间，默认：0，单位：秒', '', default_value='0', required=False),
                 clip_configs: ArgSchema(ArgType.Enum, '选择操作：📕 剪辑、整理、添加元数据', '若仅剪辑，下方参数不生效。', enum_values=lambda: clip_config, default_value='clip_and_move', multi_value=False, required=False),
-                use_filename_config: ArgSchema(ArgType.Enum, '根据文件名优化标题：✅ 开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
+                use_filename_config: ArgSchema(ArgType.Enum, '根据文件名优化每集标题：✅ 开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
                 authors: ArgSchema(ArgType.String, '作者：填原著作家', '', default_value='', required=False),
                 narrators: ArgSchema(ArgType.String, '演播者', '', default_value='', required=False),
                 year: ArgSchema(ArgType.String, '发布年份', '', default_value='', required=False),
@@ -157,8 +147,8 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
                 podcast_category: ArgSchema(ArgType.String, '分类', '', default_value='', required=False),
                 podcast_author: ArgSchema(ArgType.String, '作者', '', default_value='', required=False),
-                is_group_config: ArgSchema(ArgType.Enum, '第1季强制200集，默认：✅ 开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
-                short_filename_config: ArgSchema(ArgType.Enum, '此书是否运行过“音频剪辑”，默认：✅ 已剪辑', '', enum_values=lambda: run_list, default_value='on', multi_value=False, required=False)):
+                is_group_config: ArgSchema(ArgType.Enum, '第1季强制200集：✅ 开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
+                short_filename_config: ArgSchema(ArgType.Enum, '根据文件名优化每集标题：✅ 开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
     # audio_paths = /Media/有声书/三国
     # src_base_path = /Media/有声书
     state = False
@@ -193,6 +183,7 @@ def poscast_m_echo(ctx: PluginCommandContext,
 @plugin.command(name='add_cover_m', title='修改音频封面', desc='修改音频封面', icon='Image',run_in_background=True)
 def add_cover_m_echo(ctx: PluginCommandContext,
                 audio_path: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='', required=True)):
+    audio_path = process_path(audio_path)
     cover_art_path = os.path.join(audio_path, 'cover.jpg')
     logger.info(f"cover_art_path: {cover_art_path}")
     i=0
@@ -213,7 +204,7 @@ def add_cover_m_echo(ctx: PluginCommandContext,
 @plugin.command(name='get_xml_url', title='获取已生成播客源', desc='查看Apple播客源URL，并推送通知，点通知快速添加到播客App', icon='RssFeedSharp',run_in_background=True)
 def get_xml_url_echo(ctx: PluginCommandContext, 
                 url_list_config: ArgSchema(ArgType.Enum, '📕 选择书名，留空选择全部', '', enum_values=get_rss_url, default_value='all', multi_value=True, required=False),
-                send_sms_config: ArgSchema(ArgType.Enum, '推送消息，默认：✅ 开启', '开启后，选了多少个播客源就将收到多少条消息', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
+                send_sms_config: ArgSchema(ArgType.Enum, '推送消息：✅ 开启', '开启后，选了多少个播客源就将收到多少条消息', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False)):
 
     if not url_list_config or not json_data:
         return PluginCommandResponse(True, f'播客源 RSS URL 获取失败，可能还从未生成')
@@ -240,18 +231,18 @@ def diy_abs_echo(ctx: PluginCommandContext,
 
 @plugin.command(name='move_to_dir', title='整理有声书', desc='分配到子文件夹 1-100 101-200 201-300, 并添加元数据', icon='RuleFolder',run_in_background=True)
 def move_to_dir_echo(ctx: PluginCommandContext,
-                move_out_configs: ArgSchema(ArgType.Enum, '选择运行的操作，默认：🔖 DIY元数据', '', enum_values=lambda: move_out_config, default_value='diy', multi_value=False, required=False),
+                move_out_configs: ArgSchema(ArgType.Enum, '选择运行的操作：🔖 DIY元数据', '', enum_values=lambda: move_out_config, default_value='diy', multi_value=False, required=False),
                 output_dir: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='', required=True),
                 series: ArgSchema(ArgType.String, '书名', '', default_value='', required=True),
                 authors: ArgSchema(ArgType.String, '作者：填写原著作家', '', default_value='', required=False),
-                use_filename_config: ArgSchema(ArgType.Enum, '文件名作为标题，默认：✅ 开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
+                use_filename_config: ArgSchema(ArgType.Enum, '根据文件名优化每集标题：✅ 开启', '', enum_values=lambda: use_filename_config_list, default_value='on', multi_value=False, required=False),
                 narrators: ArgSchema(ArgType.String, '演播者', '', default_value='', required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介，用于生成播客简介', '', default_value='', required=False),
                 year: ArgSchema(ArgType.String, '发布年份', '', default_value='', required=False),
                 album: ArgSchema(ArgType.String, '专辑：留空自动按每100集划分', '', default_value='', required=False),
                 art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填写书名', '', default_value='', required=False),
                 subject: ArgSchema(ArgType.String, '题材，如：武侠，相声', '', default_value='', required=False),
-                diy_cover_config: ArgSchema(ArgType.Enum, '修改封面，默认：📴 关闭', '需要输入文件夹下有cover.jpg', enum_values=lambda: use_filename_config_list, default_value='off', multi_value=False, required=False)):
+                diy_cover_config: ArgSchema(ArgType.Enum, '修改封面：📴 关闭', '需要输入文件夹下有cover.jpg', enum_values=lambda: use_filename_config_list, default_value='off', multi_value=False, required=False)):
     output_dir = process_path(output_dir)
     if '影音视界' in output_dir: output_dir = f"/Media{output_dir.split('影音视界')[1]}"
     use_filename = bool(use_filename_config and use_filename_config.lower() != 'off')
