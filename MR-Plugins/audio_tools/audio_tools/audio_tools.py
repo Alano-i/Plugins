@@ -31,7 +31,7 @@ def audio_tools_config(config):
     mbot_url = config.get('mbot_url','')
     pic_url = config.get('pic_url','')
     message_to_uid = config.get('uid','')
-    src_base_path = config.get('src_base_path','')
+    src_base_path = config.get('src_base_path_book','')
     channel = config.get('channel','qywx')
 
     logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
