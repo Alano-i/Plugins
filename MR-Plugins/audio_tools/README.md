@@ -6,7 +6,8 @@ MR插件，剪辑片头片尾，修改元数据，整理系列文件夹，`plex`
 - 支持生成 Apple 播客源
 - 支持单独修改音频封面
 
-![有声书工具箱封面](https://github.com/Alano-i/wecom-notification/assets/68833595/52ce1487-b34c-4cec-b026-ba7d7b61fd2e)
+![有声书工具箱封面](https://github.com/Alano-i/wecom-notification/assets/68833595/3e6d3b80-1cbe-487e-b047-60cec57b63a2)
+
 
 
 <img width="908" alt="image" src="https://github.com/Alano-i/wecom-notification/assets/68833595/e8258b87-a9a7-4cbc-975b-7a091af069fe">
