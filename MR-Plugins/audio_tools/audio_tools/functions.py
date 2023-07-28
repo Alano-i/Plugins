@@ -127,9 +127,9 @@ def sortout_filename(filename,series,fill_num):
         filename_text = filename_text_ori
     return filename_text
 
-# filename = '005 第3选择.mp3'
-# series = ''
-# xxx = sortout_filename(filename,series,3)
+# filename = '陈坤 - 重生.flac'
+# series = '音乐'
+# xxx = sortout_filename(filename,series,2)
 
 def url_encode(url):
     return quote(url, safe='/:.')
@@ -219,3 +219,6 @@ def get_audio_files(directory):
 def process_path(path):
     path = f"/{path.strip('/')}" if path else path
     return path
+
+def get_state(config):
+    return bool(config and config.lower() != 'off')
