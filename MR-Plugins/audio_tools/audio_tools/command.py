@@ -36,6 +36,16 @@ clip_config = [
         "value": 'clip'
     }
 ]
+media_list = [
+    {
+        "name": "📕 有声书",
+        "value": 'audio_book'
+    },
+    {
+        "name": "🎹 音乐",
+        "value": 'music'
+    }
+]
 
 state_list = [
     {
@@ -53,8 +63,9 @@ else:
     last_time_input_dirs = '/Media/有声书/123456'
 
 def cmd_config(config):
-    global src_base_path,dst_base_path
-    src_base_path = config.get('src_base_path','')
+    global src_base_path_book,src_base_path_music,dst_base_path
+    src_base_path_book = config.get('src_base_path_book','')
+    src_base_path_music = config.get('src_base_path_music','')
     dst_base_path = config.get('dst_base_path','')
 
 # 获取所有的播客源列表
@@ -66,7 +77,7 @@ def get_rss_url():
             "value": ''
         }
     ]
-    file_path = f"{src_base_path}/podcast.json"
+    file_path = f"{src_base_path_book}/podcast.json"
     # 判断文件是否存在
     if not os.path.exists(file_path):
         logger.warning(f"保存播客URL的json文件不存在，可能还从未生成！")
@@ -112,8 +123,9 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
                 art_album: ArgSchema(ArgType.String, '专辑艺术家：推荐填书名', '', default_value='', required=False),
                 subject: ArgSchema(ArgType.String, '题材，如：武侠，相声', '', default_value='', required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介，用于生成播客简介', '', default_value='', required=False)):
+    src_base_path = src_base_path_book
     cliped_folder = cliped_folder or series
-    use_filename = bool(use_filename_config and use_filename_config.lower() != 'off')
+    use_filename = get_state(use_filename_config)
     logger.info(f"{plugins_name}任务\n开始运行音频剪辑\n输入路径：[{input_dirs}]\n输出路径：[{output_dir}/{cliped_folder}]\n开始时间：[{audio_start}]\n结束倒数秒数：[{audio_end}]\n\n整理参数如下：\n系列：['{series}']\n作者：['{authors}']\n演播者：['{narrators}']\n发布年份：['{year}']\n专辑：['{albums}']\n专辑艺术家：['{art_album}']")
 
     server.common.set_cache('audio_clip', 'input_dirs', input_dirs)
@@ -134,14 +146,16 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
             audio_path = f"{output_dir}/{cliped_folder}"
             is_group = True
             short_filename = True
+            is_book = True
             time.sleep(5)
-            podcast_main(series, audio_path, podcast_summary, subject, authors, is_group,short_filename)
+            podcast_main(series, audio_path, podcast_summary, subject, authors, is_group,short_filename,is_book)
         except Exception as e:
             logger.error(f"「生成播客源」失败，原因：{e}")
     return PluginCommandResponse(True, f'音频剪辑任务完成')
 
 @plugin.command(name='poscast_m', title='生成播客源', desc='生成 Apple 播客源 URL', icon='Podcasts',run_in_background=True)
 def poscast_m_echo(ctx: PluginCommandContext,
+                is_book_config: ArgSchema(ArgType.Enum, '类型：📕 有声书', '', enum_values=lambda: media_list, default_value='audio_book', multi_value=False, required=False),
                 book_title: ArgSchema(ArgType.String, '书名', '', default_value = '', required=False),
                 audio_paths: ArgSchema(ArgType.String, '输入文件夹名称或完整路径', '支持多条，一行一条 /Media/有声书/', default_value='', required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
@@ -151,12 +165,14 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 short_filename_config: ArgSchema(ArgType.Enum, '根据文件名优化每集标题：✅ 开启', '', enum_values=lambda: state_list, default_value='on', multi_value=False, required=False)):
     # audio_paths = /Media/有声书/三国
     # src_base_path = /Media/有声书
+    src_base_path = src_base_path_book if is_book_config == 'audio_book' else src_base_path_music
+    is_book = False if is_book_config == 'music' else True
     state = False
     if not book_title and not audio_paths:
         logger.info(f"{plugins_name}未设置书名和路径，请设置后重试")
         return
-    is_group = bool(is_group_config and is_group_config.lower() != 'off')
-    short_filename = bool(short_filename_config and short_filename_config.lower() != 'off')
+    is_group = get_state(is_group_config)
+    short_filename = get_state(short_filename_config)
     book_title_new = book_title
     try:
         logger.info(f"{plugins_name}任务 - 生成播客源 URL\n书名：['{book_title}']\n输入路径：['{audio_paths}']\n有声书简介：['{podcast_summary}']\n有声书分类：['{podcast_category}']\n作者：['{podcast_author}']\n第1季强制200集：{is_group}")
@@ -171,7 +187,7 @@ def poscast_m_echo(ctx: PluginCommandContext,
             else:
                 if not audio_path:
                     audio_path = f"/{src_base_path.strip('/')}/{book_title}"
-            state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,is_group,short_filename)
+            state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,is_group,short_filename,is_book)
     except Exception as e:
         logger.error(f"「生成播客源」失败，原因：{e}")
         return PluginCommandResponse(False, f'生成博客源 RSS XML 任务失败')
@@ -208,7 +224,7 @@ def get_xml_url_echo(ctx: PluginCommandContext,
 
     if not url_list_config or not json_data:
         return PluginCommandResponse(True, f'播客源 RSS URL 获取失败，可能还从未生成')
-    send_sms = bool(send_sms_config and send_sms_config.lower() != 'off')
+    send_sms = get_state(send_sms_config)
     if url_list_config == 'all':
         new_json_data = json_data
     else:
@@ -245,8 +261,8 @@ def move_to_dir_echo(ctx: PluginCommandContext,
                 diy_cover_config: ArgSchema(ArgType.Enum, '修改封面：📴 关闭', '需要输入文件夹下有cover.jpg', enum_values=lambda: state_list, default_value='off', multi_value=False, required=False)):
     output_dir = process_path(output_dir)
     if '影音视界' in output_dir: output_dir = f"/Media{output_dir.split('影音视界')[1]}"
-    use_filename = bool(use_filename_config and use_filename_config.lower() != 'off')
-    diy_cover = bool(diy_cover_config and diy_cover_config.lower() != 'off')
+    use_filename = get_state(use_filename_config)
+    diy_cover = get_state(diy_cover_config)
     logger.info(f"{plugins_name}任务\n开始整理系列文件夹\n输入路径：[{output_dir}]\n系列：['{series}']\n作者：['{authors}']\n演播者：['{narrators}']\n发布年份：['{year}']")
     if move_out_configs == 'move':
         move_out(output_dir)
