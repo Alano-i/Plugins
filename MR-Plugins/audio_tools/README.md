@@ -30,4 +30,4 @@ MR插件，剪辑片头片尾，修改元数据，整理系列文件夹，`plex`
 
 
 ## 如果觉得好用的话可以请我喝杯咖啡
-<img width="120" alt="image" src="https://user-images.githubusercontent.com/68833595/233236971-e59d4eef-b0af-49ea-9ad7-8c4ce479c623.png">
+<img width="150" alt="image" src="https://user-images.githubusercontent.com/68833595/233236971-e59d4eef-b0af-49ea-9ad7-8c4ce479c623.png">
