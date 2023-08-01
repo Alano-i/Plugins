@@ -27,7 +27,8 @@ server = mbot_api
 # exts = ['.m4a', '.mp3', '.flac', '.wav']
 
 def audio_tools_config(config):
-    global mbot_url,pic_url,message_to_uid,src_base_path,channel,plugins_name,dst_base_path,exts
+    global plugins_name,mbot_url,pic_url,message_to_uid,src_base_path,channel,dst_base_path,exts
+    plugins_name = config.get('plugins_name','')
     mbot_url = config.get('mbot_url','')
     pic_url = config.get('pic_url','')
     message_to_uid = config.get('uid','')
@@ -37,7 +38,7 @@ def audio_tools_config(config):
     logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     if not message_to_uid:
         logger.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
-    plugins_name = config.get('plugins_name','')
+    
     dst_base_path = config.get('dst_base_path','')
     exts = config.get('exts','')
 
