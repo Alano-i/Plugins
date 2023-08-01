@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 # src_base_path = '/Media/有声书'
 
 def podcast_config(config):
-    global mbot_url,src_base_path,dst_base_path,pic_url,message_to_uid,channel,plugins_name,src_base_path_music,src_base_path_book
+    global plugins_name,mbot_url,src_base_path,dst_base_path,pic_url,message_to_uid,channel,src_base_path_music,src_base_path_book
+    plugins_name = config.get('plugins_name','')
     mbot_url = config.get('mbot_url','')
     src_base_path_book = config.get('src_base_path_book','')
     src_base_path_music = config.get('src_base_path_music','')
@@ -23,7 +24,7 @@ def podcast_config(config):
     pic_url = config.get('pic_url','')
     message_to_uid = config.get('uid','')
     channel = config.get('channel','qywx')
-    plugins_name = config.get('plugins_name','')
+    
 
 def update_xml_url(file_path,display_title,link,cover_image_url):
     try:
@@ -40,10 +41,20 @@ def update_xml_url(file_path,display_title,link,cover_image_url):
         }
         # 读取原始JSON文件内容
         original_data = read_json_file(file_path)
-        # 合并新增内容到原始内容
-        original_data.update(new_content)
+        # # 合并新增内容到原始内容
+        # original_data.update(new_content)
+
+        # 如果原内容中已经存在相同的键(display_title)，则更新内容
+        if display_title in original_data:
+            original_data[display_title].update(new_content[display_title])
+        else:
+            original_data.update(new_content)
+
+        # 将新内容放在最前面
+        updated_data = {**new_content, **original_data}
+
         # 将更新后的内容写回到同一文件中
-        write_json_file(file_path,original_data)
+        write_json_file(file_path,updated_data)
         logger.info(f'{file_path} 文件已更新')
         json_dst_path = f"{dst_base_path}/podcast.json"
         create_hard_link(file_path,json_dst_path)
@@ -123,7 +134,7 @@ def get_audio_info(file_path,book_title,short_filename,fill_num):
                         summary = audio.tags.getall('TXXX:summary')[0].text[0]
                     except Exception as e:
                         summary = ''
-                if ext == '.m4a':
+                if ext == '.m4a' or ext == '.m4b':
                     # 标题
                     org_title = audio.tags.get('©nam', [''])[0]
                     # 年份
@@ -211,11 +222,11 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
                 pub_year = ''
             if isinstance(pub_year, int) and len(str(pub_year)) == 4:
                 pub_date = pub_date.replace(year=int(pub_year))
-        SubElement(item, 'pubDate').text = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        SubElement(item, 'pubDate').text = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT+8')
         SubElement(item, 'itunes:duration').text = duration  # Replace with actual duration if available
         SubElement(item, 'itunes:explicit').text = 'false'  # 是否存在露骨内容
         # pub_date += timedelta(minutes=1)
-        pub_date += timedelta(seconds=10)
+        pub_date += timedelta(seconds=1)
     return minidom.parseString(tostring(rss)).toprettyxml(indent='    ')
 
 def save_cover(input_file,audio_path):
@@ -283,15 +294,18 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         return False
     base_url = f'{mbot_url}/static/podcast/audio'
     audio_files,fill_num = get_audio_files(audio_path)
-    cover_file = os.path.join(audio_path, "cover.jpg")
+    cover_file_jpg = os.path.join(audio_path, "cover.jpg")
+    cover_file_png = os.path.join(audio_path, "cover.png")
+    cover_file = cover_file_png if os.path.exists(cover_file_png) else cover_file_jpg
     if audio_files and not os.path.exists(cover_file): save_cover(audio_files[0],audio_path)
     # audio_path = '/Media/有声书/ABC/DEF'
     # src_base_path = '/Media/有声书'
     add_path = audio_path.replace(src_base_path,'').strip('/') # ABC/DEF
     if os.path.exists(cover_file):
-        cover_file_hlink = f"{dst_base_path}/{add_path}/cover.jpg"
+        cover_file_hlink = f"{dst_base_path}/{add_path}/{os.path.basename(cover_file)}"
+        time.sleep(2)
         create_hard_link(cover_file,cover_file_hlink)
-        cover_image_url = f"{base_url}/{add_path}/cover.jpg"
+        cover_image_url = f"{base_url}/{add_path}/{os.path.basename(cover_file)}"
     else:
         cover_image_url = ''
     cover_image_url = url_encode(cover_image_url)
