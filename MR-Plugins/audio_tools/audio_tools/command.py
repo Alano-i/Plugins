@@ -11,7 +11,7 @@ from .functions import *
 server = mbot_api
 logger = logging.getLogger(__name__)
 plugins_name = '「有声书工具箱」'
-exts = ['.m4a', '.mp3', '.flac', '.wav']
+exts = ['.m4a', '.mp3', '.flac','.m4b']
 move_out_config = [
     {
         "name": "🔖 DIY元数据",
