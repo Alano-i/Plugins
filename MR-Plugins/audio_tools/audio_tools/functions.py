@@ -5,6 +5,7 @@ import io
 from urllib.parse import quote
 from cn2an import cn2an
 import time
+from pypinyin import lazy_pinyin
 import logging
 logger = logging.getLogger(__name__)
 
@@ -167,17 +168,26 @@ def read_json_file(file_path):
     return json_data
 
 def create_hard_link(src_path,dst_path):
-    if os.path.exists(dst_path) or os.path.islink(dst_path):
-        os.remove(dst_path) # 如果目标文件已经存在，删除它
-    # os.link(src_path, dst_path) # 创建硬链接
-    os.symlink(src_path, dst_path) # 创建软链接
-    # shutil.copyfile(src_path, dst_path) # 复制文件
-
+    try:
+        # 检查目标目录是否存在，如果不存在则创建目标目录
+        dst_dir = os.path.dirname(dst_path)
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
+        if os.path.exists(dst_path) or os.path.islink(dst_path):
+            os.remove(dst_path) # 如果目标文件已经存在，删除它
+        # os.link(src_path, dst_path) # 创建硬链接
+        os.symlink(src_path, dst_path) # 创建软链接
+        # shutil.copyfile(src_path, dst_path) # 复制文件
+    except Exception as e:
+        logger.error(f"{plugins_name}链接['{src_path}'] 到 ['{dst_path}'] 出错，原因: {e}")
+        pass
 def hlink(src_base_path, dst_base_path):
     try:
         one = True
         for root, dirs, files in os.walk(src_base_path):
             for file_name in files:
+                if file_name.startswith('.'):
+                    continue
                 src_file_path = os.path.join(root, file_name)
                 dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
                 dst_dir_path = os.path.dirname(dst_file_path)
@@ -199,13 +209,44 @@ def hlink(src_base_path, dst_base_path):
         #     logger.info(f'{plugins_name}WEB 素材已软链接到容器')
     except Exception as e:
         logger.error(f'{plugins_name}将有声书素材已软链接到容器出错，原因: {e}')
+        pass
+def hlink_h(src_base_path, dst_base_path):
+    try:
+        for root, dirs, files in os.walk(src_base_path):
+            for file_name in files:
+                if file_name.startswith('.'):
+                    continue
+                src_file_path = os.path.join(root, file_name)
+                dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
+                dst_dir_path = os.path.dirname(dst_file_path)
+                if not os.path.exists(dst_dir_path):
+                    os.makedirs(dst_dir_path)
+                if os.path.isfile(src_file_path):
+                    if os.path.exists(dst_file_path) or os.path.islink(dst_file_path):
+                        os.remove(dst_file_path) # 如果目标文件已经存在，删除它
+                    os.link(src_file_path, dst_file_path)
+                    # shutil.copyfile(src_file_path, dst_file_path)
+            for dir_name in dirs:
+                src_dir_path = os.path.join(root, dir_name)
+                dst_dir_path = os.path.join(dst_base_path, os.path.relpath(src_dir_path, src_base_path))
+                if not os.path.exists(dst_dir_path):
+                    os.makedirs(dst_dir_path)
+                one = False
+                hlink(src_dir_path, dst_dir_path)
+    except Exception as e:
+        logger.error(f'{plugins_name}将有声书素材已软链接到容器出错，原因: {e}')
+        pass
 def get_fill_num(num):
     fill_num = 2 if num < 100 else 3 if num < 1000 else 4
     return fill_num
 
+ # 定义一个函数，将字符串转换为拼音表示
+def pinyin_sort_key(s):
+    return ''.join(lazy_pinyin(s))  
+
 def get_audio_files(directory):
     # 获取文件夹及其子文件夹中的所有音频文件
-    audio_extensions = ['.mp3', '.m4a', '.flac']
+    audio_extensions = ['.mp3', '.m4a', '.flac', '.m4b']
     audio_files = []
     for root, _, files in os.walk(directory):
         for file in files:
@@ -213,7 +254,9 @@ def get_audio_files(directory):
                 audio_files.append(os.path.join(root, file))
     audio_num = len(audio_files)
     fill_num = get_fill_num(audio_num)
-    return sorted(audio_files, key=lambda x: os.path.basename(x)),fill_num  # 升序 01 02 03
+    # 排序
+    sorted_audio_files = sorted(audio_files, key=lambda x: pinyin_sort_key(os.path.basename(x)))
+    return sorted_audio_files,fill_num  # 升序 01 02 03
     # return sorted(audio_files, key=lambda x: os.path.basename(x), reverse=True)  # 降序 03 02 01
 
 def process_path(path):
@@ -222,3 +265,10 @@ def process_path(path):
 
 def get_state(config):
     return bool(config and config.lower() != 'off')
+
+def extract_file_or_folder_path(path):
+    first_path, _ = os.path.split(path)
+    if os.path.isdir(path):  # 判断路径是否是一个目录
+        return first_path,path  # 如果是目录，则直接返回该路径
+    else:
+        return first_path,os.path.dirname(path)  # 如果是文件，则提取其所在文件夹的路径
