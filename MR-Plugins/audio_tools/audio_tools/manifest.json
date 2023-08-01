@@ -3,7 +3,7 @@
   "title": "有声书工具箱",
   "author": "Alano",
   "description": "剪辑片头片尾，修改元数据，制作有声书、音乐播客源（宝藏App播客是时候用起来了，Apple原生应用播放 Nas 中的海量音乐），元数据 plex Audiobookshelf 可识别。",
-  "version": "2.0",
+  "version": "2.1",
   "requirements": null,
   "configField": [
     {
@@ -48,6 +48,20 @@
       "fieldType": "String",
       "label": "音乐父文件夹",
       "helperText": "若音频数量较大，请耐心等待处理完成。",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "check_book",
+      "fieldType": "Bool",
+      "label": "监控有声书下载路径",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "book_watch_folder",
+      "fieldType": "String",
+      "label": "有声书下载路径，此路径需已添加至Mbot媒体文件夹",
+      "helperText": "监控此下载路径并自动制作播客源，适配红叶官种（若种子命名不规范整理效果会不好），没有十分强烈的自动制作播客源需求建议留空",
       "defaultValue": ""
     }
   ],
