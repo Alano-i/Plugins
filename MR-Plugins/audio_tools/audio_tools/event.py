@@ -18,22 +18,6 @@ def event_config(config):
         book_watch_folder = process_path(book_watch_folder)
     if src_base_path:
         src_base_path = process_path(src_base_path)
-
-def get_bookname_and_author(save_path_name):
-    # 定义匹配书名和播客作者的正则表达式
-    # pattern = r'^(.+?)[\.-](.+?)[\.-]'
-    pattern = r'^(.+?)[\.\-\s*]+(.+?)[\.\-\s*]+'
-    # pattern = r'^(.+?)[\.\-\s*]+(.+?)[\.\-\s*]+(.+?)[\.\-\s*]'
-    # 使用正则表达式匹配书名和播客作者
-    match = re.search(pattern, save_path_name)
-    # 如果匹配成功，则提取书名和播客作者
-    if match:
-        book_title = match.group(1).strip()
-        podcast_author = match.group(2).strip()
-        # narrators = match.group(3).strip().replace("演播","").strip()
-        return book_title, podcast_author
-    else:
-        return '', '', ''
     
 @plugin.on_event(bind_event=[EventType.DownloadCompleted], order=20)
 def on_event(ctx: PluginContext, event_type: str, data: Dict):
@@ -66,11 +50,15 @@ def on_event(ctx: PluginContext, event_type: str, data: Dict):
             short_filename = True
             is_book = True
             if not os.path.samefile(first_path, src_base_path):
-                hlink_h(save_path, audio_path)
+                hard_link(save_path, audio_path)
+            else:
+                audio_path = save_path
             logger.info(f"{plugins_name}解析后的数据 audio_path：['{audio_path}'] book_title：['{book_title}'] podcast_author：['{podcast_author}']")
-            state = podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group,short_filename,is_book)
+            result = podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,is_group,short_filename,is_book)
+        else:
+            logger.error(f"{plugins_name}解析 ['{save_path}'] 的书名和作者失败，可能是文件夹命名不规范，结束任务")
     else:
-        logger.info(f"{plugins_name} ['{save_path}'] 目录不是有声书监控目录，不运行生成播客源")
+        logger.info(f"{plugins_name} ['{save_path}'] 目录不是有声书监控目录，不生成播客源")
         return
 # data={
 #     'sub_id': None, 
