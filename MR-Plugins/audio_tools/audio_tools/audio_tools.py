@@ -24,6 +24,7 @@ server = mbot_api
 # plugins_path = '/data/plugins/audio_clip'
 # src_base_path = "/Media/有声书"
 # dst_base_path = f"/app/frontend/static/podcast/audio"
+# dst_base_path = f"/data/plugins/podcast"
 # exts = ['.m4a', '.mp3', '.flac', '.wav']
 
 def audio_tools_config(config):
@@ -251,9 +252,10 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     try:
         cover_image_path = os.path.join(output_dir, cliped_folder,'cover.jpg')
         cover_image_path_hlink = f"{dst_base_path}/{series}_cover.jpg"
-        create_hard_link(cover_image_path,cover_image_path_hlink)
+        light_link(cover_image_path,cover_image_path_hlink)
         if os.path.exists(cover_image_path_hlink):
             cover_image_url = f'{mbot_url}/static/podcast/audio/{series}_cover.jpg'
+            # cover_image_url = f'{mbot_url}/plugins/podcast/{series}_cover.jpg'
             cover_image_url = url_encode(cover_image_url)
         else:
             cover_image_url = ''
