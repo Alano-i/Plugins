@@ -12,6 +12,7 @@ from mbot.openapi import mbot_api
 server = mbot_api
 logger = logging.getLogger(__name__)
 # dst_base_path = "/app/frontend/static/podcast/audio"
+# dst_base_path = "/data/plugins/podcast"
 # src_base_path = '/Media/有声书'
 
 def podcast_config(config):
@@ -43,21 +44,18 @@ def update_xml_url(file_path,display_title,link,cover_image_url):
         original_data = read_json_file(file_path)
         # # 合并新增内容到原始内容
         # original_data.update(new_content)
-
         # 如果原内容中已经存在相同的键(display_title)，则更新内容
         if display_title in original_data:
             original_data[display_title].update(new_content[display_title])
         else:
             original_data.update(new_content)
-
         # 将新内容放在最前面
         updated_data = {**new_content, **original_data}
-
         # 将更新后的内容写回到同一文件中
         write_json_file(file_path,updated_data)
         logger.info(f'{file_path} 文件已更新')
-        json_dst_path = f"{dst_base_path}/podcast.json"
-        create_hard_link(file_path,json_dst_path)
+        json_dst_path = os.path.join(dst_base_path, 'podcast.json')
+        light_link(file_path,json_dst_path)
     except Exception as e:
         logger.error(f"保存播客链接到json文件出错，原因：{e}")
 
@@ -178,10 +176,14 @@ def get_season_episode(trck_num,is_group):
     if episode_num == 0: episode_num = ''
     return str(season_num), str(episode_num)
 
-def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group,short_filename,fill_num):
+def create_itunes_rss_xml(audio_files, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,audio_path,book_title,podcast_url,is_group,short_filename,fill_num):
     rss = Element('rss', attrib={'xmlns:itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'version': '2.0'})
     if not podcast_author or not podcast_summary:
-        aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files_batch[0],book_title,short_filename,fill_num)
+        try:
+            if audio_files:
+                aa,bb,podcast_au,cc,podcast_summ,dd = get_audio_info(audio_files[0],book_title,short_filename,fill_num)
+        except Exception as e:
+            logger.error(f"{plugins_name}获取第一个文件的信息失败，原因：{e}")
     podcast_author = podcast_author or podcast_au
     podcast_summary = podcast_summary or podcast_summ
     channel = SubElement(rss, 'channel')
@@ -197,7 +199,7 @@ def create_itunes_rss_xml(audio_files_batch, base_url, cover_image_url, podcast_
     SubElement(channel, 'itunes:image', attrib={'href': cover_image_url}) # 封面
     SubElement(channel, 'description').text = podcast_summary  # 简介
     pub_date = datetime.now()
-    for i, audio_file in enumerate(audio_files_batch, start=1):
+    for i, audio_file in enumerate(audio_files, start=1):
 
         org_title,pub_year,authors,duration,summary,trck_num = get_audio_info(audio_file,book_title,short_filename,fill_num)
         if not book: trck_num = i
@@ -293,6 +295,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
         return False
     base_url = f'{mbot_url}/static/podcast/audio'
+    # base_url = f'{mbot_url}/plugins/podcast'
     audio_files,fill_num = get_audio_files(audio_path)
     cover_file_jpg = os.path.join(audio_path, "cover.jpg")
     cover_file_png = os.path.join(audio_path, "cover.png")
@@ -304,7 +307,7 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     if os.path.exists(cover_file):
         cover_file_hlink = f"{dst_base_path}/{add_path}/{os.path.basename(cover_file)}"
         time.sleep(2)
-        create_hard_link(cover_file,cover_file_hlink)
+        light_link(cover_file,cover_file_hlink)
         cover_image_url = f"{base_url}/{add_path}/{os.path.basename(cover_file)}"
     else:
         cover_image_url = ''
@@ -332,8 +335,9 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         fill_num
     )
     write_xml_file(out_file,rss_xml)
-    create_hard_link(out_file,out_file_hlink)
-    update_xml_url(f"{src_base_path_book}/podcast.json",display_title,link,cover_image_url)        
+    light_link(out_file,out_file_hlink)
+    podcast_json_path = src_base_path_book or src_base_path_music   
+    update_xml_url(os.path.join(podcast_json_path, 'podcast.json'),display_title,link,cover_image_url)        
     link_url = link
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
     msg_title = f"{book_title} - 播客源URL"
