@@ -77,7 +77,8 @@ def get_rss_url():
             "value": ''
         }
     ]
-    file_path = f"{src_base_path_book}/podcast.json"
+    podcast_json_path = src_base_path_book or src_base_path_music
+    file_path = os.path.join(podcast_json_path, 'podcast.json')
     # 判断文件是否存在
     if not os.path.exists(file_path):
         logger.warning(f"保存播客URL的json文件不存在，可能还从未生成！")
@@ -141,6 +142,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
         time.sleep(5)
         try:
             # dst_base_path = "/app/frontend/static/podcast/audio"
+            # dst_base_path = "/data/plugins/podcast"
             # src_base_path = '/Media/有声书'
             hlink(src_base_path, dst_base_path)
             audio_path = f"{output_dir}/{cliped_folder}"
