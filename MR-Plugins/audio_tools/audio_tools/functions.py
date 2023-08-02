@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import shutil
 import io
 from urllib.parse import quote
 from cn2an import cn2an
@@ -167,75 +168,43 @@ def read_json_file(file_path):
             continue
     return json_data
 
-def create_hard_link(src_path,dst_path):
+
+# 硬链接，将整个目录树（包括所有子目录和文件）从 src 硬链接到 dst，如果已存在则先删除
+def hard_link(src, dst):
     try:
-        # 检查目标目录是否存在，如果不存在则创建目标目录
-        dst_dir = os.path.dirname(dst_path)
-        if not os.path.exists(dst_dir):
-            os.makedirs(dst_dir)
-        if os.path.exists(dst_path) or os.path.islink(dst_path):
-            os.remove(dst_path) # 如果目标文件已经存在，删除它
-        # os.link(src_path, dst_path) # 创建硬链接
-        os.symlink(src_path, dst_path) # 创建软链接
-        # shutil.copyfile(src_path, dst_path) # 复制文件
+        if os.path.isdir(src):
+            if os.path.exists(dst):
+                shutil.rmtree(dst)  # 删除目标目录
+            shutil.copytree(src, dst, copy_function=os.link)
+        elif os.path.isfile(src):  # 使用 "elif" 来处理文件的情况
+            if os.path.exists(dst):
+                os.remove(dst)  # 删除目标文件
+            os.link(src, dst)  # 创建硬链接
     except Exception as e:
-        logger.error(f"{plugins_name}链接['{src_path}'] 到 ['{dst_path}'] 出错，原因: {e}")
-        pass
+        logger.error(f"{plugins_name}硬链接 ['{src}'] -> ['{dst}'] 出错")
+
+# 软链接，递归地复制目录，包括所有子目录和文件，并创建软链接
+def light_link(src, dst):
+    try:
+        if os.path.isdir(src):
+            os.makedirs(dst, exist_ok=True)  # 创建目标目录
+            for entry in os.listdir(src):
+                src_entry = os.path.join(src, entry)
+                dst_entry = os.path.join(dst, entry)
+                light_link(src_entry, dst_entry)
+        elif os.path.isfile(src):  # 使用 "elif" 来处理文件的情况
+            if os.path.lexists(dst):  # 如果目标文件已存在，则先删除
+                os.remove(dst)
+            else:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)  # 创建目标目录
+            os.symlink(src, dst)  # 创建软链接
+    except Exception as e:
+        logger.error(f"{plugins_name}软链接 ['{src}'] -> ['{dst}'] 出错，原因: {e}")
+
 def hlink(src_base_path, dst_base_path):
-    try:
-        one = True
-        for root, dirs, files in os.walk(src_base_path):
-            for file_name in files:
-                if file_name.startswith('.'):
-                    continue
-                src_file_path = os.path.join(root, file_name)
-                dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
-                dst_dir_path = os.path.dirname(dst_file_path)
-                if not os.path.exists(dst_dir_path):
-                    os.makedirs(dst_dir_path)
-                if os.path.isfile(src_file_path):
-                    if os.path.exists(dst_file_path) or os.path.islink(dst_file_path):
-                        os.remove(dst_file_path) # 如果目标文件已经存在，删除它
-                    os.symlink(src_file_path, dst_file_path)
-                    # shutil.copyfile(src_file_path, dst_file_path)
-            for dir_name in dirs:
-                src_dir_path = os.path.join(root, dir_name)
-                dst_dir_path = os.path.join(dst_base_path, os.path.relpath(src_dir_path, src_base_path))
-                if not os.path.exists(dst_dir_path):
-                    os.makedirs(dst_dir_path)
-                one = False
-                hlink(src_dir_path, dst_dir_path)
-        # if one:
-        #     logger.info(f'{plugins_name}WEB 素材已软链接到容器')
-    except Exception as e:
-        logger.error(f'{plugins_name}将有声书素材已软链接到容器出错，原因: {e}')
-        pass
-def hlink_h(src_base_path, dst_base_path):
-    try:
-        for root, dirs, files in os.walk(src_base_path):
-            for file_name in files:
-                if file_name.startswith('.'):
-                    continue
-                src_file_path = os.path.join(root, file_name)
-                dst_file_path = os.path.join(dst_base_path, os.path.relpath(src_file_path, src_base_path))
-                dst_dir_path = os.path.dirname(dst_file_path)
-                if not os.path.exists(dst_dir_path):
-                    os.makedirs(dst_dir_path)
-                if os.path.isfile(src_file_path):
-                    if os.path.exists(dst_file_path) or os.path.islink(dst_file_path):
-                        os.remove(dst_file_path) # 如果目标文件已经存在，删除它
-                    os.link(src_file_path, dst_file_path)
-                    # shutil.copyfile(src_file_path, dst_file_path)
-            for dir_name in dirs:
-                src_dir_path = os.path.join(root, dir_name)
-                dst_dir_path = os.path.join(dst_base_path, os.path.relpath(src_dir_path, src_base_path))
-                if not os.path.exists(dst_dir_path):
-                    os.makedirs(dst_dir_path)
-                one = False
-                hlink(src_dir_path, dst_dir_path)
-    except Exception as e:
-        logger.error(f'{plugins_name}将有声书素材已软链接到容器出错，原因: {e}')
-        pass
+    light_link(src_base_path, dst_base_path)
+    logger.info(f"{plugins_name}已完成 ['{src_base_path}'] -> ['{dst_base_path}'] 链接")
+
 def get_fill_num(num):
     fill_num = 2 if num < 100 else 3 if num < 1000 else 4
     return fill_num
@@ -270,5 +239,17 @@ def extract_file_or_folder_path(path):
     first_path, _ = os.path.split(path)
     if os.path.isdir(path):  # 判断路径是否是一个目录
         return first_path,path  # 如果是目录，则直接返回该路径
-    else:
+    elif os.path.isfile(path):
         return first_path,os.path.dirname(path)  # 如果是文件，则提取其所在文件夹的路径
+
+def get_bookname_and_author(save_path_name):
+    pattern = r'^(.+?)[\.\-\s*]+(.+?)[\.\-\s*]+'
+    # 使用正则表达式匹配书名和播客作者
+    match = re.search(pattern, save_path_name)
+    if match:
+        book_title = match.group(1).strip()
+        podcast_author = match.group(2).strip()
+        # narrators = match.group(3).strip().replace("演播","").strip()
+        return book_title, podcast_author
+    else:
+        return '', ''
