@@ -3,7 +3,7 @@
 <a href="https://github.com/Alano-i/Mbot-Plugins"><img src="https://img.shields.io/github/stars/Alano-i/Mbot-Plugins" alt="Stars Badge"/></a>
 <a href="https://github.com/Alano-i/Mbot-Plugins"><img src="https://img.shields.io/github/forks/Alano-i/Mbot-Plugins" alt="Forks Badge"/></a>
 <a href="https://github.com/Alano-i/Mbot-Plugins"><img src="https://img.shields.io/github/issues/Alano-i/Mbot-Plugins" alt="Issues Badge"/></a>
-<a href="https://github.com/Alano-i/Mbot-Plugins/blob/main/License"><img src="https://img.shields.io/github/license/htnanako/MovieBot_plugins?color=2b9348" alt="License Badge"/></a>
+<a href="https://github.com/Alano-i/Mbot-Plugins/blob/main/License"><img src="https://img.shields.io/github/license/Alano-i/Mbot-Plugins?color=2b9348" alt="License Badge"/></a>
 
 Movie Robot 插件以及一些企业微信通知脚本。
 
