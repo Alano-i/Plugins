@@ -19,6 +19,9 @@ MR插件，PLEX 工具箱，原作者是BeiMou(yewei)，感谢。在此基础上
 
 <img width="1628" alt="image" src="https://github.com/Alano-i/Plex-Tools/assets/68833595/aaf76b61-8fba-44f6-96fe-8f0635e1b3d8">
 
+
+
+# ⚠️下方内容与插件无关，没有需求不用管下面的内容！
 ### 清理不需要的海报图片
 当多次运行添加媒体信息后可能会有一些不需要的海报， [按此项目的方法清理](https://github.com/meisnate12/Plex-Image-Cleanup)
 
