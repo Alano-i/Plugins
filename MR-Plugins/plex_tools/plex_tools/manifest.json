@@ -3,7 +3,7 @@
   "title": "Plex工具箱",
   "author": "BeiMou(yewei)",
   "description": "➊自动翻译标签 ➋拼音排序 ➌添加TOP250标签 ➍筛选Fanart封面 ➎为海报添加媒体信息",
-  "version": "3.1",
+  "version": "3.2",
   "requirements": null,
   "configField": [
     {
@@ -105,6 +105,13 @@
       "defaultValue": true
     },
     {
+      "fieldName": "update_add_info",
+      "fieldType": "Bool",
+      "label": "每周更新海报评分信息",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
       "fieldName": "add_media_info",
       "fieldType": "Bool",
       "label": "当有新入库时，自动为该影片海报添加媒体信息",
@@ -121,7 +128,7 @@
   ],
   "logoUrl": "/plugins/plex_tools/logo.jpg",
   "githubUrl": "",
-  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/plex_tools",
+  "helpDocUrl": "https://github.com/Alano-i/Mbot-Plugins/tree/main/MR-Plugins/plex_tools",
   "payImageUrl": "https://p.xmoviebot.com/donate/yewei_wechat.jpg",
   "dependencies": {
     "appVersion": ">=1.9.16"
