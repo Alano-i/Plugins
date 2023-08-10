@@ -33,7 +33,7 @@ def after_setup(plugin: PluginMeta, plugin_conf: dict):
     logger.info(f'{plugins_name}插件开始加载')
     # global added, libtable , plex_url, plex_token
     global added,collection_on,libtable,libstr,add_media_info
-    global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check
+    global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check,update_add_info
     plex_url = plugin_conf.get('plex_url','')
     plex_token = plugin_conf.get('plex_token','')
     custom_url = plugin_conf.get('custom_url','')
@@ -43,6 +43,7 @@ def after_setup(plugin: PluginMeta, plugin_conf: dict):
     # mbot_api_key = server.auth.get_default_ak()
 
 
+    update_add_info = plugin_conf.get('update_add_info',True)
     check = plugin_conf.get('check',True)
     added = plugin_conf.get('Added') if plugin_conf.get('Added') else None
     add_media_info = plugin_conf.get('add_media_info') if plugin_conf.get('add_media_info') else None
@@ -75,12 +76,13 @@ def config_changed(plugin_conf: dict):
     """
     logger.info(f'{plugins_name}配置发生变更，加载新配置')
     global added,collection_on,libtable,libstr,add_media_info
-    global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check
+    global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check,update_add_info
     plex_url = plugin_conf.get('plex_url','')
     plex_token = plugin_conf.get('plex_token','')
     custom_url = plugin_conf.get('custom_url','')
     mbot_url = plugin_conf.get('mbot_url','')
     mbot_api_key = plugin_conf.get('mbot_api_key','')
+    update_add_info = plugin_conf.get('update_add_info',True)
     check = plugin_conf.get('check',True)
     added = plugin_conf.get('Added') if plugin_conf.get('Added') else None
     add_media_info = plugin_conf.get('add_media_info') if plugin_conf.get('add_media_info') else None
@@ -228,24 +230,25 @@ def process_recent():
         add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
     logger.info(f"{plugins_name}为海报添加媒体信息完成，已自动跳过处理过的海报")
 
-@plugin.task('re_add_all', '「更新海报信息」', cron_expression='10 1 * * 2,5')
+@plugin.task('re_add_all', '「更新海报信息」', cron_expression='10 1 * * tue,fri')
 def re_add_all():
-    if str(libstr).lower() == 'all' or not libstr:
-        try:
-            libtables = plex_sortout.get_library()
-            libtable = [value['value'] for value in libtables]
-        except Exception as e:
-            logger.error(f"{plugins_name}获取所有媒体库出错，原因：{e}")
-    else:
-        libtable=libstr.split(',')
-    show_log = False
-    force_add = True
-    restore = False
-    only_show = False
-    logger.info(f"{plugins_name}开始为所有库中的所有海报重新添加媒体信息，已添加信息的海报将重新添加，主要为了更新评分，每周2和周5凌晨1点10分执行一次")
-    for i in range(len(libtable)):
-        add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
-    logger.info(f"{plugins_name}为重新为海报添加媒体信息完成，评分信息已是更新到最新")
+    if not update_add_info:
+        if str(libstr).lower() == 'all' or not libstr:
+            try:
+                libtables = plex_sortout.get_library()
+                libtable = [value['value'] for value in libtables]
+            except Exception as e:
+                logger.error(f"{plugins_name}获取所有媒体库出错，原因：{e}")
+        else:
+            libtable=libstr.split(',')
+        show_log = False
+        force_add = True
+        restore = False
+        only_show = False
+        logger.info(f"{plugins_name}开始为所有库中的所有海报重新添加媒体信息，已添加信息的海报将重新添加，主要为了更新评分，每周2 和 周5 凌晨 1:10 执行一次")
+        for i in range(len(libtable)):
+            add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
+        logger.info(f"{plugins_name}为重新为海报添加媒体信息完成，评分信息已是更新到最新")
 
 
 @plugin.task('set_plex', '「检查 PLEX 设置」', cron_expression='15 */2 * * *')
