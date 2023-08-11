@@ -27,14 +27,14 @@ def run_command(command):
 def config_setup(config):
     plugins_name = '「有声书工具箱」'
     plugins_path = '/data/plugins/audio_tools'
-    try:
-        # xmly_path = f'{plugins_path}/xmlyfetcher'
-        # copy_command = f"cp {xmly_path} /usr/local/bin"
-        # run_command(copy_command)
-        chmod_command = "chmod +x /data/plugins/audio_tools/xmlyfetcher"
-        run_command(chmod_command)
-    except Exception as e:
-        logger.error(f"喜马拉雅下载脚本修改权限出错，原因：{e}")
+    # try:
+    #     # xmly_path = f'{plugins_path}/xmlyfetcher'
+    #     # copy_command = f"cp {xmly_path} /usr/local/bin"
+    #     # run_command(copy_command)
+    #     chmod_command = "chmod +x /data/plugins/audio_tools/xmlyfetcher"
+    #     run_command(chmod_command)
+    # except Exception as e:
+    #     logger.error(f"喜马拉雅下载脚本修改权限出错，原因：{e}")
     exts = ['.m4a', '.mp3', '.flac','.m4b']
     dst_base_path = f"/app/frontend/static/podcast/audio"
     # dst_base_path = f"/data/plugins/podcast"
