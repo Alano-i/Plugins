@@ -74,8 +74,8 @@ options = [
     {"arg": "lr", "key": "log-requests",     "env": "LOG_REQUESTS",     "type": "bool", "default": False,    "help": "Run with every request logged."},
     {"arg": "mu", "key": "mbot-url",         "env": "MBOT_URL",         "type": "str",  "default": None,     "help": "Mbot通知服务器的URL，例如：http://10.0.0.1:1329"},
     {"arg": "ak", "key": "access-key",       "env": "ACCESS_KEY",       "type": "str",  "default": None,     "help": "Mbot的 access_key"},
-    {"arg": "pu", "key": "pic-url",          "env": "PIC_URL",          "type": "str",  "default": None,     "help": "接收通知的图片封面URL"},
-    {"arg": "ci", "key": "channel-id",       "env": "CHANNEL_ID",       "type": "str",  "default": None,     "help": "接收通知消息通道ID"}
+    {"arg": "pu", "key": "pic-url",          "env": "PIC_URL",          "type": "str",  "default": "https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MR-Plugins/plex_tools/plex_tools/overlays/clean.jpg",     "help": "接收通知的图片封面URL"},
+    {"arg": "ci", "key": "channel-id",       "env": "CHANNEL_ID",       "type": "int",  "default": 0,        "help": "接收通知消息通道ID"}
     
 ]
 script_name = "Plex Image Cleanup"
@@ -149,7 +149,7 @@ def send_msg(msg_digest):
     logger.info(f"设置的消息推送封面: {pic_url}")
     logger.info(f"设置的消息推送通道ID: {channel_id}")
     notify_data = {
-        'channel_id': 2,
+        'channel_id': channel_id,
         'msg_data': {
             'title': 'Plex 图片优化清理完成',
             'a': msg_digest,
@@ -549,7 +549,10 @@ def run_plex_image_cleanup(attrs):
     try:
         logger.info(f"描述为：{description}\n")
         logger.info(f"内容为：{report}\n")
-        send_to_mbot(description,report)
+        if mbot_url and access_key:
+            send_to_mbot(description,report)
+        else:
+            logger.info(f"Mbot通知服务器信息配置不完整，如有需要请配置好后重试！\n")
     except Exception as e:
         logger.info(f"出错了，原因：{e}\n")
 ############################################################################################
