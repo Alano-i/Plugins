@@ -6,8 +6,10 @@ import io
 from urllib.parse import quote
 from cn2an import cn2an
 import time
+import requests
 from pypinyin import lazy_pinyin
 import logging
+import xml.etree.ElementTree as ET
 logger = logging.getLogger(__name__)
 
 plugins_name = '「有声书工具箱」'
@@ -141,36 +143,76 @@ def write_json_file(file_path, json_data):
         try:
             with io.open(file_path, 'w', encoding='utf-8') as fp:
                 json.dump(json_data, fp, ensure_ascii=False, indent=4)
+            break
         except Exception as e:
             logger.error(f'{plugins_name}{i+1}/3 次写入新json数据到文件出错，原因: {e}')
             time.sleep(3)
             continue
 
 def write_xml_file(file_path,xml_data):
+    result = False
     for i in range(3):
         try:
             with io.open(file_path, 'w', encoding='utf-8') as fp:
                 fp.write(xml_data)
+            result = True
+            break
         except Exception as e:
             logger.error(f'{plugins_name}{i+1}/3 次写入新xml数据到文件出错，原因: {e}')
             time.sleep(3)
-            continue
+            result = False
+    return result
+    
 def read_json_file(file_path):
     json_data = {}
     for i in range(3):
         try:
-            # 打开原始 JSON 文件
             with io.open(file_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
+            break
         except Exception as e:
             logger.error(f'{plugins_name}{i+1}/3 次读取json文件出错，原因: {e}')
             time.sleep(3)
             continue
     return json_data
 
+def read_txt_file(file_path):
+    txt_data = ''
+    for i in range(3):
+        try:
+            with io.open(file_path, 'r', encoding='utf-8') as f:
+                txt_data = f.read().strip()
+            break
+        except Exception as e:
+            logger.error(f"{plugins_name}{i+1}/3 次读取 ['{file_path}'] 文件出错，原因: {e}")
+            time.sleep(3)
+            continue
+    return txt_data
+
+#完成文件夹的复制和合并，目标中有同名的会覆盖，没有就复制过去
+def merge_folders(src, dest):
+    for item in os.listdir(src):
+        src_item = os.path.join(src, item)
+        dest_item = os.path.join(dest, item)
+
+        if os.path.isdir(src_item):
+            if os.path.exists(dest_item):
+                if os.path.isdir(dest_item):
+                    merge_folders(src_item, dest_item)
+                else:
+                    os.remove(dest_item)
+                    shutil.copytree(src_item, dest_item, copy_function=os.link)
+            else:
+                shutil.copytree(src_item, dest_item, copy_function=os.link)
+        else:
+            if os.path.exists(dest_item):
+                os.remove(dest_item)
+            # shutil.copy2(src_item, dest_item)
+            os.link(src_item, dest_item)  # 创建硬链接
 
 # 硬链接，将整个目录树（包括所有子目录和文件）从 src 硬链接到 dst，如果已存在则先删除
 def hard_link(src, dst):
+    work_flag = True
     try:
         if os.path.isdir(src):
             if os.path.exists(dst):
@@ -181,10 +223,16 @@ def hard_link(src, dst):
                 os.remove(dst)  # 删除目标文件
             os.link(src, dst)  # 创建硬链接
     except Exception as e:
-        logger.error(f"{plugins_name}硬链接 ['{src}'] -> ['{dst}'] 出错")
+        if os.path.isfile(src):
+            logger.error(f"{plugins_name}硬链接 ['{src}'] -> ['{dst}'] 出错，跳过, 原因：{e}")
+        else:
+            logger.error(f"{plugins_name}硬链接 ['{src}'] -> ['{dst}'] 出错，跳过")
+        work_flag = False
+    return work_flag
 
 # 软链接，递归地复制目录，包括所有子目录和文件，并创建软链接
 def light_link(src, dst):
+    result = True
     try:
         if os.path.isdir(src):
             os.makedirs(dst, exist_ok=True)  # 创建目标目录
@@ -200,18 +248,34 @@ def light_link(src, dst):
             os.symlink(src, dst)  # 创建软链接
     except Exception as e:
         logger.error(f"{plugins_name}软链接 ['{src}'] -> ['{dst}'] 出错，原因: {e}")
+        result = False
+    return result
+
+
 
 def hlink(src_base_path, dst_base_path):
-    light_link(src_base_path, dst_base_path)
+    result = light_link(src_base_path, dst_base_path)
     logger.info(f"{plugins_name}已完成 ['{src_base_path}'] -> ['{dst_base_path}'] 链接")
+    return result
 
 def get_fill_num(num):
     fill_num = 2 if num < 100 else 3 if num < 1000 else 4
     return fill_num
 
- # 定义一个函数，将字符串转换为拼音表示
+ # 将字符串转换为拼音表示
 def pinyin_sort_key(s):
-    return ''.join(lazy_pinyin(s))  
+    return ''.join(lazy_pinyin(s))
+
+def get_num(text):
+    number = ''
+    match = re.search(r'第\s?(\d+)\s?[集章回]', text)
+    if match:
+        number = int(match.group(1).strip())
+    else:
+        match_f = re.search(r'\d+', text)
+        if match_f:
+            number = int(match_f.group(0).strip())  # Changed here
+    return number
 
 def get_audio_files(directory):
     # 获取文件夹及其子文件夹中的所有音频文件
@@ -225,10 +289,11 @@ def get_audio_files(directory):
     fill_num = get_fill_num(audio_num)
     # 排序
     sorted_audio_files = sorted(audio_files, key=lambda x: pinyin_sort_key(os.path.basename(x)))
-    return sorted_audio_files,fill_num  # 升序 01 02 03
+    return sorted_audio_files,fill_num,audio_num  # 升序 01 02 03
     # return sorted(audio_files, key=lambda x: os.path.basename(x), reverse=True)  # 降序 03 02 01
 
 def process_path(path):
+    path = path.strip()
     path = f"/{path.strip('/')}" if path else path
     return path
 
@@ -243,13 +308,130 @@ def extract_file_or_folder_path(path):
         return first_path,os.path.dirname(path)  # 如果是文件，则提取其所在文件夹的路径
 
 def get_bookname_and_author(save_path_name):
-    pattern = r'^(.+?)[\.\-\s*]+(.+?)[\.\-\s*]+'
-    # 使用正则表达式匹配书名和播客作者
+    # pattern = r'^(.+?)[\.\-\s*]+(.+?)[\.\-\s*]+'
+    pattern = r'^(.+?)[\.\-\s*_]+(.+?)[\.\-\s*_]+(.+?)(?:[\.\-\s*_]+(.+?))?$'
     match = re.search(pattern, save_path_name)
     if match:
         book_title = match.group(1).strip()
         podcast_author = match.group(2).strip()
-        # narrators = match.group(3).strip().replace("演播","").strip()
-        return book_title, podcast_author
+        reader = match.group(3).strip().replace("演播","").strip()
+        return book_title, podcast_author,reader
     else:
-        return '', ''
+        return '', '',''
+    
+def fetch_xml_data(url):
+    xml_data = ''
+    for retry_count in range(3):
+        try:
+            response = requests.get(url, timeout=10)  # 设置超时时间为10秒
+            response.raise_for_status()  # 如果请求不成功，会引发异常
+            xml_data = response.text
+            break
+        except requests.exceptions.RequestException as e:
+            logger.error(f"\n第 {retry_count+1}/3 次获取 {url} 出错:\n原因: {e}")
+            time.sleep(1)
+            continue
+    return xml_data
+
+def update_json(data):
+    try:
+        # 遍历 JSON 数据
+        for key, value in data.items():
+            podcast_url = value['podcast_url']
+            # 获取 XML 数据
+            xml_data = fetch_xml_data(podcast_url)
+            if xml_data:
+                try:
+                    root = ET.fromstring(xml_data)
+                    podcast_author = root.find('.//{http://www.itunes.com/dtds/podcast-1.0.dtd}author')
+                    if podcast_author:
+                        podcast_author = podcast_author.text
+                    else:
+                        podcast_author = ''
+                    audio_num = len(root.findall('.//item'))
+                    # 更新 JSON 数据
+                    value['podcast_author'] = podcast_author
+                    value['audio_num'] = audio_num
+                except Exception as e:
+                    logger.error(f"{key} - 解析出错，原因: {e}")
+                    time.sleep(1)
+                    continue
+        return data
+    except Exception as e:
+        logger.error(f"出错，原因: {e}")
+        return ''
+
+def get_local_info(audio_path,podcast_summary,reader):
+    desc_path = os.path.join(audio_path, "desc.txt")
+    reader_path = os.path.join(audio_path, "reader.txt")
+    if not podcast_summary and os.path.exists(desc_path):
+        podcast_summary = read_txt_file(desc_path)
+    if not reader and os.path.exists(reader_path):
+        reader = read_txt_file(reader_path)
+    return podcast_summary,reader
+
+def read_abs_file(audio_path):
+    abs_path = os.path.join(audio_path, 'metadata.abs')
+    title,authors,reader,publishedYear,genres,description = '','','','','',''
+    try:
+        with io.open(abs_path, 'r', encoding='utf-8') as file:
+            metadata = file.read()
+    except Exception as e:
+        metadata= ''
+        # logger.error(f"读取metadata.abs出错：{e}")
+    if metadata:
+        try:
+            title = metadata.split("title=")[1].split("\n")[0].strip()
+        except Exception as e:
+            pass
+        try:
+            authors = metadata.split("authors=")[1].split("\n")[0].strip()
+        except Exception as e:
+            pass
+        try:
+            reader = metadata.split("narrators=")[1].split("\n")[0].strip()
+        except Exception as e:
+            pass
+        try:
+            publishedYear = int(metadata.split("publishedYear=")[1].split("\n")[0].strip())
+        except Exception as e:
+            pass
+        try:
+            genres = metadata.split("genres=")[1].split("\n")[0].strip()
+            if genres:
+                genres = genres.replace("Audiobook, ", "").replace("Audiobook,", "").replace("Audiobook", "").strip(",").strip()
+        except Exception as e:
+            pass
+        try:
+            description_start = metadata.find("[DESCRIPTION]")
+            chapter_start = metadata.find("[CHAPTER]", description_start)
+            if chapter_start != -1:  # 如果存在[CHAPTER]
+                description_end = chapter_start
+            else:  # 如果不存在[CHAPTER]
+                description_end = len(metadata)
+            description = metadata[description_start:description_end].replace("[DESCRIPTION]", "").strip()
+            # description = metadata[description_start + len("[DESCRIPTION]"):].strip()
+        except Exception as e:
+            pass
+    try:
+        description,reader = get_local_info(audio_path,description,reader)
+    except Exception as e:
+        pass
+    title_dir, authors_dir, reader_dir = '','',''
+    if not title or not authors:
+        title_dir, authors_dir, reader_dir = get_bookname_and_author(os.path.basename(audio_path))
+    title = title or title_dir
+    authors = authors or authors_dir
+    reader = reader or reader_dir
+    return title,authors,reader,publishedYear,genres,description
+
+def get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary):
+
+    title_abs,authors_abs,reader_abs,publishedYear_abs,genres_abs,description_abs = read_abs_file(audio_path)
+    book_title = book_title or title_abs
+    podcast_author = podcast_author or authors_abs
+    reader = reader or reader_abs
+    pub_year = str(pub_year or publishedYear_abs)
+    podcast_category = podcast_category or genres_abs
+    podcast_summary = podcast_summary or description_abs
+    return book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary
