@@ -3,7 +3,7 @@
   "title": "有声书工具箱",
   "author": "Alano",
   "description": "剪辑片头片尾，修改元数据，制作有声书、音乐播客源（宝藏App播客是时候用起来了，Apple原生应用播放 Nas 中的海量音乐），元数据 plex Audiobookshelf 可识别。",
-  "version": "2.1.2",
+  "version": "2.34",
   "requirements": null,
   "configField": [
     {
@@ -61,13 +61,27 @@
       "fieldName": "book_watch_folder",
       "fieldType": "String",
       "label": "有声书下载路径，此路径需已添加至Mbot媒体文件夹",
-      "helperText": "监控此下载路径并自动制作播客源，适配红叶官种（若种子命名不规范整理效果会不好），没有十分强烈的自动制作播客源需求建议留空",
+      "helperText": "监控此下载路径并自动制作播客源，适配红叶官种（若种子命名不规范整理效果会不好），没有十分强烈的自动制作播客源需求建议不要开启。",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "update_podcast_config",
+      "fieldType": "Bool",
+      "label": "同步喜马拉雅并更新播客",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "sub_infos",
+      "fieldType": "String",
+      "label": "订阅信息",
+      "helperText": "示例：遮天,/有声书/遮天-辰东-头陀渊,123456,0,0 其中 123456 是喜马拉雅专辑ID，0,0为剪辑片头片尾秒数,多个用回车分隔。注意：仅支持免费音频，仅测试用途，版权归喜马拉雅所有，请支持正版。",
       "defaultValue": ""
     }
   ],
   "logoUrl": "/plugins/audio_tools/logo.jpg",
   "githubUrl": "",
-  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/audio_tools",
+  "helpDocUrl": "https://github.com/Alano-i/Mbot-Plugins/tree/main/MR-Plugins/audio_tools",
   "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
   "dependencies": {
     "appVersion": ">=1.9.30"
