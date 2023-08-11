@@ -25,7 +25,7 @@ MR插件，PLEX 工具箱，原作者是BeiMou(yewei)，感谢。在此基础上
 ### 清理不需要的海报图片
 当多次运行添加媒体信息后可能会有一些不需要的海报， [按此项目的方法清理](https://github.com/meisnate12/Plex-Image-Cleanup)
 
-如果配置Mbot的通知服务器信息，将收到以下效果的消息推送：
+如果配置Mbot的通知服务器（[此插件](https://github.com/Alano-i/Mbot-Plugins/tree/main/MR-Plugins/notify_server)）信息，将收到以下效果的消息推送：
 
 <img width="471" alt="image" src="https://github.com/Alano-i/Mbot-Plugins/assets/68833595/2289c054-2d4d-40b5-951c-8f4b3cecba53">
 
