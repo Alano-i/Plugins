@@ -71,6 +71,7 @@ LOG_REQUESTS=True
 MBOT_URL=                       这里按需填写 Mbot 的 URL
 ACCESS_KEY=                     这里按需填写 Mbot 的 ACCESS_KEY
 PIC_URL=https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MR-Plugins/plex_tools/plex_tools/overlays/clean.jpg
+CHANNEL_ID=0                    这里按需填写 Mbot 的 通知通道ID
 ```
 
 ## 如果觉得好用的话可以请我喝杯咖啡
