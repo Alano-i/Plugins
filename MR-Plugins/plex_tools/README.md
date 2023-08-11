@@ -25,7 +25,14 @@ MR插件，PLEX 工具箱，原作者是BeiMou(yewei)，感谢。在此基础上
 ### 清理不需要的海报图片
 当多次运行添加媒体信息后可能会有一些不需要的海报， [按此项目的方法清理](https://github.com/meisnate12/Plex-Image-Cleanup)
 
-建议使用docker版，Docker Compose 文件示例：
+如果配置Mbot的通知服务器信息，将收到以下效果的消息推送：
+
+<img width="472" alt="image" src="https://github.com/Alano-i/Mbot-Plugins/assets/68833595/26ccc94e-82da-41aa-af66-47b1a2fffc31">
+
+
+
+### 安装方法
+首先安装以下docker，注意需要映射插件目录中 `plex_image_cleanup.py` 到容器中
 ```console
 version: "2.1"
 services:
@@ -37,10 +44,11 @@ services:
     volumes:
       - /path/to/config:/config
       - /path/to/plex:/plex
+      - /path/to/plex-image-cleanup.py:/plex_image_cleanup.py
     restart: unless-stopped
 ```
 
-安装好之后，在/config 文件夹下建立环境变量配置文件 `.env`,示例如下：
+安装好之后，在/config 文件夹下建立环境变量配置文件 `.env`,复制以下配置：
 ```console
 PLEX_PATH=/plex                *这里需要修改,填plex的Plex Media Server目录映射到容器的目录
 MODE=remove
@@ -59,6 +67,9 @@ CLEAN_BUNDLES=True
 OPTIMIZE_DB=True
 TRACE=True
 LOG_REQUESTS=True
+MBOT_URL=                       这里按需填写 Mbot 的 URL
+ACCESS_KEY=                     这里按需填写 Mbot 的 ACCESS_KEY
+PIC_URL=https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MR-Plugins/plex_tools/plex_tools/overlays/clean.jpg
 ```
 
 ## 如果觉得好用的话可以请我喝杯咖啡
