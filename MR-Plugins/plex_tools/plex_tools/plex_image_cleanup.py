@@ -74,7 +74,8 @@ options = [
     {"arg": "lr", "key": "log-requests",     "env": "LOG_REQUESTS",     "type": "bool", "default": False,    "help": "Run with every request logged."},
     {"arg": "mu", "key": "mbot-url",         "env": "MBOT_URL",         "type": "str",  "default": None,     "help": "Mbot通知服务器的URL，例如：http://10.0.0.1:1329"},
     {"arg": "ak", "key": "access-key",       "env": "ACCESS_KEY",       "type": "str",  "default": None,     "help": "Mbot的 access_key"},
-    {"arg": "pu", "key": "pic-url",          "env": "PIC_URL",          "type": "str",  "default": None,     "help": "接收通知的图片封面URL"}
+    {"arg": "pu", "key": "pic-url",          "env": "PIC_URL",          "type": "str",  "default": None,     "help": "接收通知的图片封面URL"},
+    {"arg": "ci", "key": "channel-id",       "env": "CHANNEL_ID",       "type": "str",  "default": None,     "help": "接收通知消息通道ID"}
     
 ]
 script_name = "Plex Image Cleanup"
@@ -91,9 +92,11 @@ plexapi.BASE_HEADERS["X-Plex-Client-Identifier"] = pmmargs.uuid
 access_key = pmmargs["access-key"]
 mbot_url = pmmargs["mbot-url"]
 pic_url = pmmargs["pic-url"]
+channel_id = pmmargs["channel-id"]
 logger.info(f"设置的Mbot URL: {mbot_url}")
 logger.info(f"设置的Mbot ACCESS_KEY : {access_key}")
 logger.info(f"设置的消息推送封面: {pic_url}")
+logger.info(f"设置的消息推送通道ID: {channel_id}")
 def get_num(text):
     size,file_count = '0MB','0'
     # 匹配数字和单位
@@ -144,6 +147,7 @@ def send_msg(msg_digest):
     logger.info(f"设置的Mbot URL: {mbot_url}")
     logger.info(f"设置的Mbot ACCESS_KEY : {access_key}")
     logger.info(f"设置的消息推送封面: {pic_url}")
+    logger.info(f"设置的消息推送通道ID: {channel_id}")
     notify_data = {
         'channel_id': 2,
         'msg_data': {
