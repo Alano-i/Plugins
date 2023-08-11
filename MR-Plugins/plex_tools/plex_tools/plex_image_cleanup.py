@@ -71,11 +71,7 @@ options = [
     {"arg": "cb", "key": "clean-bundles",    "env": "CLEAN_BUNDLES",    "type": "bool", "default": False,    "help": "Global Toggle to Run Plex's Clean Bundles Operation."},
     {"arg": "od", "key": "optimize-db",      "env": "OPTIMIZE_DB",      "type": "bool", "default": False,    "help": "Global Toggle to Run Plex's Optimize DB Operation."},
     {"arg": "tr", "key": "trace",            "env": "TRACE",            "type": "bool", "default": False,    "help": "Run with extra trace logs."},
-    {"arg": "lr", "key": "log-requests",     "env": "LOG_REQUESTS",     "type": "bool", "default": False,    "help": "Run with every request logged."},
-    {"arg": "mu", "key": "mbot-url",         "env": "MBOT_URL",         "type": "str",  "default": None,     "help": "Mbot通知服务器的URL，例如：http://10.0.0.1:1329"},
-    {"arg": "ak", "key": "access-key",       "env": "ACCESS_KEY",       "type": "str",  "default": None,     "help": "Mbot的 access_key"},
-    {"arg": "pu", "key": "pic-url",          "env": "PIC_URL",          "type": "str",  "default": None,     "help": "接收通知的图片封面URL"}
-    
+    {"arg": "lr", "key": "log-requests",     "env": "LOG_REQUESTS",     "type": "bool", "default": False,    "help": "Run with every request logged."}
 ]
 script_name = "Plex Image Cleanup"
 plex_db_name = "com.plexapp.plugins.library.db"
@@ -86,90 +82,6 @@ logger = logging.PMMLogger(script_name, "plex_image_cleanup", os.path.join(confi
 logger.secret([pmmargs["url"], pmmargs["discord"], pmmargs["token"], quote(str(pmmargs["url"])), requests.utils.urlparse(pmmargs["url"]).netloc])
 requests.Session.send = util.update_send(requests.Session.send, pmmargs["timeout"])
 plexapi.BASE_HEADERS["X-Plex-Client-Identifier"] = pmmargs.uuid
-
-######################################### 自定义部分 #########################################
-access_key = pmmargs["access-key"]
-mbot_url = pmmargs["mbot-url"]
-pic_url = pmmargs["pic-url"]
-logger.info(f"设置的Mbot URL: {mbot_url}")
-logger.info(f"设置的Mbot ACCESS_KEY : {access_key}")
-logger.info(f"设置的消息推送封面: {pic_url}")
-def get_num(text):
-    size,file_count = '0MB','0'
-    # 匹配数字和单位
-    match = re.search(r'(\d+(\.\d+)?)\s*([A-Za-z]+)', text)
-    if match:
-        size = match.group(1)  # 提取文件大小部分
-        unit = match.group(3)  # 提取单位部分
-        size = (f"{size} {unit}")
-    else:
-        print("No match found")
-    file_count_match = re.search(r'Removing (\d+) Files', text)
-    if file_count_match:
-        file_count = file_count_match.group(1)
-    else:
-        print("File count not found")
-    return size,file_count
-
-def format_time(time_str):
-    hours, minutes, seconds = map(int, time_str.split(':'))
-    formatted_time = ""
-    if hours > 0:
-        formatted_time += f"{hours}小时"
-    if minutes > 0:
-        formatted_time += f"{minutes}分"
-    if seconds > 0:
-        formatted_time += f"{seconds}秒"
-    return formatted_time
-
-def get_mode(text):
-    # 使用字符串切片提取 "Running in" 和 "with" 之间的字符串
-    start_index = text.find("Running in") + len("Running in")
-    end_index = text.find("Mode with")
-    extracted_string = text[start_index:end_index].strip()
-    return extracted_string
-
-def get_run_Operations(description):
-    if 'PhotoTrancoder' in description:
-        run_Operations = '清理PhotoTranscoder目录'
-    if 'Empty Trash' in description:
-        run_Operations = f'{run_Operations} · 清空垃圾箱'
-    if 'Clean Bundles' in description:
-        run_Operations = f'{run_Operations} · 清理捆绑包'
-    if 'Optimize DB' in description:
-        run_Operations = f'{run_Operations} · 优化数据库'
-    return run_Operations
-
-def send_msg(msg_digest):
-    logger.info(f"设置的Mbot URL: {mbot_url}")
-    logger.info(f"设置的Mbot ACCESS_KEY : {access_key}")
-    logger.info(f"设置的消息推送封面: {pic_url}")
-    notify_data = {
-        'channel_id': 2,
-        'msg_data': {
-            'title': 'Plex 图片优化清理完成',
-            'a': msg_digest,
-            'pic_url': pic_url,
-            'link_url': ''
-        }
-    }
-    url = f'{mbot_url}/api/plugins/notify_server?access_key={access_key}'
-    response = requests.post(url, json=notify_data)
-    if response.status_code == 200:
-        logger.info(f"已推送微信消息\n")
-    else:
-        logger.info(f"消息推送失败\n")
-
-def send_to_mbot(description,report):
-    if report[7][0][0] == 'Total Runtime': all_time = format_time(report[7][0][1])
-    size,file_count = get_num(report[4][0][1])
-    mode=get_mode(description)
-    if mode == 'Remove': mode = 'Remove (删除元数据，不可恢复)'
-    run_Operations = get_run_Operations(description)
-    msg_digest = f"运行模式： {mode}\n清理时长： {all_time}\n清理图片： {file_count} 张，共 {size}\n\n{run_Operations}"
-    send_msg(msg_digest)
-
-###############################################################################################
 
 def pic_thread(attrs):
     with ProcessPoolExecutor(max_workers=1) as executor:
@@ -540,16 +452,6 @@ def run_plex_image_cleanup(attrs):
     report.append([(f"{script_name} Finished", "")])
     report.append([("Total Runtime", f"{logger.runtime('script')}")])
     logger.report(f"{script_name} Summary", description=description, rows=report, width=18, discord=True)
-
-######################################### 自定义部分 #########################################
-    try:
-        logger.info(f"描述为：{description}\n")
-        logger.info(f"内容为：{report}\n")
-        send_to_mbot(description,report)
-    except Exception as e:
-        logger.info(f"出错了，原因：{e}\n")
-############################################################################################
-
     logger.remove_main_handler()
 
 if __name__ == "__main__":
