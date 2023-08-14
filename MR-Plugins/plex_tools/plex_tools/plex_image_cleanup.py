@@ -165,12 +165,23 @@ def send_msg(msg_digest):
         logger.info(f"消息推送失败\n")
 
 def send_to_mbot(description,report):
-    if report[7][0][0] == 'Total Runtime': all_time = format_time(report[7][0][1])
-    size,file_count = get_num(report[4][0][1])
+    size_bloat,file_count_bloat,size_tc,file_count_tc,clean_text = '','','','',''
+    for i, rep in enumerate(report, start=0):
+        if i+1<len(report):
+            m=report[i+1][0][1]
+        else:
+            m=''
+        if rep[0][0] == 'Total Runtime': all_time = format_time(rep[0][1])
+        if 'Removing Bloat Images' in rep[0][0] and 'Space Recovered Removing' in m:
+            size_bloat,file_count_bloat = get_num(report[i+1][0][1])
+            clean_text = f"清理多余图片：{file_count_bloat} 张，共 {size_bloat}\n"
+        if 'Remove PhotoTranscoder Images' in rep[0][0] and 'Space Recovered Removing' in m:
+            size_tc,file_count_tc = get_num(report[i+1][0][1])
+            clean_text = f"{clean_text}清理转换图片：{file_count_tc} 张，共 {size_tc}"
     mode=get_mode(description)
     if mode == 'Remove': mode = 'Remove (删除元数据，不可恢复)'
     run_Operations = get_run_Operations(description)
-    msg_digest = f"运行模式： {mode}\n清理时长： {all_time}\n清理图片： {file_count} 张，共 {size}\n\n{run_Operations}"
+    msg_digest = f"运行模式： {mode}\n清理时长： {all_time}\n\n{clean_text}\n\n{run_Operations}"
     send_msg(msg_digest)
 
 ###############################################################################################
