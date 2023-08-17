@@ -3,6 +3,7 @@ from concurrent.futures import ProcessPoolExecutor
 from contextlib import closing
 from datetime import datetime
 from urllib.parse import quote
+import threading
 
 if sys.version_info[0] != 3 or sys.version_info[1] < 11:
     print("Version Error: Version: %s.%s.%s incompatible please use Python 3.11+" % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))
@@ -162,7 +163,7 @@ def send_msg(msg_digest):
     if response.status_code == 200:
         logger.info(f"已推送微信消息\n")
     else:
-        logger.info(f"消息推送失败\n")
+        logger.info(f"微信消息推送失败\n")
 
 def send_to_mbot(description,report):
     size_bloat,file_count_bloat,size_tc,file_count_tc,clean_text = '','','','',''
@@ -183,6 +184,16 @@ def send_to_mbot(description,report):
     run_Operations = get_run_Operations(description)
     msg_digest = f"运行模式： {mode}\n清理时长： {all_time}\n\n{clean_text}\n\n{run_Operations}"
     send_msg(msg_digest)
+
+def send_discord_sms(state,script_name,description,report):
+    logger.info(f"开始发送discord消息")
+    if not state:
+        try:
+            logger.info("Script Started", log=False, discord=True, start="script")
+        except Failed as e:
+            logger.error(f"Discord URL Error: {e}")
+    else:
+        logger.report(f"{script_name} Summary", description=description, rows=report, width=18, discord=True)
 
 ###############################################################################################
 
@@ -218,10 +229,14 @@ def run_plex_image_cleanup(attrs):
         description += f" with {', '.join(extras[:-1])}{', and ' if len(extras) > 1 else ''}{extras[-1]} set to True"
     logger.info(description)
 
-    try:
-        logger.info("Script Started", log=False, discord=True, start="script")
-    except Failed as e:
-        logger.error(f"Discord URL Error: {e}")
+    # try:
+    #     logger.info("Script Started", log=False, discord=True, start="script")
+    # except Failed as e:
+    #     logger.error(f"Discord URL Error: {e}")
+######################################### 自定义部分 #########################################
+    thread_send_start = threading.Thread(target=send_discord_sms, args=(False, '', '',''))
+    thread_send_start.start()
+#############################################################################################   
     report = []
     messages = []
     try:
@@ -554,7 +569,7 @@ def run_plex_image_cleanup(attrs):
     logger.switch()
     report.append([(f"{script_name} Finished", "")])
     report.append([("Total Runtime", f"{logger.runtime('script')}")])
-    logger.report(f"{script_name} Summary", description=description, rows=report, width=18, discord=True)
+    # logger.report(f"{script_name} Summary", description=description, rows=report, width=18, discord=True)
 
 ######################################### 自定义部分 #########################################
     try:
@@ -566,9 +581,13 @@ def run_plex_image_cleanup(attrs):
             logger.info(f"Mbot通知服务器信息配置不完整，如有需要请配置好后重试！\n")
     except Exception as e:
         logger.info(f"出错了，原因：{e}\n")
+    # 发送discord消息线程，防止阻塞线程
+    thread_send_resulut = threading.Thread(target=send_discord_sms, args=(True, script_name, description,report))
+    thread_send_resulut.start()
 ############################################################################################
 
     logger.remove_main_handler()
+    logger.info(f"本次清理任务结束！")
 
 if __name__ == "__main__":
     try:
