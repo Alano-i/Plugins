@@ -184,7 +184,7 @@
             </template>
             <template v-else>
                 <van-grid  class="fade-in-up" :border="false" :gutter="gridSettings.gutter" :column-num="gridSettings.columnNum" style="margin: 0px 5px 0 5px;">
-                    <van-grid-item class="img_card" v-for="(podcast, title) in podcasts" :key="title" text="文字" style="border-radius: 6px;">
+                    <van-grid-item class="img_card" v-for="(podcast, title) in visiblePodcasts" :key="title" text="文字" style="border-radius: 6px;">
                         <div  style="width: 100%; margin-top: 5px; padding-bottom: 100%; position: relative; border-radius: 6px; overflow: hidden;">
                             <img
                             @click="ToPodcast(podcast.podcast_url)"
@@ -260,7 +260,10 @@
                 isMobile: true,
                 isLoading: true,
                 windowWidth: window.innerWidth,
-                podcasts: {}
+                podcasts: {},
+                currentPage: 1,
+                pageSize: 20, // 每页显示的数量
+                visiblePodcasts: {}, // 可见的播客数据
             }
         },
         
@@ -287,7 +290,14 @@
                 } else {
                     return { columnNum: 8, gutter: 32 };
                 }
-            }
+            },
+            pagedPodcasts() {
+                const start = (this.currentPage - 1) * this.pageSize;
+                const end = start + this.pageSize;
+                return Object.entries(this.podcasts)
+                    .slice(start, end)
+                    .reduce((obj, [title, podcast]) => ({ ...obj, [title]: podcast }), {});
+            },
         },
         methods: {
             setDefaultImage(event) {
@@ -315,6 +325,7 @@
                         this.podcasts = Object.freeze(res.data);  // 数据冻结 优化展示
                         // this.podcasts = res.data;
                         this.status = true;
+                        this.loadInitialPodcasts(); // 初始化可见数据
                     } else {
                         this.status = false;
                     }
@@ -363,7 +374,30 @@
                     document.getElementById('bg-img').src = '/static/podcast/bg_pc.png';
                     document.getElementById('bg-img').style.filter = 'blur(5px)';
                 }
-            }
+            },
+            handleScroll(event) {
+                console.log('handleScroll')
+                const app = event.target.documentElement;
+                const scrollBottom = app.scrollHeight - app.scrollTop - app.clientHeight;
+                if (scrollBottom < 100) {
+                    this.loadMorePodcasts();
+                }
+            },
+            loadInitialPodcasts() {
+                const newPodcasts = this.pagedPodcasts;
+                this.visiblePodcasts = newPodcasts;
+            },
+            loadMorePodcasts() {
+                this.currentPage++;
+                const newPodcasts = this.pagedPodcasts;
+                this.visiblePodcasts = { ...this.visiblePodcasts, ...newPodcasts };
+            },
+        },
+        watch: {
+            windowWidth(newWidth) {
+                this.adjustBgDivHeight();
+                this.handleResize();
+            },
         },
         mounted() {
             this.fetchPodcasts();
@@ -372,10 +406,13 @@
             window.addEventListener('orientationchange', this.handleResize);
             this.adjustBgDivHeight();
             // console.log(this.isMobile)
+            
+            window.addEventListener('scroll', this.handleScroll, true);
         },
-        beforeDestroy() {
+        beforeUnmount() {
             window.removeEventListener('resize', this.handleResize);
             window.removeEventListener('orientationchange', this.handleResize);
+            window.removeEventListener('scroll', this.handleScroll, true);
         },
     });
     app.use(vant);
