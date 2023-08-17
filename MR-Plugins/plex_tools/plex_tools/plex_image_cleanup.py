@@ -94,6 +94,8 @@ access_key = pmmargs["access-key"]
 mbot_url = pmmargs["mbot-url"]
 pic_url = pmmargs["pic-url"]
 channel_id = pmmargs["channel-id"]
+discord_on = ''
+discord_on = pmmargs["discord"]
 logger.info(f"设置的Mbot URL: {mbot_url}")
 logger.info(f"设置的Mbot ACCESS_KEY : {access_key}")
 logger.info(f"设置的消息推送封面: {pic_url}")
@@ -193,7 +195,10 @@ def send_discord_sms(state,script_name,description,report):
         except Failed as e:
             logger.error(f"Discord URL Error: {e}")
     else:
-        logger.report(f"{script_name} Summary", description=description, rows=report, width=18, discord=True)
+        try:
+            logger.report(f"{script_name} Summary", description=description, rows=report, width=18, discord=True)
+        except Failed as e:
+            logger.error(f"Discord 消息推送失败，原因: {e}")
 
 ###############################################################################################
 
@@ -234,8 +239,9 @@ def run_plex_image_cleanup(attrs):
     # except Failed as e:
     #     logger.error(f"Discord URL Error: {e}")
 ######################################### 自定义部分 #########################################
-    thread_send_start = threading.Thread(target=send_discord_sms, args=(False, '', '',''))
-    thread_send_start.start()
+    if discord_on:
+        thread_send_start = threading.Thread(target=send_discord_sms, args=(False, '', '',''))
+        thread_send_start.start()
 #############################################################################################   
     report = []
     messages = []
@@ -582,8 +588,9 @@ def run_plex_image_cleanup(attrs):
     except Exception as e:
         logger.info(f"出错了，原因：{e}\n")
     # 发送discord消息线程，防止阻塞线程
-    thread_send_resulut = threading.Thread(target=send_discord_sms, args=(True, script_name, description,report))
-    thread_send_resulut.start()
+    if discord_on:
+        thread_send_resulut = threading.Thread(target=send_discord_sms, args=(True, script_name, description,report))
+        thread_send_resulut.start()
 ############################################################################################
 
     logger.remove_main_handler()
