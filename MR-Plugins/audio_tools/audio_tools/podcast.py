@@ -65,6 +65,8 @@ def podcast_config(config):
     src_base_path_book = config.get('src_base_path_book','')
     src_base_path_music = config.get('src_base_path_music','')
     dst_base_path = config.get('dst_base_path','')
+    src_base_path_music = process_path(src_base_path_music)
+    src_base_path_book = process_path(src_base_path_book)
     pic_url = config.get('pic_url','')
     message_to_uid = config.get('uid','')
     channel = config.get('channel','qywx')
@@ -502,9 +504,11 @@ def podcast_add_main(book_title,audio_path,xml_path,audio_files):
         SubElement(item, 'title').text = title_text    # 集标题
         """
         /Media/downloads/有声书/阴阳刺青师-墨大先生-头陀渊/tmp/阴阳刺青师 第783集 大汉龙钱.m4a
+        audio_path = '/Media/有声书/阴阳刺青师-墨大先生-头陀渊'
         """
         src_base_path = src_base_path_book if book else src_base_path_music
-        audio_url_m = f'{base_url}{audio_path.replace(src_base_path,"")}{audio_file.replace(audio_path,"")}'
+        # audio_url_m = f'{base_url}{audio_path.replace(src_base_path,"")}{audio_file.replace(audio_path,"")}'
+        audio_url_m = f"{base_url.strip('/')}/{audio_path.replace(src_base_path,'').strip('/')}/{audio_file.replace(audio_path,'').strip('/')}"
         audio_url = url_encode(audio_url_m)
         SubElement(item, 'enclosure', attrib={'url': audio_url, 'type': 'audio/mpeg'})   # 指向音频文件的url
         SubElement(item, 'guid').text = audio_url_m    # 全局唯一标识符

@@ -244,6 +244,8 @@ def poscast_m_echo(ctx: PluginCommandContext,
             try:
                 if audio_path:
                     logger.info(f"{plugins_name}开始处理：['{audio_path}']")
+                    book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary = '','','','','',''
+                    book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary = get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary)
                     state = auto_podcast(audio_path,'',book_title,podcast_summary,podcast_category,podcast_author,reader,pub_year,is_group,short_filename,is_book)
             except Exception as e:
                 logger.error(f"{plugins_name}批量为存量有声书生成播客源处理 ['{audio_path}'] 失败，原因：{e}")

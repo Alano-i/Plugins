@@ -19,27 +19,34 @@ from urllib3.exceptions import MaxRetryError, ConnectionError, TimeoutError
 from .functions import *
 from .podcast import podcast_add_main
 from .audio_tools import audio_clip, move_to_dir, all_add_tag, add_cover
+
 session = requests.Session()
 retry = Retry(connect=3, backoff_factor=0.5)
 adapter = HTTPAdapter(max_retries=retry)
 session.mount('https://', adapter)
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 logger = logging.getLogger(__name__)
-
-
+user_agent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+# user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
 def xmly_dl_config(config):
     global plugins_name,src_base_path_book, src_base_path_music,dst_base_path
-    global sub_infos_set,update_podcast_config
+    global sub_infos_set,update_podcast_config,magic,headers
     plugins_name = config.get('plugins_name','')
     src_base_path_book = config.get('src_base_path_book','')
     src_base_path_music = config.get('src_base_path_music','')
+    src_base_path_music = process_path(src_base_path_music)
+    src_base_path_book = process_path(src_base_path_book)
     update_podcast_config = config.get('update_podcast_config',False)
     dst_base_path = config.get('dst_base_path','')
     sub_infos_set = config.get('sub_infos','')
+    magic = config.get('magic','')
     if src_base_path_book:
         src_base_path_book = process_path(src_base_path_book)
     if src_base_path_music:
         src_base_path_music = process_path(src_base_path_music)
+    headers = {
+        'cookie': magic,
+        'user-agent': user_agent,
+    }
 
 def get_downloaded_list(folder_path):
     file_extensions = ['.mp3', '.mp4', '.m4a']  # 支持的文件扩展名
@@ -56,14 +63,13 @@ def get_downloaded_list(folder_path):
     episode_numbers = sorted(episode_numbers)
     return episode_numbers
 
-def get_new_track(album_id):
+def get_new_track(album_id,sub_start=1):
     base_url = "https://www.ximalaya.com/revision/album/v1/getTracksList"
     page_size =100
     num_pages = 50
     # url=f"https://www.ximalaya.com/revision/album/v1/getTracksList?albumId={album_id}&pageNum={page_num}&pageSize={page_size}"
     new_track_list = []
     for page_num in range(1, num_pages + 1):
-        # response = requests.get(base_url, params={"albumId": album_id, "pageNum": page_num, "pageSize": page_size}, headers=headers)
         response = session.request("GET", base_url, params={"albumId": album_id, "pageNum": page_num, "pageSize": page_size}, headers=headers, timeout=30)  
         data = response.json()
         if "data" in data and "tracks" in data["data"]:
@@ -73,7 +79,7 @@ def get_new_track(album_id):
                     title = track["title"]
                     title_num = get_num(title)
                     ep_num = title_num or track['index']
-                    if ep_num not in downloaded_list:
+                    if ep_num not in downloaded_list and int(ep_num) >= int(sub_start):
                         new = {
                             'index': track['index'],
                             'trackId': track['trackId'],
@@ -90,7 +96,7 @@ def get_new_track(album_id):
 def get_all_track(album_id,page):
     base_url = "https://www.ximalaya.com/revision/album/v1/getTracksList"
     page_size =30
-    num_pages = 166
+    num_pages = 168
     # url=f"https://www.ximalaya.com/revision/album/v1/getTracksList?albumId={album_id}&pageNum={page_num}&pageSize={page_size}"
     track_list = []
     if not page:
@@ -216,13 +222,12 @@ def fetch_track_by_id(track_id,path,folder_path_base):
     if not track_id or not path: return ''
     folder_path_base = folder_path_base or path
     key = "aaad3e4fd540b0f79dca95606e72bf93"
-    headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'}
+    # headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'}
     timestamp = int(time.time())
     device = 'web'
-    device = 'iPhone'
+    # device = 'iPhone'
     # url = f"http://mobile.ximalaya.com/v1/track/baseInfo?device=iPhone&trackId={track_id}"
     url = f"https://mobile.ximalaya.com/mobile-playpage/track/v3/baseInfo/{timestamp}?device={device}&trackId={track_id}"
-    # response = requests.get(url)
     response = session.request("GET", url, headers=headers, timeout=30)
     if response.status_code == 200:
         data = response.json()
@@ -281,7 +286,10 @@ def fetch_track_by_id(track_id,path,folder_path_base):
     else:
         logger.error(f"请求 {track_id} 所在的页面失败")
         return ''
-
+# track_id = "657306328"
+# folder_path_base = '/Users/alano/Downloads'
+# path = '/Users/alano/Downloads/25'
+# fetch_track_by_id(track_id,path,folder_path_base)
 def xmly_download(save_path,dl,album_id,page,track):
     result = True
     try:
@@ -356,10 +364,11 @@ def xmly_main():
         return False
     for sub_info in sub_infos:
         book_title = sub_info[0]
-        folder_path_base = sub_info[1]
-        album_id = int(sub_info[2])
-        audio_start = int(sub_info[3])
-        audio_end = int(sub_info[4])
+        sub_start = sub_info[1]
+        folder_path_base = sub_info[2]
+        album_id = int(sub_info[3])
+        audio_start = int(sub_info[4])
+        audio_end = int(sub_info[5])
         album = ''
         new_audios = ''
         folder_path = os.path.join(folder_path_base, 'tmp')
@@ -369,7 +378,7 @@ def xmly_main():
         if os.path.exists(cover_art_path):
             shutil.copy(cover_art_path, os.path.join(folder_path, 'cover.jpg'))
         downloaded_list = get_downloaded_list(folder_path_base)
-        new_track_list = get_new_track(album_id)
+        new_track_list = get_new_track(album_id,sub_start)
         new_dl_list= []
         if new_track_list:
             logger.info(f"喜马拉雅已更新集：{new_track_list}\n")

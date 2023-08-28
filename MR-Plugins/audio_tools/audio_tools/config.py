@@ -11,7 +11,7 @@ from .audio_tools import audio_tools_config
 from .event import event_config
 from .podcast import podcast_config,podcast_menu
 from .command import cmd_config
-from .functions import hlink
+from .functions import hlink,process_path
 from .xmly_download import xmly_dl_config
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,11 @@ def config_setup(config):
     src_base_path_music = config.get('src_base_path_music','')
     src_base_path_book = config.get('src_base_path_book','')
     book_watch_folder = config.get('book_watch_folder','')
+
+    src_base_path_music = process_path(src_base_path_music)
+    src_base_path_book = process_path(src_base_path_book)
+    book_watch_folder = process_path(book_watch_folder)
+
     logger.info(f"{plugins_name}有声书监控文件夹：['{book_watch_folder}']")
     logger.info(f"{plugins_name}有声书父文件夹：['{src_base_path_book}']")
     logger.info(f"{plugins_name}音乐父文件夹：['{src_base_path_music}']")

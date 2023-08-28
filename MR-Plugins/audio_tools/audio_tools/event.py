@@ -38,6 +38,7 @@ def on_event(ctx: PluginContext, event_type: str, data: Dict):
     else:
         first_path,save_path = extract_file_or_folder_path(save_path)
         first_path = process_path(first_path)
+        save_path = process_path(save_path)
         
     """
     first_path：/Media/downloads/有声书
