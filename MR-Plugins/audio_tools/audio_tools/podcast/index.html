@@ -40,21 +40,40 @@
         ::-webkit-scrollbar-thumb:window-inactive {
             background: rgba(255, 255, 255, 0.1);
         }
+
+        #bottom-line {
+            height: 1px; /* 线的高度 */
+            background-color: rgba(255, 255, 255, 0.5); /* 使用白色，并设置透明度为50% */
+            width: 100%; /* 线的宽度 */
+        }
+
+        #search-bg {
+            height: 78px;
+            display: flex;
+            padding-top: 0px;
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            position: sticky;
+            z-index: 1000;
+            /* background: #171717; */
+            background-color: rgb(23, 23, 23, 0.9);
+            backdrop-filter: blur(60px) saturate(200%);
+            -webkit-backdrop-filter: blur(60px) saturate(200%);
+            transition: padding-top 0.3s ease-in-out;
+        }
         .search-container {
-            /* margin: 0 24px 16px 24px; */
-            margin-top: 0;
-            margin-bottom: 16px;
-            height: 46px;
+            width: 100%;
+            height: 44px;
             display: flex;
             align-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.13);
+            /* border: 1px solid rgba(0, 0, 0, 0.5); */
             border-radius: 26px;
-            background-color: #000000;
+            background-color: rgba(255, 255, 255, 0.07);
             position: relative;
         }
         .search-input {
             background: rgba(0, 0, 0, 0);
-            color: rgba(255, 255, 255, 0.9);
+            color: #EAEBEB;
             flex-grow: 1;
             caret-color: #cb55f0;
             border: none;
@@ -91,9 +110,9 @@
             /* padding: 8px 24px 8px 24px; */
             font-size: 17px;
             width: 100px;
-            height: 38px;
+            height: 36px;
             /* background-color: #9f4ddd; */
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, 0.95);
             border: none;
             cursor: pointer;
             border-radius: 22px;
@@ -114,7 +133,7 @@
             left: 0px;
             right: 0px;
             bottom: 0px;
-            border: 1px solid rgba(255, 255, 255, 0.15); /* 内描边 */
+            border: 1px solid rgba(255, 255, 255, 0.13); /* 内描边 */
             pointer-events: none;
         }
 
@@ -144,6 +163,9 @@
             opacity: 0.25;
             transform: translateY(-50%);
         }
+        .info_text {
+                font-size: 15px;
+        }
 
         /* 适用于移动端（假设屏幕宽度小于或等于768px） */
         @media only screen and (max-width: 768px) {
@@ -155,6 +177,9 @@
                 width: 72px;
                 height: 34px;
                 border-radius: 20px;
+            }
+            .info_text {
+                font-size: 12.5px;
             }
         }
         /* 禁用双击放大 */
@@ -169,8 +194,8 @@
 
         /*选中文字*/
         ::selection {
-            background: rgba(136, 72, 196, 0.9) !important;
-            color: rgba(255, 255, 255, 0.9) !important;
+            background: rgba(136, 72, 196, 0.95) !important;
+            color: rgba(255, 255, 255, 0.99) !important;
         }
 
         img {
@@ -352,31 +377,39 @@
 </head>
 
 <body style="background-color: #171717;">
-    <!-- 头部背景 -->
-    <div id="bg-div"
-        style="margin-top: 0px; height: 160px; width: 100%; margin-bottom: 22px; position: relative; overflow: hidden;">
-        <img id="bg-img" alt="背景图片" src="/static/podcast/bg.png"
-            style="width: 100%; height: 100%; object-fit: fill; position: absolute; top: 0; left: 0;">
 
-        <div id="content-container" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: -5px;">
-            <!-- <img alt="图片加载中" src="/static/podcast/icon.png" style="width: 70px; margin-bottom: 5px;" /> -->
-            <a href="index.html" target="_blank">
-                <img alt="图片加载中" src="/static/podcast/icon.png" style="width: 70px; margin-bottom: 5px;" />
-            </a>
-            <div
-                style="width: 300px; text-align: center; font-size: 15px; color: #effaff; opacity: 0.7; padding-top: 0px; padding-bottom: 5px; line-height: 1.4;">
-                在 Safari 浏览器中打开，点击播客源封面即可快速添加到 Apple 播客 App 中
+    <div id="app" style="background-color: #171717;">
+        <!-- 头部背景 -->
+        <div id="bg-div"
+            style="margin-top: 0px; height: 160px; width: 100%; margin-bottom: 6px; position: relative; overflow: hidden;">
+            <img id="bg-img" alt="背景图片" src="/static/podcast/bg.png"
+                style="width: 100%; height: 100%; object-fit: fill; position: absolute; top: 0; left: 0;">
+
+            <div id="content-container" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: -5px;">
+                <!-- <img alt="图片加载中" src="/static/podcast/icon.png" style="width: 70px; margin-bottom: 5px;" /> -->
+                <a href="index.html" target="_blank">
+                    <img alt="图片加载中" src="/static/podcast/icon.png" style="width: 70px; margin-bottom: 5px;" />
+                </a>
+                <div style="display: flex; align-items: center; justify-content: center; font-size: 16px; color: #DAE4E8; padding-top: 0px; padding-bottom: 3px; line-height: 1.4;">
+                    <p style="font-weight: bold; opacity: 1; margin-bottom: 0px; margin-top: 2px; margin-right: 4px; font-size: 19px;">共</p>
+                    <p class="font-num" style="font-weight: bold; opacity: 1; margin-bottom: 0px; margin-top: 2px; margin-right: 4px; font-size: 22px;">{{ podcastNum }}</p>
+                    <p style="font-weight: bold; opacity: 1; margin-bottom: 0px; margin-top: 2px; margin-right: 0px; font-size: 19px;">个播客源</p>
+                </div>
+                <div class="info_text"
+                    style="width: 440px; text-align: center; color: #83898B; opacity: 1; padding-top: 0px; padding-bottom: 5px; line-height: 1.4;">
+                    在 Safari 中打开，点击封面可快速添加至 Apple 播客 App 中
+                </div>
             </div>
         </div>
-    </div>
-    <div id="app" style="background-color: #171717;">
-        <div class="search-container"
-            :style="{ 'margin-left': gridSettings.gutter +5 + 'px', 'margin-right': gridSettings.gutter +5 + 'px' }">
-            <img src="/static/podcast/searchicon.svg" alt="" class="search-icon">
-            <input v-model="searchTerm" @keyup.enter="performSearch" placeholder="输入书名、作者、演播者" class="search-input" />
-            <button @click="performSearch" class="search-button">搜索</button>
+        
+        <div id="search-bg" style="top: 0px; padding-top: 0px; border-bottom: 1px solid rgba(0, 0, 0, 0); box-shadow: 0 20px 50px rgba(0, 0, 0, 0);">
+            <div class="search-container"
+                :style="{ 'margin-left': gridSettings.gutter +5 + 'px', 'margin-right': gridSettings.gutter +5 + 'px' }">
+                <img src="/static/podcast/searchicon.svg" alt="" class="search-icon">
+                <input v-model="searchTerm" @keyup.enter="performSearch" placeholder="输入书名、作者、演播者" class="search-input" />
+                <button @click="performSearch" class="search-button">搜索</button>
+            </div>
         </div>
-
         <van-config-provider theme="dark">
             <template v-if="isLoading">
                 <div class="loading-container">
@@ -429,6 +462,9 @@
                                 </div>
                             </van-grid-item>
                         </van-grid>
+                        <div style="display: flex; align-items: center; justify-content: center; margin-top: 25px;">
+                            <p style="font-weight: normal; opacity: 0.2; margin-bottom: 0px; margin-top: 0px; font-size: 14px; margin-right: 0px;">到底了，没有更多了！</p>
+                        </div>
                     </template>
                 </template>
             </template>
@@ -487,9 +523,10 @@
                     isLoading: true,
                     windowWidth: window.innerWidth,
                     podcasts: {},
+                    podcastNum: 0,
                     searchTerm: '',
                     currentPage: 1,
-                    pageSize: 32, // 每页显示的数量
+                    pageSize: 24, // 每页显示的数量
                     visiblePodcasts: {}, // 可见的播客数据
                     searching: false,
                 }
@@ -544,14 +581,6 @@
                     // window.open('podcast:' + url, '_blank');
                     location.href = 'podcast:' + url;
                 },
-                // filteredPodcasts() {
-                //     if (!this.searchTerm) {
-                //         return this.visiblePodcasts;
-                //     }
-                //     return Object.entries(this.podcasts)
-                //         .filter(([title]) => title.toLowerCase().includes(this.searchTerm.toLowerCase()))
-                //         .reduce((obj, [title, podcast]) => ({ ...obj, [title]: podcast }), {});
-                // },
                 fetchPodcasts() {
                     axios({
                         method: 'get',
@@ -560,6 +589,7 @@
                         if (typeof res.data === 'object' && Object.keys(res.data).length > 0) {
                             // this.podcasts = Object.freeze(res.data);  // 数据冻结 优化展示
                             this.podcasts = res.data;
+                            this.podcastNum =  Object.keys(res.data).length
                             this.status = true;
                             this.loadInitialPodcasts(); // 初始化可见数据
                         } else {
@@ -626,20 +656,20 @@
                     );
                     console.log("Matched titles:", Object.keys(this.visiblePodcasts));
                 },
-
-
                 performSearch() {
-                    if (this.searchTerm.trim().length > 0) {
+                    // 重置 currentPage 和 searching 标志
+                    this.currentPage = 1;
+                    this.searching = this.searchTerm.trim().length > 0;
+
+                    if (this.searching) {
                         console.log("搜索关键词:", this.searchTerm);
                         this.filterPodcasts(this.searchTerm);
                     } else {
                         // 如果搜索词为空，则重置为原始的可见播客列表
                         console.log("搜索关键词为空，不搜索");
                         this.loadInitialPodcasts();
-                        this.searching = false;
                     }
                 },
-
                 // 判断是否在iframe中
                 isInIframe() {
                     try {
@@ -665,11 +695,39 @@
                 },
                 adjustBgDivHeight() {
                     const bgDiv = document.getElementById('bg-div');
+                    const searchBg = document.getElementById('search-bg');
+                    window.addEventListener('scroll', () => {
+                            const scrollPosition = window.scrollY || window.pageYOffset;
+                            const fixedPosition = 165; // 在哪个位置开始固定
+                            if (scrollPosition >= fixedPosition) {
+                                searchBg.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0.5)'; // 在滚动到固定位置后设置为30px
+                                searchBg.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
+                            } else {
+                                searchBg.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0)'; // 在滚动到固定位置后设置为30px
+                                searchBg.style.borderBottom = '1px solid rgba(255, 255, 255, 0)';
+                            }
+                        });  
                     // const bgUrl = this.getBg(this.isSmallScreen);
                     if (this.isAddedToHomeScreen() && !this.isInIframe()) {
                         const originalHeight = parseInt(bgDiv.style.height);
                         const updatedHeight = originalHeight + 30;
                         bgDiv.style.height = updatedHeight + 'px';
+                        searchBg.style.paddingTop = '0px'; 
+                        const initialOffsetTop = searchBg.offsetTop;
+                        window.addEventListener('scroll', () => {
+                            const scrollPosition = window.scrollY || window.pageYOffset;
+                            const fixedPosition = 165; // 在哪个位置开始固定
+                            if (scrollPosition >= fixedPosition) {
+                                searchBg.style.paddingTop = '30px'; // 在滚动到固定位置后设置为30px
+                                searchBg.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0.5)'; // 在滚动到固定位置后设置为30px
+                                searchBg.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
+                            } else {
+                                searchBg.style.paddingTop = '0px'; // 在滚动位置低于固定位置时设置回0
+                                searchBg.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0)'; // 在滚动到固定位置后设置为30px
+                                searchBg.style.borderBottom = '1px solid rgba(255, 255, 255, 0)';
+                            }
+                        });  
+                        
                     }
                     // if (this.isSmallScreen) {
                     if (this.isMobile) {
@@ -724,5 +782,4 @@
         app.mount('#app');
     </script>
 </body>
-
 </html>
