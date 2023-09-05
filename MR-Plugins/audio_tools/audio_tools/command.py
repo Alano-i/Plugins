@@ -107,7 +107,7 @@ def cmd_config(config):
     src_base_path_book = config.get('src_base_path_book','')
     src_base_path_music = config.get('src_base_path_music','')
     dst_base_path = config.get('dst_base_path','')
-    mbot_url = config.get('mbot_url','')
+    mbot_url = config.get('mbot_url','').strip('/')
 
 # 获取所有的播客源列表
 def get_rss_url():

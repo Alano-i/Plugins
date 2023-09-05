@@ -314,7 +314,7 @@ def get_bookname_and_author(save_path_name):
     if match:
         book_title = match.group(1).strip()
         podcast_author = match.group(2).strip()
-        reader = match.group(3).strip().replace("演播","").strip()
+        reader = match.group(3).strip().replace("演播","").replace("主播","").strip()
         return book_title, podcast_author,reader
     else:
         return '', '',''

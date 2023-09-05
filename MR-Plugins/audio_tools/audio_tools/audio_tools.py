@@ -30,7 +30,7 @@ server = mbot_api
 def audio_tools_config(config):
     global plugins_name,mbot_url,pic_url,message_to_uid,src_base_path,channel,dst_base_path,exts
     plugins_name = config.get('plugins_name','')
-    mbot_url = config.get('mbot_url','')
+    mbot_url = config.get('mbot_url','').strip('/')
     pic_url = config.get('pic_url','')
     message_to_uid = config.get('uid','')
     src_base_path = config.get('src_base_path_book','')

@@ -61,7 +61,7 @@ def podcast_menu():
 def podcast_config(config):
     global plugins_name,mbot_url,dst_base_path,pic_url,message_to_uid,channel,src_base_path_music,src_base_path_book
     plugins_name = config.get('plugins_name','')
-    mbot_url = config.get('mbot_url','')
+    mbot_url = config.get('mbot_url','').strip('/')
     src_base_path_book = config.get('src_base_path_book','')
     src_base_path_music = config.get('src_base_path_music','')
     dst_base_path = config.get('dst_base_path','')
