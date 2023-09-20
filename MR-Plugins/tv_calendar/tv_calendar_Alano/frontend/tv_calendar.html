@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>追剧日历</title>
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vant@4.0/lib/index.css"> -->
     <link rel="stylesheet" href="/static/tv_calendar/index.css">
     <!--iOS 添加到主屏幕时始终全屏-->
     <link rel="manifest" href="/static/tv_calendar/manifest.json">
@@ -15,12 +14,6 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-
-    <!-- <link rel="apple-touch-startup-image" href="/static/img/launch.png"> -->
-    <!-- <link rel="apple-touch-icon" href="/static/tv_calendar/icon/iphone.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/static/tv_calendar/icon/ipad.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/tv_calendar/icon/iphone.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="/static/tv_calendar/icon/ipad-retina.png"> -->
     <style>
           /* 禁用双击放大 */
         html, body {
@@ -101,18 +94,12 @@
                 <van-divider :style="{ fontSize:'22px' ,color: '#ffffff', borderColor: '#3e3e3e', padding: '5px 16px 1px 16px' }" class="font-num text-center">
                     <span style="opacity: 0.8">{{dateFormat(key)}}</span>
                     <span style="opacity: 0.8; padding-left: 10px">{{getWeek(key)}}</span>
-                    <span v-if="key == formatDate(new Date())" style="opacity: 0.8; padding-left: 3px">·</span>
-                    <span v-if="key == formatDate(new Date())" style="opacity: 0.8; padding-left: 3px">今天</span>
-                    <!-- <span v-if="key == formatDate(new Date(new Date().setDate(new Date().getDate()-1)))" style="opacity: 0.8; padding-left: 3px">·</span>
-                    <span v-if="key == formatDate(new Date(new Date().setDate(new Date().getDate()-1)))" style="opacity: 0.8; padding-left: 3px">昨天</span> -->
+                    <!-- <span v-if="key == formatDate(new Date())" style="opacity: 0.8; padding-left: 3px">·</span>
+                    <span v-if="key == formatDate(new Date())" style="opacity: 0.8; padding-left: 3px">今天</span> -->
+                    <img v-if="key == formatDate(new Date())" src="/static/tv_calendar/today.svg" style="width:15px; padding-left: 4px; padding-top: 1px;" alt="">
                 </van-divider>
-                <!-- <div :class="['fade-in-up0', { 'fade-in-up': applyAnimation }]"> -->
-                <!-- <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="isMobile ? 3 : 9"> -->
                 <van-grid class="fade-in-up" :border="false"  :gutter="15" :column-num="columnNum">
                     <van-grid-item class="img_card" v-for="(list,key2,j) in val" :key="j" text="文字" style="border-radius: 10px;">
-                        <!-- <van-image  点击图片跳转-->
-                            <!-- @click="openPlexApp()" -->
-                            <!-- @click="toDetail(list[0].show_id,list[0].season_number)" -->
                         <img
                             @click="toDetail(list[0].show_id,list[0].season_number)"
                             style="width: 100%; height: 87%; border-radius: 10px; overflow: hidden; cursor: pointer;"
@@ -140,11 +127,6 @@
         --van-background-2: #00ff0000;
         /* --isSmallScreen: false; */
     }
-    /* @media screen and (max-width: 400px) {
-        :root {
-            --isSmallScreen: true;
-        }
-    } */
     @font-face {
         font-family: 'num';
         src: url('/static/tv_calendar/ALIBABA-Font-Bold.otf') format('truetype');
@@ -170,10 +152,6 @@
         opacity: 0.12;
     }
 </style>
-
-<!-- <script src="https://fastly.jsdelivr.net/npm/vue@3"></script> -->
-<!-- <script src="https://fastly.jsdelivr.net/npm/vant@4/lib/vant.min.js"></script> -->
-<!-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> -->
 <script src="/static/tv_calendar/vue@3.js"></script>
 <script src="/static/tv_calendar/vant.min.js"></script>
 <script src="/static/tv_calendar/axios.min.js"></script>
@@ -215,11 +193,6 @@
                 }
             }
         },
-        // created() {
-        //     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        //     this.applyAnimation = !isIOS; // 在 iOS 设备上禁用动画效果
-        //     console.log(this.applyAnimation)
-        // },
         methods: {
             getDate(strDate){
                return new Date((strDate).replace(/-/g,"/"))
@@ -274,24 +247,6 @@
                 return y + "-" + m + "-" + d;
             },
 
-
-            // getEpisodes() {
-            //     axios({
-            //         method: 'get',
-            //         url: '/static/tv_calendar/tv_calendar.json?' + new Date().getTime()
-            //     }).then(res => {
-            //         let episodes = res.data
-            //         this.date_dict = JSON.stringify(episodes);
-            //         if (episodes.length == 0) {
-            //             this.status = false
-            //         } else {
-            //             this.status = true
-            //         }
-            //     }).catch(e => {
-            //         this.status = false
-            //     });
-            // },
-
             getEpisodes() {
                 axios({
                     method: 'get',
@@ -309,31 +264,6 @@
                         this.status = false;
                     });
             },
-
-            // getEpisodes() {
-            //     // let cachedTime = localStorage.getItem('originalJsonLastModifiedTime');
-            //     // let cachedData = localStorage.getItem('originalJsonData');
-            //     // console.log("缓存json文件修改时间："+ cachedTime)
-            //     axios({
-            //         method: 'get',
-            //         url: '/static/tv_calendar/tv_calendar.json?' + new Date().getTime()
-            //     }).then(res => {
-            //             let episodes = res.data;
-
-            //             console.log(episodes)
-            //             // localStorage.setItem('123a', episodes)
-
-            //             this.date_dict = JSON.stringify(episodes);
-
-            //             // localStorage.setItem('123b', this.date_dict)
-            //             localStorage.setItem('originalJsonData', this.date_dict);
-
-            //             // this.status = (episodes.length > 0);
-            //             this.status = true;
-            //     }).catch(e => {
-            //             this.status = false;
-            //     });
-            // },
             timestamp(date){
                 return date.replaceAll("-", "")
             },

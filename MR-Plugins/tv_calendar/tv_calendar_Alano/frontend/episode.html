@@ -119,8 +119,11 @@
                         ></img>
                         <div style="width: calc(100vw - 160px - 24px); height: 229px; display: flex; align-items: center;">
                             <div>
-                                <h5 style="font-size: 24px; opacity: 0.9; font-weight: bold; margin-top: 0px; margin-bottom: 0px;" class="text-ellipsis-5">
+                                <!-- <h5 style="font-size: 24px; opacity: 0.9; font-weight: bold; margin-top: 0px; margin-bottom: 0px;" class="text-ellipsis-5">
                                     {{ item.tv_name }}
+                                </h5> -->
+                                <h5 style="font-size: 24px; opacity: 0.9; font-weight: bold; margin-top: 0px; margin-bottom: 0px;" class="text-ellipsis-5">
+                                    <a :href="'https://www.themoviedb.org/tv/' + showId + '/season/' + seasonNumber" target="_blank" style="color: #ffffff;">{{ item.tv_name }}</a>
                                 </h5>
                                 <p style="color: #ffffff; opacity: 0.9; font-size: 14px; padding-top: 4px; margin: 0; text-align:left;">{{'第 '+item.season_number+' 季 · 共 '+date_dict.length+' 集'}}</p>
                                 <div style="margin-top: 15px; margin-bottom: 0px;">

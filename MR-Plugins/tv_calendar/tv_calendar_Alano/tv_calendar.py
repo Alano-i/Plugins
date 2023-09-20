@@ -22,8 +22,8 @@ from mbot.core.plugins import *
 from flask import Blueprint, request
 from mbot.common.flaskutils import api_result
 from mbot.register.controller_register import login_required
-_LOGGER = logging.getLogger(__name__)
 
+loger = logging.getLogger(__name__)
 plugins_name = '「追剧日历」'
 server = mbot_api
 api_url = "/3/tv/%(tv_id)s/season/%(season_number)s"
@@ -62,9 +62,9 @@ def hlink(src_base_path, dst_base_path):
                 one = False
                 hlink(src_dir_path, dst_dir_path)
         # if one:
-        #     _LOGGER.info(f'{plugins_name}WEB 素材已软链接到容器')
+        #     loger.info(f'{plugins_name}WEB 素材已软链接到容器')
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}将 WEB 素材已软链接到容器出错，原因: {e}')
+        loger.error(f'{plugins_name}将 WEB 素材已软链接到容器出错，原因: {e}')
 
 @plugin.after_setup
 def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
@@ -75,7 +75,7 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     mbot_url = config.get('mbot_url','')
     mbot_api_key = config.get('mbot_api_key','')
     hlink(src_base_path, dst_base_path)
-    _LOGGER.info(f'{plugins_name}WEB 素材已全部软链接到容器')
+    loger.info(f'{plugins_name}WEB 素材已全部软链接到容器')
     """授权并添加菜单"""
     href = '/common/view?hidePadding=true#/static/tv_calendar/tv_calendar.html'
     # 授权管理员和普通用户可访问
@@ -107,7 +107,7 @@ def config_changed(config: Dict[str, Any]):
     mbot_api_key = config.get('mbot_api_key','')
     # shutil.copy('/data/plugins/tv_calendar_Alano/frontend/tv_calendar.html', '/app/frontend/static')
     hlink(src_base_path, dst_base_path) 
-    _LOGGER.info('「追剧日历」已重新加载配置并重新链接资源到容器内')
+    loger.info('「追剧日历」已重新加载配置并重新链接资源到容器内')
     set_plex()
 
 # 新增剧集订阅，重新生成日历数据
@@ -118,12 +118,12 @@ def on_subscribe_new_media(ctx: PluginContext, event_type: str, data: Dict):
     media_type = data.get('type','')
     if media_type == 'TV':
         sub_info = get_sub_info(data)
-        _LOGGER.info(f'{plugins_name}新订阅剧集{sub_info}，更新追剧日历数据')
+        loger.info(f'{plugins_name}新订阅剧集{sub_info}，更新追剧日历数据')
         time.sleep(30)
         save_json()
     else:
         cn_name = data.get('cn_name','')
-        _LOGGER.info(f'{plugins_name}新订阅媒体{cn_name}，不是剧集，不更新追剧日历数据')
+        loger.info(f"{plugins_name}新订阅媒体 ['{cn_name}']，不是剧集，不更新追剧日历数据")
     
 # 删除剧集订阅，重新生成日历数据
 @plugin.on_event(
@@ -133,20 +133,20 @@ def on_subscribe_delete_media(ctx: PluginContext, event_type: str, data: Dict):
     media_type = data.get('type','')
     if media_type == 'TV':
         sub_info = get_sub_info(data)
-        _LOGGER.info(f'{plugins_name}退订剧集{sub_info}，更新追剧日历数据')
+        loger.info(f'{plugins_name}退订剧集{sub_info}，更新追剧日历数据')
         time.sleep(30)
         save_json()
     else:
         cn_name = data.get('cn_name','')
-        _LOGGER.info(f'{plugins_name}退订媒体{cn_name}，不是剧集，不更新追剧日历数据')
+        loger.info(f"{plugins_name}退订媒体 ['{cn_name}']，不是剧集，不更新追剧日历数据")
 
 # 每天重新生成日历数据
-@plugin.task('save_json', '更新追剧日历数据', cron_expression='0 0,1,6 * * *')
+@plugin.task('save_json', '更新追剧日历数据', cron_expression='20 0,1,6 * * *')
 def task():
     save_json()
 
 # 每小时自动同步本地媒体库数据至追剧日历
-@plugin.task('update_json', '同步本地媒体库数据至追剧日历', cron_expression='0 * * * *')
+@plugin.task('update_json', '同步本地媒体库数据至追剧日历', cron_expression='0 1-23 * * *')
 def update():
     update_json()
 
@@ -161,11 +161,11 @@ def set_plex():
             if webhook_url not in webhooks:
                 webhooks.append(webhook_url)
                 account.setWebhooks(webhooks)
-                _LOGGER.info(f"{plugins_name} 已向 PLEX 服务器添加 Webhook")
+                loger.info(f"{plugins_name} 已向 PLEX 服务器添加 Webhook")
             else:
-                _LOGGER.info(f"{plugins_name} PLEX 服务器 Webhook 列表中已添加此 Webhook 链接：{webhook_url}")
+                loger.info(f"{plugins_name} PLEX 服务器 Webhook 列表中已添加此 Webhook 链接：{webhook_url}")
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}为 PLEX 服务器添加 Webhook 出错，原因: {e}')
+        loger.error(f'{plugins_name}为 PLEX 服务器添加 Webhook 出错，原因: {e}')
 
 def get_sub_info(data):
     try:
@@ -175,7 +175,7 @@ def get_sub_info(data):
         sub_info = f"「{cn_name} ({release_year}) 第 {season_index} 季」"
         return sub_info
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}获取新订阅剧集信息异常，原因：{e}')
+        loger.error(f'{plugins_name}获取新订阅剧集信息异常，原因：{e}')
         return ''
 
 def get_tmdb_info(tv_id, season_number):
@@ -186,14 +186,14 @@ def get_tmdb_info(tv_id, season_number):
             result = server.tmdb.request_api(api_url % {'tv_id': tv_id, 'season_number': season_number}, param)
             break
         except Exception as e:
-            _LOGGER.error(f'「get_tmdb_info」{i+1}/3 次请求异常，原因：{e}')
+            loger.error(f'「get_tmdb_info」{i+1}/3 次请求异常，原因：{e}')
             time.sleep(5)
             continue
     if result:
-        # _LOGGER.info(f'「get_tmdb_info」请求成功')
+        # loger.info(f'「get_tmdb_info」请求成功')
         return result
     else:
-        _LOGGER.error('「get_tmdb_info」请求获取失败，可能还没有这个剧集的信息')
+        loger.error('「get_tmdb_info」请求获取失败，可能还没有这个剧集的信息')
     return False
 
 def create_hard_link(file_name):
@@ -208,7 +208,7 @@ def create_hard_link(file_name):
     # os.link(src_path, dst_path) # 创建硬链接
     os.symlink(src_path, dst_path) # 创建软链接
     # shutil.copyfile(src_path, dst_path) # 复制文件
-    # _LOGGER.info(f'「{src_path}」已软链接到「{src_path}」')
+    # loger.info(f'「{src_path}」已软链接到「{src_path}」')
 
 def get_display_title(key):
     plex_url = plexserver.url('')
@@ -242,14 +242,14 @@ def get_tv_info(tv_id):
             result = server.tmdb.request_api(tv_api_url % {'tv_id': tv_id}, param)
             break
         except Exception as e:
-            _LOGGER.error(f'「get_tv_info」{i+1}/3 次请求异常，原因：{e}')
+            loger.error(f'「get_tv_info」{i+1}/3 次请求异常，原因：{e}')
             time.sleep(3)
             continue
     if result:
-        # _LOGGER.info(f'「get_tv_info」请求成功')
+        # loger.info(f'「get_tv_info」请求成功')
         return result
     else:
-        _LOGGER.error('「get_tv_info」请求获取失败，可能还没有这个剧集的信息')
+        loger.error('「get_tv_info」请求获取失败，可能还没有这个剧集的信息')
         return False
 
 def find_season_poster(seasons, season_number):
@@ -364,11 +364,11 @@ def get_local_info(tmdb_id, season_number, tv_name):
                         local_info_list.update(local_info)
 
                 except Exception as e:
-                    _LOGGER.error(f'{plugins_name}读取「{tv_name}」{tmdb_id}-{season_number} 本地剧集信息出错，原因: {e}')
+                    loger.error(f'{plugins_name}读取「{tv_name}」{tmdb_id}-{season_number} 本地剧集信息出错，原因: {e}')
                     pass
                 return episode_local_arr, episode_local_num, episode_local_arr_f, episode_local_max, local_info_list
         except Exception as e:
-            _LOGGER.error(f'「get_local_info」{i+1}/3 次请求异常，原因：{e}')
+            loger.error(f'「get_local_info」{i+1}/3 次请求异常，原因：{e}')
             time.sleep(3)
             continue
     return [],0,'',0,{}
@@ -389,10 +389,22 @@ def getDateStr(addDayCount):
         d = "0" + str(d)
     return f"{y}-{m}-{d}"
 
+def remove_info(data):
+    for item in data:
+        if "crew" in item:
+            del item["crew"]
+        if "guest_stars" in item:
+            del item["guest_stars"]
+    return data
+
 def save_tv_calendar(original_path):
     # 打开原始 JSON 文件
     with open(original_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
+    try:
+        data = remove_info(data)
+    except Exception as e:
+        loger.error(f'{plugins_name}删除多余信息出错，原因: {e}')
     offset=7
     # 获取起始日期，最近7天
     """今天"""
@@ -432,6 +444,7 @@ def save_tv_calendar(original_path):
         json.dump(group, file,ensure_ascii=False,indent=4)
 
 def update_json():
+    loger.info(f'{plugins_name}开始同步本地媒体库数据到追剧日历')
     try:
         # today_date = datetime.date.today().strftime('%Y-%m-%d')
         today_date = datetime.today().strftime("%Y-%m-%d")
@@ -442,6 +455,7 @@ def update_json():
         # 打开原始 JSON 文件
         with open(original_path, 'r', encoding='utf-8') as f:
             episode_list = json.load(f)
+        
         tmdb_id_list = []
         episode_data_list = {}
         episode_data= {}
@@ -503,7 +517,7 @@ def update_json():
                 episode['episode_local_duration'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('duration', '')
                 episode['episode_local_isPlayed'] = episode_data_list[tmdb_id]["local_info_list"].get(episode_number,{}).get('isPlayed', '')
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}同步本地媒体库数据到「original.json」出错，原因: {e}')
+        loger.error(f'{plugins_name}同步本地媒体库数据到「original.json」出错，原因: {e}')
     # 将更新后的数据写回到文件中
     write_json_file(original_path,episode_list)
     # 调用函数拆分JSON文件
@@ -511,7 +525,7 @@ def update_json():
     save_tv_calendar(original_path)
     hlink(src_base_path, dst_base_path)
     # create_hard_link('original.json')
-    _LOGGER.info(f'{plugins_name}已同步本地媒体库数据到「original.json」并已拆分，WEB 素材已全部软链接到容器')
+    loger.info(f'{plugins_name}已同步本地媒体库数据到「original.json」并已拆分，WEB 素材已全部软链接到容器')
 
 def format_episode_local_arr(episode_local_arr):
     episode_local_arr = sorted(episode_local_arr) # 对列表进行排序
@@ -538,6 +552,11 @@ def split_json_file(file_path):
     # 打开原始 JSON 文件
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
+    try:
+        data = remove_info(data)
+    except Exception as e:
+        loger.error(f'{plugins_name}删除多余信息出错，原因: {e}')
+
     # 创建存储拆分JSON的文件夹
     output_folder = '/data/plugins/tv_calendar_Alano/frontend/json'
     if not os.path.exists(output_folder):
@@ -558,17 +577,19 @@ def split_json_file(file_path):
             grouped_data[output_filepath] = [item]
     # 将 all_output_filename 转换为 set 去重，再转回列表
     all_output_filename = list(set(all_output_filename))
+
+    
     # 将拆分的JSON数据写入文件
     for filepath, items in grouped_data.items():
         write_json_file(output_filepath,item)
         with open(filepath, 'w') as f:
             json.dump(items, f, ensure_ascii=False,indent=4)
-    _LOGGER.info(f'{plugins_name}json 文件拆分完成')
+    loger.info(f'{plugins_name}json 文件拆分完成')
     del_json(all_output_filename)
     
 
 def save_json():
-    _LOGGER.info(f'{plugins_name}开始更新剧集数据')
+    loger.info(f'{plugins_name}开始更新剧集数据')
     subscribe_list_all = []
     # 获取订阅列表
     subscribe_list_all = server.subscribe.list(MediaType.TV, SubStatus.Subscribing)
@@ -590,7 +611,7 @@ def save_json():
         tv_poster = tv['poster_path']
         seasons = tv['seasons']
         tv_name = tv['name']
-        _LOGGER.info(f'开始处理「{tv_name}」')
+        loger.info(f'开始处理「{tv_name}」')
         tv_original_name = tv['original_name']
         backdrop_path = tv['backdrop_path']
         season_poster = find_season_poster(seasons, season_number)
@@ -636,17 +657,17 @@ def save_json():
             episode['episodes_all_num'] = episodes_all_num
             episode_list.append(episode)
     original_path = f'{src_base_path}/original.json'
-    _LOGGER.info(f'{plugins_name}开始写入新的追剧日历数据到「original.json」文件')
+    loger.info(f'{plugins_name}开始写入新的追剧日历数据到「original.json」文件')
     write_json_file(original_path,episode_list)
     # 遍历删除不需要的图片
     del_img(img_list)
     update_json()
     hlink(src_base_path, dst_base_path)
-    # _LOGGER.info(f'{plugins_name}WEB 素材已全部软链接到容器')
-    _LOGGER.info(f'{plugins_name}剧集数据更新结束')
+    # loger.info(f'{plugins_name}WEB 素材已全部软链接到容器')
+    loger.info(f'{plugins_name}剧集数据更新结束')
     if datetime.now().time().hour == 6:
         push_message()
-    _LOGGER.info(f'{plugins_name}数据更新进程全部完成')
+    loger.info(f'{plugins_name}数据更新进程全部完成')
 
 def write_json_file(original_path,list):
     for i in range(3):
@@ -654,13 +675,13 @@ def write_json_file(original_path,list):
             with open(original_path, 'w', encoding='utf-8') as fp:
                 json.dump(list, fp, ensure_ascii=False,indent=4)
         except Exception as e:
-            _LOGGER.error(f'{plugins_name}写入新数据到「original.json」文件出错，原因: {e}')
+            loger.error(f'{plugins_name}写入新数据到「original.json」文件出错，原因: {e}')
             time.sleep(3)
             continue
 
 def del_json(json_list):
     del_json_list = []
-    _LOGGER.info(f'{plugins_name}开始检查是否有完结剧集相关json，如有将其删除！')
+    loger.info(f'{plugins_name}开始检查是否有完结剧集相关json，如有将其删除！')
     all_json = os.listdir(os.path.join(src_base_path, 'json'))
     for json_file in all_json:
         if json_file not in json_list:
@@ -668,14 +689,14 @@ def del_json(json_list):
                 os.remove(os.path.join(src_base_path, 'json', json_file))
                 del_json_list.append(json_file)
             except Exception as e:
-                    _LOGGER.error(f'{plugins_name}删除 {json_file} 出错，原因: {e}')
-                    continue
+                loger.error(f'{plugins_name}删除 {json_file} 出错，原因: {e}')
+                continue
     if del_json_list:
-        _LOGGER.info(f'{plugins_name}已删除完结剧集拆分json: {del_json_list}')
+        loger.info(f'{plugins_name}已删除完结剧集拆分json: {del_json_list}')
 
 def del_img(img_list):
     del_img_list = []
-    _LOGGER.info(f'{plugins_name}开始检查是否有完结剧集相关图片，如有将其删除！')
+    loger.info(f'{plugins_name}开始检查是否有完结剧集相关图片，如有将其删除！')
     all_img = os.listdir(os.path.join(src_base_path, 'img'))
     for img_file in all_img:
         if img_file not in img_list:
@@ -683,10 +704,10 @@ def del_img(img_list):
                 os.remove(os.path.join(src_base_path, 'img', img_file))
                 del_img_list.append(img_file)
             except Exception as e:
-                    _LOGGER.error(f'{plugins_name}删除 {img_file} 出错，原因: {e}')
+                    loger.error(f'{plugins_name}删除 {img_file} 出错，原因: {e}')
                     continue
     if del_img_list:
-        _LOGGER.info(f'{plugins_name}已删除完结剧集相关图片: {del_img_list}')
+        loger.info(f'{plugins_name}已删除完结剧集相关图片: {del_img_list}')
 
 
 def get_after_day(day, n):
@@ -704,10 +725,10 @@ def get_after_day(day, n):
 #         if mr_url is None or mr_url == '':
 #           return ''
 #         if (re.match('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', mr_url) is not None):
-#             _LOGGER.info(f'从配置文件中获取到的「mr_url」{mr_url}')
+#             loger.info(f'从配置文件中获取到的「mr_url」{mr_url}')
 #             return mr_url
 #     except Exception as e:
-#         _LOGGER.error(f'获取「mr_url」异常，原因: {e}')
+#         loger.error(f'获取「mr_url」异常，原因: {e}')
 #         pass
 #     return '' 
 
@@ -725,18 +746,18 @@ def save_img(img_path, tv_name):
                 response = http.request('GET', img_url)
                 with open(img_path, "wb") as f:
                     f.write(response.data)
-                # _LOGGER.info(f"{tv_name}的海报/背景已存入{img_path}")
+                # loger.info(f"{tv_name}的海报/背景已存入{img_path}")
                 break
             except (ConnectionError, TimeoutError, MaxRetryError) as e:
-                _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
+                loger.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
                 time.sleep(retry_delay)
                 continue
             except Exception as e:
-                _LOGGER.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
+                loger.error(f'「{tv_name}」保存 {img_url} 到本地 {i+1}/{retries} 次请求异常，原因：{e}')
                 continue
 
 def push_message():
-    _LOGGER.info(f'{plugins_name}开始推送今日将要更新的剧集信息')
+    loger.info(f'{plugins_name}开始推送今日将要更新的剧集信息')
     msg_title = ''
     pic_url = ''
     message = ''
@@ -759,10 +780,10 @@ def push_message():
         
         if set_pic_url:
             pic_url = set_pic_url
-            _LOGGER.info(f'已设置消息封面图片地址: {pic_url}')
+            loger.info(f'已设置消息封面图片地址: {pic_url}')
         else:
             pic_url = img_api
-            _LOGGER.info(f'未设置消息封面图片地址，封面图片将展示为随机二次元图片')
+            loger.info(f'未设置消息封面图片地址，封面图片将展示为随机二次元图片')
         if len(episode_list) == 0:
             message = "今日没有剧集更新"
         else:
@@ -781,7 +802,7 @@ def push_message():
                 message_arr.append(f"{tv_name} - 第 {episodes[0]['season_number']:02d} 季·第 {episode_numbers} 集")
             message = "\n".join(message_arr)
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}处理消息数据异常，原因: {e}')
+        loger.error(f'{plugins_name}处理消息数据异常，原因: {e}')
         pass
     server_url = mbot_api.config.web.server_url
     if server_url:
@@ -797,7 +818,7 @@ def push_message():
                     'pic_url': pic_url,
                     'link_url': link_url
                 }, to_uid=_)
-                _LOGGER.info(f'「今日剧集更新列表」已推送通知')
+                loger.info(f'「今日剧集更新列表」已推送通知')
         else:
             server.notify.send_message_by_tmpl('{{title}}', '{{a}}', {
                 'title': msg_title,
@@ -805,9 +826,9 @@ def push_message():
                 'pic_url': pic_url,
                 'link_url': link_url
             })
-            _LOGGER.info(f'「今日剧集更新列表」已推送通知')
+            loger.info(f'「今日剧集更新列表」已推送通知')
     except Exception as e:
-        _LOGGER.error(f'消息推送异常，原因: {e}')
+        loger.error(f'消息推送异常，原因: {e}')
         pass
 
 plex_webhook = Blueprint('update_json', __name__)
@@ -817,17 +838,30 @@ plex_webhook = Blueprint('update_json', __name__)
 """
 plugin.register_blueprint('update_json', plex_webhook)
 
+last_event_time = 0
+last_event_count = 1
+
 # 接收 plex 服务器主动发送的事件
 @plex_webhook.route('', methods=['POST'])
 @login_required() # 接口access_key鉴权
 def update_json_wb():
+    global last_event_time, last_event_count
     payload = request.form['payload']
     data = json.loads(payload)
     plex_event = data.get('event', '')
     if plex_event in ['library.on.deck', 'library.new']:
         metadata = data.get('Metadata', '')
         org_type = metadata.get('type', '')
-        if org_type in ['episode','season','show']:
-            _LOGGER.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件并同步媒体库数据到追剧日历')
-            update_json()
+        # if org_type in ['episode','season','show']:
+        #     loger.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件并同步媒体库数据到追剧日历')
+        #     update_json()
+        if time.time() - last_event_time < 15:
+            last_event_count = last_event_count + 1
+            loger.info(f'{plugins_name}15 秒内接收到 {last_event_count} 条入库事件，只处理一次')
+        else:
+            last_event_time = time.time()
+            last_event_count = 1
+            if org_type in ['episode','season','show']:
+                loger.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件并同步媒体库数据到追剧日历')
+                update_json()
     return api_result(code=0, message='ok', data=plex_event)

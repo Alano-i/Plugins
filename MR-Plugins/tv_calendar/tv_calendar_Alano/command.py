@@ -4,7 +4,7 @@ import logging
 
 from .tv_calendar import save_json, update_json
 server = mbot_api
-_LOGGER = logging.getLogger(__name__)
+loger = logging.getLogger(__name__)
 @plugin.command(name='echo', title='更新追剧日历数据', desc='订阅剧集越多，执行时间越长，请耐心等待', icon='MovieFilter', run_in_background=True)
 def echo(ctx: PluginCommandContext):
     """
@@ -13,7 +13,7 @@ def echo(ctx: PluginCommandContext):
     try:
         save_json()
     except Exception as e:
-        _LOGGER.error(e)
+        loger.error(e)
         return PluginCommandResponse(False, f'创建追剧日历数据源失败')
     return PluginCommandResponse(True, f'创建追剧日历数据源成功')
 
@@ -22,10 +22,10 @@ def update_json_echo(ctx: PluginCommandContext):
     """
     异步执行,更新追剧日历数据
     """
-    _LOGGER.info(f'「追剧日历」开始同步本地媒体库数据到追剧日历')
+    # loger.info(f'「追剧日历」开始同步本地媒体库数据到追剧日历')
     try:
         update_json()
     except Exception as e:
-        _LOGGER.error(f'「追剧日历」同步本地媒体库数据到追剧日历失败，原因：{e}')
+        loger.error(f'「追剧日历」同步本地媒体库数据到追剧日历失败，原因：{e}')
         return PluginCommandResponse(False, f'同步本地媒体库数据到追剧日历失败')
     return PluginCommandResponse(True, f'同步本地媒体库数据到追剧日历成功')

@@ -37,7 +37,7 @@
     }
   ],
   "logoUrl": "/plugins/tv_calendar_Alano/logo.jpg",
-  "githubUrl": null,
+  "githubUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/tv_calendar",
   "helpDocUrl": "/static/tv_calendar/tv_calendar.html",
   "dependencies": null
 }
