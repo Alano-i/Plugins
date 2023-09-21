@@ -1,0 +1,105 @@
+{
+  "id": 25,
+  "name": "notify_server",
+  "title": "通知服务器",
+  "author": "Alano",
+  "description": "通知服务器，参数：[title] [description] [channel_id] [pic_url] [link_url]",
+  "version": "1.22",
+  "requirements": null,
+  "configField": [
+    {
+      "fieldName": "uid",
+      "fieldType": "Enum",
+      "label": "推送用户",
+      "helperText": "",
+      "enumValuesRef": "UserList",
+      "multiValue": true
+    },
+    {
+      "fieldName": "channel_0",
+      "fieldType": "Enum",
+      "label": "通道 0",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_1",
+      "fieldType": "Enum",
+      "label": "通道 1",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_2",
+      "fieldType": "Enum",
+      "label": "通道 2",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_3",
+      "fieldType": "Enum",
+      "label": "通道 3",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_4",
+      "fieldType": "Enum",
+      "label": "通道 4",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_5",
+      "fieldType": "Enum",
+      "label": "通道 5",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_6",
+      "fieldType": "Enum",
+      "label": "通道 6",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_7",
+      "fieldType": "Enum",
+      "label": "通道 7",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_8",
+      "fieldType": "Enum",
+      "label": "通道 8",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "channel_9",
+      "fieldType": "Enum",
+      "label": "通道 9",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    }
+  ],
+  "logoUrl": "/plugins/notify_server/logo.jpg",
+  "githubUrl": "",
+  "helpDocUrl": "https://github.com/Alano-i/wecom-notification/tree/main/MR-Plugins/notify_server",
+  "dependencies": {
+    "appVersion": ">=1.9.30"
+  }
+}
