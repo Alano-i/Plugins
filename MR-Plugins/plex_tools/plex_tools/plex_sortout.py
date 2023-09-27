@@ -853,7 +853,7 @@ class plex_sortout:
         logger.info(f"{plugins_name}媒体库合集定时整理完成")
 
     # 自动整理指定库最近新添加项
-    def process_new(self, library_section_title, rating_key, parent_rating_key, grandparent_rating_key, grandparent_title, parent_title, org_title, org_type,add_media_info):
+    def process_new(self, library_section_title, rating_key, parent_rating_key, grandparent_rating_key, grandparent_title, parent_title, org_title, org_type,add_media_info,add_info_toggle=True):
         sortout_num = 6
         recently_added_collections = []
         wait_text = '随机等待 50-70 秒后，处理新入库'
@@ -922,7 +922,7 @@ class plex_sortout:
                 self.process_sorttitle(editvideo,video_info)
 
             # 整理结束后执行海报添加媒体信息
-            if rating_key and add_media_info:
+            if rating_key and add_media_info and add_info_toggle:
                 logger.info(f'{plugins_name}开始为新入库{media_type_text} 的海报添加媒体信息')
                 force_add = False
                 restore = False

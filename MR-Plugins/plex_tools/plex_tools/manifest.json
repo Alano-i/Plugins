@@ -3,7 +3,7 @@
   "title": "Plex工具箱",
   "author": "BeiMou(yewei)",
   "description": "➊自动翻译标签 ➋拼音排序 ➌添加TOP250标签 ➍筛选Fanart封面 ➎为海报添加媒体信息",
-  "version": "3.2",
+  "version": "3.2.1",
   "requirements": null,
   "configField": [
     {
@@ -101,6 +101,13 @@
       "fieldName": "Poster",
       "fieldType": "Bool",
       "label": "筛选 Fanart 精美海报",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "add_info_toggle",
+      "fieldType": "Bool",
+      "label": "开启为海报添加媒体信息",
       "helperText": "",
       "defaultValue": true
     },

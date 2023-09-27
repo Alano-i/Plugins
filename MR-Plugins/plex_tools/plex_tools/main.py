@@ -32,13 +32,14 @@ def after_setup(plugin: PluginMeta, plugin_conf: dict):
     """
     logger.info(f'{plugins_name}插件开始加载')
     # global added, libtable , plex_url, plex_token
-    global added,collection_on,libtable,libstr,add_media_info
+    global added,collection_on,libtable,libstr,add_media_info,add_info_toggle
     global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check,update_add_info
     plex_url = plugin_conf.get('plex_url','')
     plex_token = plugin_conf.get('plex_token','')
     custom_url = plugin_conf.get('custom_url','')
     mbot_url = plugin_conf.get('mbot_url','')
     mbot_api_key = plugin_conf.get('mbot_api_key','')
+    add_info_toggle = plugin_conf.get('add_info_toggle',True)
     
     # mbot_api_key = server.auth.get_default_ak()
 
@@ -75,7 +76,7 @@ def config_changed(plugin_conf: dict):
     插件变更配置后执行的操作
     """
     logger.info(f'{plugins_name}配置发生变更，加载新配置')
-    global added,collection_on,libtable,libstr,add_media_info
+    global added,collection_on,libtable,libstr,add_media_info,add_info_toggle
     global plex_url, plex_token,custom_url,mbot_url,mbot_api_key,check,update_add_info
     plex_url = plugin_conf.get('plex_url','')
     plex_token = plugin_conf.get('plex_token','')
@@ -83,6 +84,7 @@ def config_changed(plugin_conf: dict):
     mbot_url = plugin_conf.get('mbot_url','')
     mbot_api_key = plugin_conf.get('mbot_api_key','')
     update_add_info = plugin_conf.get('update_add_info',True)
+    add_info_toggle = plugin_conf.get('add_info_toggle',True)
     check = plugin_conf.get('check',True)
     added = plugin_conf.get('Added') if plugin_conf.get('Added') else None
     add_media_info = plugin_conf.get('add_media_info') if plugin_conf.get('add_media_info') else None
@@ -171,7 +173,7 @@ def webhook():
         ########################## 始终处理 ##########################
         logger.info(f'{plugins_name}接收到 PLEX 通过 Webhook 传过来的「入库事件」，开始分析事件')
         # 执行自动整理
-        thread = threading.Thread(target=plex_sortout.process_new, args=(library_section_title,rating_key,parent_rating_key,grandparent_rating_key,grandparent_title,parent_title,org_title,org_type,add_media_info))
+        thread = threading.Thread(target=plex_sortout.process_new, args=(library_section_title,rating_key,parent_rating_key,grandparent_rating_key,grandparent_title,parent_title,org_title,org_type,add_media_info,add_info_toggle))
         thread.start()
         # 等待线程结束
         # thread.join()
@@ -221,6 +223,9 @@ def process_recent():
     logger.info(f"{plugins_name}开始整理媒体库中最近10项")
     plex_sortout.process_all(libtable,'10','run_all',0,False,True)
     logger.info(f"{plugins_name}媒体库中最近10项整理完成")
+    if not add_info_toggle:
+        logger.info(f'{plugins_name}未开启添加海报信息开关，跳过。')
+        return
     show_log = False
     force_add = False
     restore = False
@@ -232,7 +237,11 @@ def process_recent():
 
 @plugin.task('re_add_all', '「更新海报信息」', cron_expression='10 1 * * tue,fri')
 def re_add_all():
-    if not update_add_info:
+    if update_add_info:
+        logger.info(f"{plugins_name}开始为所有库中的所有海报重新添加媒体信息，已添加信息的海报将重新添加，主要为了更新评分，每周2 和 周5 凌晨 1:10 执行一次")
+        if not add_info_toggle:
+            logger.info(f'{plugins_name}未开启添加海报信息开关，跳过。')
+            return
         if str(libstr).lower() == 'all' or not libstr:
             try:
                 libtables = plex_sortout.get_library()
@@ -245,10 +254,11 @@ def re_add_all():
         force_add = True
         restore = False
         only_show = False
-        logger.info(f"{plugins_name}开始为所有库中的所有海报重新添加媒体信息，已添加信息的海报将重新添加，主要为了更新评分，每周2 和 周5 凌晨 1:10 执行一次")
         for i in range(len(libtable)):
             add_info_to_posters_main(libtable[i],force_add,restore,show_log,only_show)
         logger.info(f"{plugins_name}为重新为海报添加媒体信息完成，评分信息已是更新到最新")
+    else:
+        logger.info(f'{plugins_name}未开启每周更新海报评分开关，跳过。')
 
 
 @plugin.task('set_plex', '「检查 PLEX 设置」', cron_expression='15 */2 * * *')
