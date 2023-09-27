@@ -2,8 +2,8 @@
   "name": "audio_tools",
   "title": "有声书工具箱",
   "author": "Alano",
-  "description": "剪辑片头片尾，修改元数据，制作有声书、音乐播客源（宝藏App播客是时候用起来了，Apple原生应用播放 Nas 中的海量音乐），元数据 plex Audiobookshelf 可识别。",
-  "version": "3.0.2",
+  "description": "剪辑片头片尾，修改元数据，制作有声书、音乐播客源（宝藏App播客是时候用起来了，Apple原生应用播放 Nas 中的海量音乐），元数据 plex、Audiobookshelf 可识别。",
+  "version": "3.2.03",
   "requirements": null,
   "configField": [
     {
@@ -60,7 +60,7 @@
     {
       "fieldName": "book_watch_folder",
       "fieldType": "String",
-      "label": "有声书下载路径，此路径需已添加至Mbot媒体文件夹",
+      "label": "有声书下载路径，此路径需已添加至Mbot媒体文件夹且类型选其他",
       "helperText": "监控此下载路径并自动制作播客源，适配红叶官种（若种子命名不规范整理效果会不好），没有十分强烈的自动制作播客源需求建议不要开启。",
       "defaultValue": ""
     },
@@ -75,7 +75,7 @@
       "fieldName": "sub_infos",
       "fieldType": "String",
       "label": "订阅信息",
-      "helperText": "示例：遮天,8,/有声书/遮天-辰东-头陀渊,123456,0,0 其中 8指从第8集开始订阅，123456是喜马拉雅专辑ID，0,0为剪辑片头片尾秒数,多个订阅回车分隔。注意：仅支持免费音频，仅测试用途，版权归喜马拉雅所有，请支持正版。",
+      "helperText": "示例：遮天,辰东,头陀渊,8,/downloads/有声书,123456,10,5,true,0 其中 8指从第8集开始订阅，/downloads/有声书 是有声书下载根目录，123456是喜马拉雅专辑ID，10,5为剪辑片头片尾秒数，true指启用集偏移量，0是集数偏移量。多个订阅回车分隔。注意：仅支持免费音频，仅测试用途，版权归喜马拉雅所有，请支持正版。",
       "defaultValue": ""
     },
     {

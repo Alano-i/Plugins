@@ -71,19 +71,22 @@ def podcast_config(config):
     message_to_uid = config.get('uid','')
     channel = config.get('channel','qywx')
     
-def update_xml_url(file_path,display_title,link,cover_image_url,podcast_author,audio_num,reader):
+def update_xml_url0(file_path,display_title,link,cover_image_url,podcast_author,audio_num,reader,album_id='',sub=False):
     result = True
     try:
         if not os.path.exists(file_path):
             # 文件不存在，初始化一个空的JSON内容
             json_data = {}
             write_json_file(file_path,json_data)
+        xmly_url = f"https://www.ximalaya.com/album/{album_id}" if album_id else ''
         # 定义新增的内容
         new_content = {
             display_title: {
                 "podcast_url": link,
                 "podcast_author": podcast_author,
                 "reader": reader,
+                "sub": sub,
+                "xmly_url": xmly_url,
                 "audio_num": audio_num,
                 "cover_url": cover_image_url
             }
@@ -109,7 +112,69 @@ def update_xml_url(file_path,display_title,link,cover_image_url,podcast_author,a
         result = False
     return result
 
-def update_xml_url_add(file_path,display_title,audio_num):
+def update_xml_url(file_path, display_title, link, cover_image_url, podcast_author, audio_num, reader, album_id='', sub=False):
+    reader = format_reader(reader)
+    result = True
+    try:
+        if not os.path.exists(file_path):
+            # 文件不存在，初始化一个空的JSON内容
+            json_data = {}
+            write_json_file(file_path, json_data)
+        xmly_url = f"https://www.ximalaya.com/album/{album_id}" if album_id else ''
+        # 定义新增的内容
+        new_content_details = {
+            "podcast_url": link,
+            "sub": sub,
+            "xmly_url": xmly_url,
+            "audio_num": audio_num,
+            "cover_url": cover_image_url
+        }
+        # 读取原始JSON文件内容
+        original_data = read_json_file(file_path)
+
+        # 确保每个新的或更新的条目在显示标题、播客作者和阅读器中都位于顶部。
+        # 检查display_title是否存在
+        if display_title in original_data:
+            """
+            使用 pop 方法从 original_data 字典中提取与键 display_title 对应的值，并将该值存储在 display_data 变量中。
+            同时，pop 方法还会从 original_data 字典中删除 display_title 键及其对应的值。这是为了确保当我们稍后将更新后的 display_title 数据添加回 original_data 时，它会位于字典的顶部。
+            """
+            display_data = original_data.pop(display_title)
+
+            # 检查podcast_author是否存在
+            if podcast_author in display_data:
+                author_data = display_data.pop(podcast_author)
+                # 如果reader存在，则更新内容
+                if reader in author_data:
+                    reader_data = author_data.pop(reader)
+                    reader_data.update(new_content_details)
+                else:
+                    reader_data = new_content_details
+        
+                # 确保更新后的演播者处于顶部
+                author_data = {**{reader: reader_data}, **author_data}
+                
+                display_data = {**{podcast_author: author_data}, **display_data}
+            else:
+                # display_data[podcast_author] = {reader: new_content_details}
+                display_data = {**{podcast_author: {reader: new_content_details}}, **display_data}
+
+            
+            original_data = {**{display_title: display_data}, **original_data}
+        else:
+            # original_data[display_title] = {display_title: {podcast_author: {reader: new_content_details}}}
+            original_data = {**{display_title: {podcast_author: {reader: new_content_details}}}, **original_data}
+        # 将更新后的内容写回到同一文件中
+        write_json_file(file_path, original_data)
+        logger.info(f'{file_path} 文件已更新')
+        json_dst_path = os.path.join(dst_base_path, 'podcast.json')
+        result = light_link(file_path, json_dst_path)
+    except Exception as e:
+        logger.error(f"{plugins_name}保存播客链接到json文件出错，原因：{e}")
+        result = False
+    return result
+
+def update_xml_url_add(file_path,display_title,audio_num=None,album_id='',sub=False):
     result = True
     link,podcast_author,reader,cover_image_url = '','','','',
     original_data = {}
@@ -122,12 +187,17 @@ def update_xml_url_add(file_path,display_title,audio_num):
                 podcast_author = original_data.get(display_title, {}).get('podcast_author','')
                 reader = original_data.get(display_title, {}).get('reader','')
                 cover_image_url = original_data.get(display_title, {}).get('cover_url','')
+        
+        xmly_url = f"https://www.ximalaya.com/album/{album_id}" if album_id else ''
+        
         # 定义新增的内容
         new_content = {
             display_title: {
                 "podcast_url": link,
                 "podcast_author": podcast_author,
                 "reader": reader,
+                "sub": sub,
+                "xmly_url": xmly_url,
                 "audio_num": audio_num,
                 "cover_url": cover_image_url
             }
@@ -268,10 +338,14 @@ def get_audio_info(file_path,book_title,short_filename,fill_num):
                     if not summary:
                         summary = audio.get('comment', [''])[0]
                     trck_num = audio.get('tracknumber', [''])[0]
-                # if short_filename:
-                #     org_title = sortout_filename(os.path.basename(file_path),book_title,fill_num)
-                #     if not trck_num:
-                #         trck_num = extract_number(org_title)
+                if short_filename:
+                    org_title = org_title or os.path.basename(file_path)[0]
+                    try:
+                        org_title = sortout_filename(org_title,book_title,fill_num)
+                    except Exception as e:
+                        logger.error(f"{plugins_name}优化文件名 ['{file_path}'] 出错，原因：{e}")
+                if not trck_num and org_title:
+                    trck_num = extract_number(org_title)
             except Exception as e:
                 logger.error(f"{plugins_name}获取音频 ['{file_path}'] 基本信息出错，原因：{e}")
         else:
@@ -293,7 +367,7 @@ def get_season_episode(trck_num,is_group):
             season_num = max(((trck_num - 1) // 100+1),0)
         episode_num = trck_num
     if season_num == 0 or not season_num: season_num = '1'
-    if episode_num == 0: episode_num = ''
+    if episode_num == 0 or not episode_num: episode_num = '1'
     return str(season_num), str(episode_num)
 
 def create_itunes_rss_xml(audio_files, base_url, cover_image_url, podcast_title, podcast_summary, podcast_category, podcast_author,reader,pub_year,audio_path,book_title,podcast_url,is_group,short_filename,fill_num):
@@ -309,6 +383,7 @@ def create_itunes_rss_xml(audio_files, base_url, cover_image_url, podcast_title,
     podcast_author = podcast_author or podcast_au
     podcast_summary = podcast_summary or podcast_summ
     reader = reader or podcast_reader
+    reader = format_reader(reader)
     desc_jpg = os.path.join(audio_path, "desc.jpg")
     desc_png = os.path.join(audio_path, "desc.png")
     desc_file = desc_jpg if os.path.exists(desc_jpg) else desc_png
@@ -321,7 +396,8 @@ def create_itunes_rss_xml(audio_files, base_url, cover_image_url, podcast_title,
     SubElement(channel, 'reader').text = reader
     SubElement(channel, 'link').text = podcast_link_url
     SubElement(channel, 'language').text = 'zh-cn'
-    SubElement(channel, 'itunes:author').text = podcast_author
+    author_text = f'{podcast_author} · {reader}' if reader else podcast_author
+    SubElement(channel, 'itunes:author').text = author_text
     SubElement(channel, 'itunes:summary').text = podcast_summary # 简介
     SubElement(channel, 'itunes:type').text = "serial"
     SubElement(channel, 'itunes:explicit').text = "false"   # 是否存在露骨内容
@@ -396,7 +472,7 @@ def push_msg_to_mbot(msg_title, msg_digest, link_url,cover_image_url):
     except Exception as e:
         logger.error(f'{plugins_name}推送消息异常, 原因: {e}')
 
-def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,reader,pub_year,is_group,short_filename,is_book):
+def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,reader,pub_year,is_group,short_filename,is_book,album_id='',sub=False):
     global src_base_path,book,add_path
     fill_num = 4
     src_base_path = src_base_path_book if is_book else src_base_path_music
@@ -408,6 +484,9 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     base_url = f'{mbot_url}/static/podcast/audio'
     # base_url = f'{mbot_url}/plugins/podcast'
     audio_files,fill_num,audio_num = get_audio_files(audio_path)
+    if not audio_files:
+        logger.warning(f"{plugins_name}{audio_path} 路径中没有音频文件，跳过生成播客源。")
+        return False
     cover_file_jpg = os.path.join(audio_path, "cover.jpg")
     cover_file_png = os.path.join(audio_path, "cover.png")
     cover_file = cover_file_png if os.path.exists(cover_file_png) else cover_file_jpg
@@ -457,19 +536,32 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     if not light_link(out_file,out_file_hlink):
         return False
     podcast_json_path = src_base_path_book or src_base_path_music   
-    if not update_xml_url(os.path.join(podcast_json_path, 'podcast.json'),display_title,link,cover_image_url,podcast_author,audio_num,reader):
+    if not update_xml_url(os.path.join(podcast_json_path, 'podcast.json'),display_title,link,cover_image_url,podcast_author,audio_num,reader,album_id,sub):
         return False       
     link_url = link
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
     msg_title = f"{book_title} - 播客源"
     msg_digest = f"轻点卡片 - 再点右上角 - 在默认浏览器中打开，可快速添加至播客App中。"
     push_msg_to_mbot(msg_title, msg_digest,link_url,cover_image_url)
+    create_podcast_flag_file(audio_path)
     return True
 
-def podcast_add_main(book_title,audio_path,xml_path,audio_files):
+def podcast_add_main(book_title,author,reader,book_dir_name,audio_path,xml_path,audio_files,album_id,sub):
+    try:
+        hlink(audio_path, os.path.join(dst_base_path, book_dir_name))
+    except Exception as e:
+        logger.warning(f"{plugins_name}['{audio_path}'] -> ['{os.path.join(dst_base_path, book_dir_name)}'] 失败, 原因: {e}")
+    if not os.path.exists(xml_path):
+        is_group = True
+        short_filename = True
+        is_book = True
+        podcast_author,reader,pub_year,podcast_category,podcast_summary = '','','','',''
+        book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary = get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary)
+        state = podcast_main(book_title, audio_path, podcast_summary, podcast_category, podcast_author,reader,pub_year,is_group,short_filename,is_book,album_id,sub)
+        return state
+
     global book
     book = True
-    hlink(audio_path, os.path.join(dst_base_path, book_title))
     is_group = True
     short_filename = True
     fill_num = 3
@@ -529,6 +621,16 @@ def podcast_add_main(book_title,audio_path,xml_path,audio_files):
     else:
         aa,bb,audio_num = get_audio_files(audio_path)
         if book_title and audio_num:
-            result = update_xml_url_add(os.path.join(src_base_path_book, 'podcast.json'),book_title,audio_num)
+            try:
+                json_file_path = os.path.join(src_base_path_book, 'podcast.json')
+                # 读取原始JSON文件内容
+                js_data = read_json_file(json_file_path)
+                link = js_data[book_title][author][reader].get("podcast_url", "")
+                cover_image_url = js_data[book_title][author][reader].get("cover_url", "")
+                result = update_xml_url(json_file_path, book_title, link, cover_image_url, author, audio_num, reader, album_id, sub)
+            except Exception as e:
+                logger.error(f'{plugins_name}更新 podcast.json 文件失败, 原因: {e}')
+                result = False
+            if result: create_podcast_flag_file(audio_path)
             return result
         return True

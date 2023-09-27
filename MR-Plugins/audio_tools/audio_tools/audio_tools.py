@@ -128,7 +128,7 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
                 logger.info(f"{plugins_name}开始剪辑 {group_now} 分组第 {i+1} 个文件：['{filename}']，已完成 100%，这是当前分组需要处理的最后一个文件")
             else:
                 now_video_count = int(files_num - i - 1)
-                if datetime.datetime.now().second % 5 == 0 or i==0:
+                if datetime.now().second % 5 == 0 or i==0:
                     logger.info(f"{plugins_name}开始剪辑 {group_now} 分组第 {i+1} 个文件：['{filename}']，已完成 {clip_percent}，当前分组剩余 {now_video_count} 个文件需要处理")
             file_name, file_ext = os.path.splitext(filename)
             file_ext = file_ext.lower()
@@ -250,16 +250,45 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     for t in threads:
         t.join()
     logger.info(f"{plugins_name}所有 {all_group_num} 个分组已全部剪辑完成")
+
+    # try:
+    #     if os.path.normcase(os.path.abspath(input_dir)) != os.path.normcase(os.path.abspath(output_dir)):
+    #         if xmly_dl:
+    #             os.makedirs(os.path.join(output_dir, series), exist_ok=True)  # 确保 /Media/有声书/书名 文件夹存在，若不存在则新建
+    #             merge_folders(cliped_folder_dir,os.path.join(output_dir, series))
+    #         else:
+    #             os.makedirs(output_dir, exist_ok=True)
+    #             # 将 cliped_folder_dir 目录移动到 output_dir 下面
+    #             shutil.move(cliped_folder_dir, output_dir)
+    # except Exception as e:
+    #     logger.error(f"{plugins_name}移动到 [{output_dir}] 失败，原因：{e}")
+    #     return False
     try:
         if os.path.normcase(os.path.abspath(input_dir)) != os.path.normcase(os.path.abspath(output_dir)):
-            
             if xmly_dl:
-                merge_folders(cliped_folder_dir,os.path.join(output_dir,series))
+                author_text = f" - {authors}" if authors else ' - 未知作者'
+                reader_text = f" - {reader}" if reader else ' - 未知演播者'
+                book_dir_name = f"{series}{author_text}{reader_text}"
+
+                os.makedirs(os.path.join(output_dir, book_dir_name), exist_ok=True)  # 确保 /Media/有声书/书名 文件夹存在，若不存在则新建
+                try:
+                    merge_folders(cliped_folder_dir, os.path.join(output_dir, book_dir_name))
+                except Exception as e:
+                    logger.warning(f"{plugins_name}硬链接到 [{output_dir}] 失败,将尝试复制过去，以覆盖的方式运行，具体原因：{e}")
+                    merge_folders_copy_only(cliped_folder_dir, os.path.join(output_dir, book_dir_name))
             else:
-                shutil.move(cliped_folder_dir, output_dir)
+                try:
+                    # 将 cliped_folder_dir 目录移动到 output_dir 下面
+                    os.makedirs(output_dir, exist_ok=True)
+                    shutil.move(cliped_folder_dir, output_dir)
+                except Exception as e:
+                    logger.warning(f"{plugins_name}移动到 [{output_dir}] 失败,将尝试复制再删除原文件夹，以覆盖的方式运行，具体原因：{e}")
+                    move_dir_with_copy_del(cliped_folder_dir, os.path.join(output_dir, os.path.basename(cliped_folder_dir)))
     except Exception as e:
-        logger.error(f"{plugins_name}从移动到 [{output_dir}] 失败，原因：{e}")
+        logger.error(f"{plugins_name}移动到 [{output_dir}] 失败，原因：{e}")
         return False
+
+
     try:
         cover_image_path = os.path.join(output_dir, cliped_folder,'cover.jpg')
         cover_image_path_hlink = f"{dst_base_path}/{series}_cover.jpg"
@@ -276,7 +305,8 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     except Exception as e:
         logger.error(f"{plugins_name}构造消息参数出现错误，原因：{e}")
         return False
-    push_msg_to_mbot(msg_title, msg_digest,cover_image_url)
+    if not xmly_dl:
+        push_msg_to_mbot(msg_title, msg_digest,cover_image_url)
     return True
 
 # 添加元数据
@@ -604,7 +634,7 @@ def all_add_tag(output_dir, authors, year, reader, series, summary, album, art_a
         subfolder = album or subfolder
         # 处理文件, 跳过文件夹
         # file_path = os.path.join(root, filename)
-        if datetime.datetime.now().second % 10 == 0 or i==0:
+        if datetime.now().second % 10 == 0 or i==0:
             logger.info(f"{plugins_name}开始处理: {file_path}")
         if cut:
             file_name, file_extension = os.path.splitext(file_path)
@@ -619,13 +649,13 @@ def all_add_tag(output_dir, authors, year, reader, series, summary, album, art_a
         i=i+1
     logger.info(f'{plugins_name}DIY 元数据完成')
 
-def push_msg_to_mbot(msg_title, msg_digest,cover_image_url):
+def push_msg_to_mbot(msg_title, msg_digest,cover_image_url,link_url=''):
     image_url = cover_image_url if cover_image_url else pic_url
     msg_data = {
         'title': msg_title,
         'a': msg_digest,
         'pic_url': image_url,
-        'link_url': '',
+        'link_url': link_url,
     }
     try:
         if message_to_uid:

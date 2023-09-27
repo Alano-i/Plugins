@@ -326,6 +326,11 @@
             -webkit-animation: scaleout 1.0s infinite ease-in-out;
             animation: scaleout 1.0s infinite ease-in-out;
         }
+        .sub-ani {
+            filter: invert(45%) sepia(80%) saturate(400%) hue-rotate(240deg) brightness(98%) contrast(100%);
+            /* filter: invert(94%) sepia(84%) saturate(402%) hue-rotate(74deg) brightness(93%) contrast(91%); */
+
+        }
 
         @-webkit-keyframes scaleout {
             0% {
@@ -420,7 +425,7 @@
             </template>
             <template v-else>
                 <template v-if="!status">
-                    <van-empty image="/static/podcast/empty.png" image-size="120" description="好遗憾，还未生成播客源 !!" />
+                    <van-empty image="/static/podcast/empty.svg" image-size="100" description="好遗憾，还未生成播客源 !!" />
                 </template>
                 <template v-else>
                     <template v-if="Object.keys(visiblePodcasts).length === 0">
@@ -445,8 +450,14 @@
                                         style="width: 100%; height: 100%; border-radius: 7px; position: absolute; top: 0; left: 0; border: 1px solid rgba(255, 255, 255, 0.1); box-sizing: border-box; pointer-events: none;">
                                     </div>
                                 </div>
-                                <p class="text-ellipsis"
-                                    style="font-size: 15px; font-weight: normal; opacity: 1; margin-bottom: 1px; margin-top: 8px;">{{ title }}</p>
+                                <div 
+                                    :style="{ cursor: podcast.xmly_url ? 'pointer' : 'default' }"
+                                    @click="podcast.xmly_url ? ToXmly(podcast.xmly_url) : null" 
+                                    style="display: flex; align-items: center; margin-top: 8px;"
+                                >
+                                    <p class="text-ellipsis" style="font-size: 15px; font-weight: normal; opacity: 1; margin-bottom: 1px; margin-top: 0px;">{{ podcast.title }}</p>
+                                    <img class="sub-ani" v-if="podcast.sub" src="/static/podcast/bars.svg" style="height: 14px; padding-left: 3px; padding-top: 0px;" alt="">
+                                </div>
                                 <div style="display: flex; align-items: center;">
                                     <p v-if="podcast.audio_num" class="text-ellipsis" style="font-weight: normal; opacity: 0.7; margin-bottom: 0px; margin-top: 2px; margin-right: 2px; font-size: 12px;">共</p>
                                     <p v-if="podcast.audio_num" class="text-ellipsis" style="font-weight: normal; opacity: 0.7; margin-bottom: 0px; margin-top: 2px; font-size: 12px;">{{podcast.audio_num}}</p>
@@ -526,7 +537,7 @@
                     podcastNum: 0,
                     searchTerm: '',
                     currentPage: 1,
-                    pageSize: 36, // 每页显示的数量
+                    pageSize: 32, // 每页显示的数量
                     visiblePodcasts: {}, // 可见的播客数据
                     searching: false,
                 }
@@ -565,6 +576,9 @@
                 },
             },
             methods: {
+                ToXmly(url) {
+                    window.open(url, '_blank');
+                },
                 setDefaultImage(event) {
                     event.target.src = '/static/podcast/default.jpg';
                 },
@@ -587,16 +601,29 @@
                         url: '/static/podcast/audio/podcast.json?' + new Date().getTime()
                     }).then(res => {
                         if (typeof res.data === 'object' && Object.keys(res.data).length > 0) {
-                            // this.podcasts = Object.freeze(res.data);  // 数据冻结 优化展示
-                            this.podcasts = res.data;
-                            this.podcastNum =  Object.keys(res.data).length
+                            // 扁平化数据结构
+                            const flattenedData = {};
+                            for (let [title, authorData] of Object.entries(res.data)) {
+                                for (let [author, readerData] of Object.entries(authorData)) {
+                                    for (let [reader, podcast] of Object.entries(readerData)) {
+                                        const uniqueKey = title + "_" + author + "_" + reader; // 仅用于确保键的唯一性
+                                        flattenedData[uniqueKey] = {
+                                            title: title,  // 书名
+                                            podcast_author: author,  // 作者
+                                            reader: reader,  // 演播者
+                                            ...podcast
+                                        };
+                                    }
+                                }
+                            }
+                            this.podcasts = flattenedData;
+                            this.podcastNum = Object.keys(flattenedData).length;
                             this.status = true;
                             this.loadInitialPodcasts(); // 初始化可见数据
                         } else {
                             this.status = false;
                         }
                         this.isLoading = false;
-                        // console.log('状态:', this.isLoading);
                     }).catch(e => {
                         this.status = false;
                     });

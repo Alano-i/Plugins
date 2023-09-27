@@ -153,7 +153,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
                 input_dirs: ArgSchema(ArgType.String, last_time_input_dirs, '输入路径，支持多条，一行一条 /Media/有声书', default_value = last_time_input_dirs, required=False),
                 output_dir: ArgSchema(ArgType.String, '输出路径，默认：输入路径', '', default_value='', required=False),
                 series: ArgSchema(ArgType.String, '书名', '', default_value='', required=False),
-                cliped_folder: ArgSchema(ArgType.String, '已剪辑存放路径，默认：书名', '', default_value='', required=False),
+                cliped_folder: ArgSchema(ArgType.String, '已剪辑存放路径，默认：书名 - 作者 - 演播者', '', default_value='', required=False),
                 audio_start: ArgSchema(ArgType.String, '剪片头开始时间，默认：0，单位：秒', '', default_value='0', required=False),
                 audio_end: ArgSchema(ArgType.String, '剪片尾倒数时间，默认：0，单位：秒', '', default_value='0', required=False),
                 clip_configs: ArgSchema(ArgType.Enum, '选择操作：📕 剪辑、整理、添加元数据', '若仅剪辑，下方参数不生效。', enum_values=lambda: clip_config, default_value='clip_and_move', multi_value=False, required=False),
@@ -185,7 +185,8 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
         output_dir = f"/{output_dir.strip('/')}" if output_dir else input_dir
         if albums: album = albums_s[i]
         series,authors,reader,year,subject,podcast_summary = get_audio_info_all(input_dir,series,authors,reader,year,subject,podcast_summary)
-        cliped_folder = cliped_folder or series
+
+        cliped_folder = cliped_folder or get_book_dir_name(series,authors,reader)
         art_album = art_album or series
         logger.info(f"{plugins_name}任务开始运行音频剪辑\n解析后数据：\n输入路径：[{input_dir}]\n输出路径：[{output_dir}/{cliped_folder}]\n开始时间：[{audio_start}]\n结束倒数秒数：[{audio_end}]\n书名：['{series}']\n作者：['{authors}']\n演播者：['{reader}']\n发布年份：['{year}']\n专辑：['{albums or '自动按每100集划分'}']\n专辑艺术家：['{art_album}']\n简介：['{podcast_summary}']")
         result = audio_clip(input_dir,output_dir,cliped_folder,audio_start,audio_end,clip_configs,authors,year,reader,series,podcast_summary,album,art_album,use_filename,subject,xmly_dl)
@@ -221,6 +222,7 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 book_title: ArgSchema(ArgType.String, '书名或音乐名称', '', default_value = '', required=False),
                 audio_paths: ArgSchema(ArgType.String, '输入文件夹名称或完整路径', '支持多条，一行一条 /Media/有声书/', default_value='', required=False),
                 auto_path: ArgSchema(ArgType.String, '存量有声书父文件夹路径', '仅选择批量处理存量有声书时生效，仅适配红叶官种', default_value='', required=False),
+                force_config: ArgSchema(ArgType.Enum, '存量文件夹强制重新生成播客源：📴 关闭', '', enum_values=lambda: state_list, default_value='off', multi_value=False, required=False),
                 podcast_summary: ArgSchema(ArgType.String, '简介', '', default_value='', required=False),
                 podcast_category: ArgSchema(ArgType.String, '分类', '', default_value='', required=False),
                 podcast_author: ArgSchema(ArgType.String, '作者', '', default_value='', required=False),
@@ -232,9 +234,12 @@ def poscast_m_echo(ctx: PluginCommandContext,
     # audio_paths = /Media/有声书/三国
     # src_base_path = /Media/有声书
     is_group = get_state(is_group_config)
+    force = get_state(force_config)
     short_filename = get_state(short_filename_config)
     deep = get_state(deep_config)
     if is_book_config == 'auto_all':
+        if '影音视界' in auto_path: auto_path = f"/Media{auto_path.split('影音视界')[1]}"
+        auto_path = process_path(auto_path)
         is_book = True
         subfolders = ''
         # 获取子文件夹具体路径列表
@@ -244,12 +249,25 @@ def poscast_m_echo(ctx: PluginCommandContext,
             try:
                 if audio_path:
                     logger.info(f"{plugins_name}开始处理：['{audio_path}']")
+                    flag_txt_path = os.path.join(audio_path, 'podcast.txt')
+                    if not force:
+                        if os.path.exists(flag_txt_path):
+                            logger.warning(f"{plugins_name}['{audio_path}'] 路径已经生成过播客源，跳过。")
+                            continue
                     book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary = '','','','','',''
                     book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary = get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary)
-                    state = auto_podcast(audio_path,'',book_title,podcast_summary,podcast_category,podcast_author,reader,pub_year,is_group,short_filename,is_book)
+                    
+                    audio_files,fill_num,audio_num = get_audio_files(audio_path)
+                    if not audio_files:
+                        logger.warning(f"{plugins_name}{audio_path} 路径中没有音频文件，跳过生成播客源。")
+                        continue
+                    else:
+                        state = auto_podcast(audio_path,'',book_title,podcast_summary,podcast_category,podcast_author,reader,pub_year,is_group,short_filename,is_book)
+                        if state: create_podcast_flag_file(audio_path)
             except Exception as e:
                 logger.error(f"{plugins_name}批量为存量有声书生成播客源处理 ['{audio_path}'] 失败，原因：{e}")
                 continue
+        logger.info(f"{plugins_name}存量生成播客源任务完成")
         return PluginCommandResponse(True, f'存量生成播客源任务完成')
     else:
         src_base_path = src_base_path_book if is_book_config == 'audio_book' else src_base_path_music
@@ -273,40 +291,47 @@ def poscast_m_echo(ctx: PluginCommandContext,
                 else:
                     if not audio_path:
                         audio_path = f"/{src_base_path.strip('/')}/{book_title}"
-                book_title_new,podcast_author,reader,pub_year,podcast_category,podcast_summary = get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary)
-                if not book_title_new: book_title_new = os.path.basename(audio_path).strip('/')
-                if deep:
-                    state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,reader,pub_year,is_group,short_filename,is_book)
+
+                audio_files,fill_num,audio_num = get_audio_files(audio_path)
+                if not audio_files:
+                    logger.warning(f"{plugins_name}{audio_path} 路径中没有音频文件，跳过生成播客源。")
+                    continue
                 else:
-                    state = auto_podcast(audio_path,'',book_title_new,podcast_summary,podcast_category,podcast_author,reader,pub_year,is_group,short_filename,is_book)
+                    book_title_new,podcast_author,reader,pub_year,podcast_category,podcast_summary = get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary)
+                    if not book_title_new: book_title_new = os.path.basename(audio_path).strip('/')
+                    if deep:
+                        state = podcast_main(book_title_new, audio_path, podcast_summary, podcast_category, podcast_author,reader,pub_year,is_group,short_filename,is_book)
+                    else:
+                        state = auto_podcast(audio_path,'',book_title_new,podcast_summary,podcast_category,podcast_author,reader,pub_year,is_group,short_filename,is_book)
                 podcast_author,reader,pub_year,podcast_category,podcast_summary = '','','','',''
         except Exception as e:
             logger.error(f"「生成播客源」失败，原因：{e}")
             return PluginCommandResponse(False, f'生成博客源 RSS XML 任务失败')
+        logger.info(f"{plugins_name}生成博客源 RSS XML 任务完成")
         if state:
             return PluginCommandResponse(True, f'生成博客源 RSS XML 任务完成')
         else:
             return PluginCommandResponse(False, f'生成博客源 RSS XML 任务失败')
 
-@plugin.command(name='get_xml_url', title='获取已生成播客源', desc='查看Apple播客源URL，并推送通知，点通知快速添加到播客App', icon='RssFeedSharp',run_in_background=True)
-def get_xml_url_echo(ctx: PluginCommandContext, 
-                url_list_config: ArgSchema(ArgType.Enum, '📕 选择书名，留空选择全部', '', enum_values=get_rss_url, default_value='all', multi_value=True, required=False),
-                send_sms_config: ArgSchema(ArgType.Enum, '推送消息：✅ 开启', '开启后，选了多少个播客源就将收到多少条消息，选择全部时将推送所有播客源列表页', enum_values=lambda: state_list, default_value='on', multi_value=False, required=False)):
+# @plugin.command(name='get_xml_url', title='获取已生成播客源', desc='查看Apple播客源URL，并推送通知，点通知快速添加到播客App', icon='RssFeedSharp',run_in_background=True)
+# def get_xml_url_echo(ctx: PluginCommandContext, 
+#                 url_list_config: ArgSchema(ArgType.Enum, '📕 选择书名，留空选择全部', '', enum_values=get_rss_url, default_value='all', multi_value=True, required=False),
+#                 send_sms_config: ArgSchema(ArgType.Enum, '推送消息：✅ 开启', '开启后，选了多少个播客源就将收到多少条消息，选择全部时将推送所有播客源列表页', enum_values=lambda: state_list, default_value='on', multi_value=False, required=False)):
 
-    if not url_list_config or not json_data:
-        return PluginCommandResponse(True, f'播客源 RSS URL 获取失败，可能还从未生成')
-    send_sms = get_state(send_sms_config)
-    if url_list_config == 'all':
-        new_json_data = {
-            "我的播客源": {
-                "podcast_url": f"{mbot_url}/static/podcast/index.html",
-                "cover_url": f"{mbot_url}/static/podcast/poster.jpg"
-            }
-        }
-    else:
-        new_json_data = filter_json_by_podcast_url(url_list_config)
-    get_xml_url(new_json_data, send_sms)
-    return PluginCommandResponse(True, f'已生成播客源 RSS URL 获取完成')
+#     if not url_list_config or not json_data:
+#         return PluginCommandResponse(True, f'播客源 RSS URL 获取失败，可能还从未生成')
+#     send_sms = get_state(send_sms_config)
+#     if url_list_config == 'all':
+#         new_json_data = {
+#             "我的播客源": {
+#                 "podcast_url": f"{mbot_url}/static/podcast/index.html",
+#                 "cover_url": f"{mbot_url}/static/podcast/poster.jpg"
+#             }
+#         }
+#     else:
+#         new_json_data = filter_json_by_podcast_url(url_list_config)
+#     get_xml_url(new_json_data, send_sms)
+#     return PluginCommandResponse(True, f'已生成播客源 RSS URL 获取完成')
 
 @plugin.command(name='add_cover_m', title='修改音频封面', desc='修改音频封面', icon='Image',run_in_background=True)
 def add_cover_m_echo(ctx: PluginCommandContext,
@@ -384,14 +409,17 @@ def xmly_download_echo(ctx: PluginCommandContext,
                 # choose: ArgSchema(ArgType.Enum, '选择下载方案：📕 方案一', '', enum_values=lambda: choose_config, default_value='one', multi_value=False, required=False),
                 save_path: ArgSchema(ArgType.String, last_time_xmly_output_dir, '保存路径基础文件夹', default_value = last_time_xmly_output_dir, required=False),
                 book_name: ArgSchema(ArgType.String, xmly_last_book, '填写建议：书名-作者-演播者', default_value = xmly_last_book, required=False),
-                album_id: ArgSchema(ArgType.String, '专辑 ID，如：123', 'https://www.ximalaya.com/album/123', default_value='', required=False),
+                album_id: ArgSchema(ArgType.String, '专辑 ID，如：123', 'https://www.ximalaya.com/album/123', default_value='', required=True),
                 page: ArgSchema(ArgType.String, '下载分页内所有音频，如：1', '', default_value='', required=False),
-                track: ArgSchema(ArgType.String, '单集 ID，如：456', 'https://www.ximalaya.com/sound/456', default_value='', required=False)):
+                track: ArgSchema(ArgType.String, '单集 ID，如：456', 'https://www.ximalaya.com/sound/456', default_value='', required=False),
+                index_on_config: ArgSchema(ArgType.Enum, '开启集号偏移量：📴 关闭', '若原标题中不含有集号信息，开启将增加 第xx集 前缀', enum_values=lambda: state_list, default_value='off', multi_value=False, required=False),
+                index_offset: ArgSchema(ArgType.String, '集号偏移量，默认：0', '示例：若喜马拉雅中音频序号为10，填 -2 则表示在文件名前增加 第8集 前缀 ', default_value='0', required=False)):
+    index_on = get_state(index_on_config)
     server.common.set_cache('audio_clip', 'xmly_output_dir', save_path)
     server.common.set_cache('audio_clip', 'xmly_last_book', book_name)
     save_path = os.path.join(save_path, book_name)
     os.makedirs(save_path, exist_ok=True)
-    if xmly_download(save_path,dl,album_id,page,track):
+    if xmly_download(save_path,dl,album_id,page,track,index_on,int(index_offset)):
         logger.info(f'{plugins_name}下载喜马拉雅音频完成')
         return PluginCommandResponse(True, f'下载喜马拉雅音频完成')
     else:

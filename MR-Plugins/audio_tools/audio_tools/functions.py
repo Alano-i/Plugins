@@ -6,6 +6,7 @@ import io
 from urllib.parse import quote
 from cn2an import cn2an
 import time
+from datetime import datetime
 import requests
 from pypinyin import lazy_pinyin
 import logging
@@ -115,6 +116,8 @@ def sortout_filename(filename,series,fill_num):
     # 去掉文件名中的书名，只保留当前音频的名称
     if series:
         filename_text = filename_text.replace(series, '').strip()
+        filename_text = filename_text.replace('《》', '').strip()
+        filename_text = filename_text.replace('  ', ' ').strip()
     try:
         if filename_text.isdigit():
             filename_text = f'第{filename_text.zfill(fill_num)}集'
@@ -131,9 +134,10 @@ def sortout_filename(filename,series,fill_num):
         filename_text = filename_text_ori
     return filename_text
 
-# filename = '陈坤 - 重生.flac'
-# series = '音乐'
+# filename = '第02回暂避画舫10.m4a'
+# series = '茶馆'
 # xxx = sortout_filename(filename,series,2)
+# ss=1
 
 def url_encode(url):
     return quote(url, safe='/:.')
@@ -210,6 +214,44 @@ def merge_folders(src, dest):
             # shutil.copy2(src_item, dest_item)
             os.link(src_item, dest_item)  # 创建硬链接
 
+def merge_folders_copy_only(src, dest):
+    for item in os.listdir(src):
+        src_item = os.path.join(src, item)
+        dest_item = os.path.join(dest, item)
+
+        if os.path.isdir(src_item):
+            if os.path.exists(dest_item):
+                if os.path.isdir(dest_item):
+                    merge_folders_copy_only(src_item, dest_item)
+                else:
+                    os.remove(dest_item)
+                    shutil.copytree(src_item, dest_item)
+            else:
+                shutil.copytree(src_item, dest_item)
+        else:
+            if os.path.exists(dest_item):
+                os.remove(dest_item)
+            shutil.copy2(src_item, dest_item)
+
+def merge_folders_copy_del(src, dest):
+    for item in os.listdir(src):
+        src_item = os.path.join(src, item)
+        dest_item = os.path.join(dest, item)
+
+        if os.path.isdir(src_item):
+            if os.path.exists(dest_item):
+                if os.path.isdir(dest_item):
+                    merge_folders_copy_del(src_item, dest_item)
+                else:
+                    os.remove(dest_item)
+                    move_dir_with_copy_del(src_item, dest_item)
+            else:
+                move_dir_with_copy_del(src_item, dest_item)
+        else:
+            if os.path.exists(dest_item):
+                os.remove(dest_item)
+            shutil.copy2(src_item, dest_item) 
+
 # 硬链接，将整个目录树（包括所有子目录和文件）从 src 硬链接到 dst，如果已存在则先删除
 def hard_link(src, dst):
     work_flag = True
@@ -218,7 +260,7 @@ def hard_link(src, dst):
             if os.path.exists(dst):
                 shutil.rmtree(dst)  # 删除目标目录
             shutil.copytree(src, dst, copy_function=os.link)
-        elif os.path.isfile(src):  # 使用 "elif" 来处理文件的情况
+        elif os.path.isfile(src): # 处理文件的情况
             if os.path.exists(dst):
                 os.remove(dst)  # 删除目标文件
             os.link(src, dst)  # 创建硬链接
@@ -240,7 +282,7 @@ def light_link(src, dst):
                 src_entry = os.path.join(src, entry)
                 dst_entry = os.path.join(dst, entry)
                 light_link(src_entry, dst_entry)
-        elif os.path.isfile(src):  # 使用 "elif" 来处理文件的情况
+        elif os.path.isfile(src):  # 处理文件的情况
             if os.path.lexists(dst):  # 如果目标文件已存在，则先删除
                 os.remove(dst)
             else:
@@ -307,6 +349,9 @@ def extract_file_or_folder_path(path):
     elif os.path.isfile(path):
         return first_path,os.path.dirname(path)  # 如果是文件，则提取其所在文件夹的路径
 
+def format_reader(reader):
+    return reader.strip().strip(',,').strip(',').replace("演播","").replace("主播","").replace("领衔","").replace("/","&").replace("、","&").replace("，","&").replace(" ,","&").replace(", ","&").replace(",,","&").replace(",","&").replace(" , ","&").replace("//","&").replace("&&","&").replace("丶","&").replace("& ","&").replace(" & ","&").replace(" &","&").strip()
+
 def get_bookname_and_author(save_path_name):
     # pattern = r'^(.+?)[\.\-\s*]+(.+?)[\.\-\s*]+'
     pattern = r'^(.+?)[\.\-\s*_]+(.+?)[\.\-\s*_]+(.+?)(?:[\.\-\s*_]+(.+?))?$'
@@ -314,7 +359,8 @@ def get_bookname_and_author(save_path_name):
     if match:
         book_title = match.group(1).strip()
         podcast_author = match.group(2).strip()
-        reader = match.group(3).strip().replace("演播","").replace("主播","").strip()
+        reader = match.group(3)
+        reader = format_reader(reader)
         return book_title, podcast_author,reader
     else:
         return '', '',''
@@ -418,11 +464,11 @@ def read_abs_file(audio_path):
     except Exception as e:
         pass
     title_dir, authors_dir, reader_dir = '','',''
-    if not title or not authors:
+    if not title or not authors or '.' in title or '-' in title:
         title_dir, authors_dir, reader_dir = get_bookname_and_author(os.path.basename(audio_path))
-    title = title or title_dir
-    authors = authors or authors_dir
-    reader = reader or reader_dir
+    title = title_dir or title
+    authors = authors_dir or authors
+    reader = reader_dir or reader
     return title,authors,reader,publishedYear,genres,description
 
 def get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary):
@@ -435,3 +481,77 @@ def get_audio_info_all(audio_path,book_title,podcast_author,reader,pub_year,podc
     podcast_category = podcast_category or genres_abs
     podcast_summary = podcast_summary or description_abs
     return book_title,podcast_author,reader,pub_year,podcast_category,podcast_summary
+
+
+def move_dir_with_copy_del(src_dir, dst_dir):
+    """
+    Move a directory by copying its contents to the destination and then deleting the source.
+    """
+    try:
+        # Copy the entire directory
+        shutil.copytree(src_dir, dst_dir)
+        # Remove the original directory
+        shutil.rmtree(src_dir)
+    except Exception as e:
+        logger.error(f"{plugins_name}将 [{src_dir}] -> [{dst_dir}] 先复制再删除失败，原因：{e}")
+    
+
+# 格式化连续的数字
+def format_sorted_list(nums):
+    if not nums:
+        return ""
+
+    # 首先，对列表进行排序
+    nums.sort()
+
+    # 用于保存结果范围的列表
+    ranges = []
+
+    # 从第一个数字开始
+    start = nums[0]
+    end = nums[0]
+
+    for num in nums[1:]:
+        # 如果当前数字正好是序列中的下一个
+        if num == end + 1:
+            end = num
+        else:
+            # 如果有范围，将范围添加到结果列表中，否则只添加数字
+            if start == end:
+                ranges.append(str(start))
+            else:
+                ranges.append(f"{start}-{end}")
+            # 设置新的起始和结束
+            start = end = num
+
+    # 处理最后的范围或数字
+    if start == end:
+        ranges.append(str(start))
+    else:
+        ranges.append(f"{start}-{end}")
+
+    return ','.join(ranges)
+    
+# 生成有声书目录名
+def get_book_dir_name(book_title, authors, reader):
+    author_text = f" - {authors}" if authors else ' - 未知作者'
+    reader_text = f" - {reader}" if reader else ' - 未知演播者'
+    book_dir_name = f"{book_title}{author_text}{reader_text}"
+    return book_dir_name
+
+# 生成处理标识文件
+def create_podcast_flag_file(audio_path):
+    try:
+        if os.path.exists(audio_path):
+            # 获取当前时间并格式化为指定格式
+            current_time = datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')
+            # 创建空的UTF-8编码文本文件
+            podcast_file = os.path.join(audio_path, 'podcast.txt')
+            with open(podcast_file, 'w', encoding='utf-8') as file:
+                file.write(f'看到该文件，表示此文件夹已生成播客源\n\n{current_time}')
+        else:
+            logger.error(f"{plugins_name} 目录 {audio_path} 不存在，跳过生成已处理标识文件")
+    except Exception as e:
+        logger.error(f"{plugins_name} 生成已处理标识文件失败，原因：{e}")
+
+
