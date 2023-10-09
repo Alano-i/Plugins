@@ -4,13 +4,32 @@
 # plex企业微信通知，基于tautulli通知规则编写 ，需要配合 tautulli 可正常使用。
 # 下面两个依赖需要安装，命令如下
 # pip3 install pyyaml
-# pip3 install googletrans==4.0.0-rc1
+
 #########################依赖库初始化###########################
-# 依赖库列表
 import os
 from importlib import import_module
 import sys
+# 依赖库列表
+import_list=[
+    'yaml',
+]
+# 判断依赖库是否安装,未安装则安装对应依赖库
+sourcestr = "https://pypi.tuna.tsinghua.edu.cn/simple/"  # 镜像源
+def GetPackage(PackageName):
+    comand = "pip install " + PackageName +" -i "+sourcestr
+    # 正在安装
+    print("------------------正在安装" + str(PackageName) + " ----------------------")
+    print(comand + "\n")
+    os.system(comand)
+for v in import_list:
+    try:
+        import_module(v)
+    except ImportError:
+        print("未安装 "+v+" 现在开始安装此依赖")
+        GetPackage(v)
+##############################################################
 import yaml
+import time
 import json, sys
 from urllib import request
 from urllib import parse
@@ -22,7 +41,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.header import Header
 # 翻译
-from googletrans import Translator
+# from googletrans import Translator
+import hashlib
+import random
 import getopt
 import requests
 
@@ -224,17 +245,37 @@ class WxApp():
                 where = response.json()['msg']
                 return where
     # 翻译
-    def translate(self, translate_text):
-        # 设置Google翻译服务地址
-        translator = Translator(service_urls=[
-            'translate.google.com'
-            ])
-        translate_text=translator.translate(translate_text, src='en', dest='zh-cn')
-        # translate_text=translator.translate(translate_text, src='auto', dest='zh-cn')
-        # print(translate_text.origin)  # 原文
-        # print(translate_text.text)   # 译文
-        translate_text_done = translate_text.text
-        return translate_text_done
+    def make_sign(self, text, salt, app_id, secret_key):
+        raw_sign = app_id + text + str(salt) + secret_key
+        return hashlib.md5(raw_sign.encode()).hexdigest()
+
+    def translate(self, text, app_id, secret_key):
+        text=text.replace('\n','这里要换行你说气人不气人')
+        base_url = "https://fanyi-api.baidu.com/api/trans/vip/translate"
+        salt = random.randint(1, 100000)
+        
+        params = {
+            "q": text,
+            "from": "en",
+            "to": "zh",
+            "appid": app_id,
+            "salt": salt,
+            "sign": self.make_sign(text, salt, app_id, secret_key)
+        }
+        
+        response = requests.get(base_url, params=params)
+        data = response.json()
+        time.sleep(1)
+        
+        if "trans_result" in data:
+            trans_text = data["trans_result"][0]["dst"]
+            trans_text = trans_text.replace('这里要换行你说气人不气人','\n')
+            return trans_text
+        else:
+            error_text = data.get('error_msg', 'Unknown error')
+            print(f"Translation API error:{error_text}")
+            trans_text = text.replace('这里要换行你说气人不气人','\n')
+            return trans_text
 
     def push(self,config,content):
         #config.yml中导入配置参数
@@ -248,6 +289,8 @@ class WxApp():
         picurl_music_default = config.get('picurl_music_default')
         PLEX_TOKEN = config.get('PLEX_TOKEN')
         appcode = config.get('appcode')
+        app_id = config.get('app_id','')
+        secret_key = config.get('secret_key','')
         thumb_media_id = config.get('thumb_media_id')
         translate_switch = config.get('translate_switch')
         play_music = ""
@@ -341,33 +384,35 @@ class WxApp():
                 changelog_add = content[12]
                 changelog_fix = content[13]
                 if changelog_add:
-                    if translate_switch == "on":
+                    if translate_switch == "on" and secret_key and app_id:
                         changelog_add_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_add + "</small></small><br/></font></p>"
                         changelog_add_origin = changelog_add_origin.replace('\n', '<br/>● ')
-                        print('开始通过谷歌翻译【新增功能】日志！\n')
-                        changelog_add_translate = self.translate(changelog_add)
+                        print('开始翻译【新增功能】日志！\n')
+                        # print(f'翻译前:{changelog_add}')
+                        changelog_add_translate = self.translate(changelog_add,app_id,secret_key)
+                        # print(f'翻译后:{changelog_add_translate}')
                         changelog_add_translate = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_add_translate + "</small></p>"
                         changelog_add_translate = changelog_add_translate.replace('\n', '<br/>●')
                         changelog_add_translate = changelog_add_translate.replace('（', ' (')
                         changelog_add_translate = changelog_add_translate.replace('）', ') ')
                         changelog_add_translate = changelog_add_translate
                     else:
-                        print('未开启日志翻译，【新增功能】日志将展示为英文！\n')
+                        print('未开启日志翻译或者未设置 app_id 和 secret_key，【新增功能】日志将展示为英文！\n')
                         changelog_add_origin = "··························· <b><small><big>新增功能</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_add + "</small></p>"
                         changelog_add_origin = changelog_add_origin.replace('\n', '<br/>●')
                         changelog_add_translate = ""
                 if changelog_fix:
-                    if translate_switch == "on":
+                    if translate_switch == "on" and secret_key and app_id:
                         changelog_fix_origin = "<p style='line-height:135%;opacity:0.75'><font color=#888888><small><small>" + changelog_fix + "</small></small><br/></font></p>"
                         changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>● ')
-                        print('开始通过谷歌翻译【修复功能】日志！\n')
-                        changelog_fix_translate = self.translate(changelog_fix)
+                        print('开始翻译【修复功能】日志！\n')
+                        changelog_fix_translate = self.translate(changelog_fix,app_id,secret_key)
                         changelog_fix_translate = "··························· <b><big><small>修复日志</small></b></big> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_fix_translate + '</small></p>'
                         changelog_fix_translate = changelog_fix_translate.replace('\n', '<br/>●')
                         changelog_fix_translate = changelog_fix_translate.replace('（', ' (')
                         changelog_fix_translate = changelog_fix_translate.replace('）', ') ')
                     else:
-                        print('未开启日志翻译，【修复功能】日志将展示为英文！\n')
+                        print('未开启日志翻译或者未设置 app_id 和 secret_key，【修复功能】日志将展示为英文！\n')
                         changelog_fix_origin = "··························· <b><small><big>修复日志</b></big></small> ···························<br/>" + "<p style='line-height:165%'><small>" + changelog_fix + "</small></p>"
                         changelog_fix_origin = changelog_fix_origin.replace('\n', '<br/>●')
                         changelog_fix_translate = ""

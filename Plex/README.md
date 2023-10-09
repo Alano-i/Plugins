@@ -15,9 +15,6 @@ Plex 企业微信通知，基于 Tautulli 通知规则编写 ，需要配合 Tau
 ```console
 pip3 install pyyaml -i http://pypi.douban.com/simple/  --trusted-host pypi.douban.com
 ```
-```console
-pip3 install googletrans==4.0.0-rc1 -i http://pypi.douban.com/simple/  --trusted-host pypi.douban.com
-```
 - 增加白名单IP代理域名设置，在config.yml中设置
 - Tautulli  Settings-General-Time Format 设置为 `HH:mm:ss`
 - Tautulli 中新建通知-类型选-script
@@ -44,6 +41,7 @@ pip3 install googletrans==4.0.0-rc1 -i http://pypi.douban.com/simple/  --trusted
 <track>
 {art} {themoviedb_url} ▶️{track_name}" @"{user}{"  "⭐️<rating>} music 0:0:0 {progress_percent} {ip_address} {library_name}{" · "<track_artist>}{" · "<album_name>}{" · "<duration>分钟} {transcode_decision}" ⤷ "{quality_profile}{" · "<stream_video_dynamic_range>} "progress! "{<progress_percent>%} {播放时间：<datestamp>}"  "{周<current_weekday>}"  "{timestamp} 播放进度：{progress_time}({progress_percent}%){"  "剩余<remaining_duration>分钟} {文件大小：<file_size>} {首映日期：<air_date>} {播放设备：<player>}{" · "<product>} {设备地址：<ip_address>}"whereareyou!"
 </track>
+
 ```
 
 **继续播放通知**

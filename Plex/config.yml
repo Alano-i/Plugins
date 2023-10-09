@@ -14,5 +14,8 @@ wxapp:
   appcode: ""            #配置正确的appcode可展示客户端ip归属地。该值为空则不展示。appcode获取方法（显示归属地其实没什么用，保持为空即可。如果一定要用，下面是方法）：在阿里云市场获取免费的IP归属地解析试用 https://reurl.cc/V1mN0N  进入管理控制台，在已购买的服务中可以找到AppCode
   thumb_media_id: ""  # 服务器有更新时调用的图片，此图片存储在企业微信素材库的，获取方法可参考 https://alanoo.notion.site/thumb_media_id-64f170f7dcd14202ac5abd6d0e5031fb
   # 注意：thumb_media_id 如果不知道怎么设置就保持默认为空（收到的消息没有图片），不要随便设置，随便设置收不到通知
-  translate_switch: "on"  # 是否开启更新日志谷歌翻译，如果网络环境不支持或不想翻译设置为：off ，否则设置为：on，如果网络环境不支持还设置为 on，将会报错
-  wecom_proxy_url: ""     # 企业微信的IP白名单代理域名设置，不明白什么意思不要随意设置，保持默认为空，格式为：https://abc.com，关于怎么自建企业微信代理我也不会。
+  translate_switch: "on"             # 是否开启更新日志翻译，如果网络环境不支持或不想翻译设置为：off ，否则设置为：on，如果网络环境不支持还设置为 on，将会报错
+  app_id: ""                         # 在百度翻译开放平台获取 APP_ID
+  secret_key: ""                     # 在百度翻译开放平台获取 SECRET_KEY
+  wecom_proxy_url: ""                # 企业微信的IP白名单代理域名设置，不明白什么意思不要随意设置，保持默认为空，格式为：https://abc.com，关于怎么自建企业微信代理我也不会。                          
+                            
