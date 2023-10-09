@@ -122,7 +122,7 @@ def get_display_title(key):
                 return display_title
     return ''
 
-def adjust_brightness(rgba_image, threshold=110):
+def adjust_brightness(rgba_image, threshold=88):
 
     # 转换为RGB模式
     rgb_image = rgba_image.convert("RGB")
@@ -244,7 +244,8 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
         overlay_alpha = 140
         if brightness < 60:
             overlay_alpha = 135
-    node = 35
+    # node = 35
+    node = 80
     out_line_node = 80
     max_a = 30
     min_a = 0
@@ -264,18 +265,29 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     else:
         outline_a = 0
         # 白色背景
+        overlay_a_black = 0
         if media_type == 'movie':
-            overlay_a = 46
+            overlay_a = 50
             if brightness < 19:
-                overlay_a = 58
+                overlay_a = 62
+            if brightness > 30:
+                overlay_a_black = 40
+            if brightness > 35:
+                overlay_a_black = 50
         if media_type == 'show':
-            overlay_a = 35
+            overlay_a = 36
             if brightness < 19:
-                overlay_a = 40
+                overlay_a = 42
+            if brightness > 35:
+                overlay_a_black = 30
+        
         overlay_layer = Image.new("RGBA", (poster_width, poster_height), (255, 255, 255, overlay_a))
         # 使用叠加模式混合两个图像
         # poster_image = Image.blend(blurred_image, overlay_layer,0.19)
         poster_image = Image.alpha_composite(blurred_image, overlay_layer)
+        overlay_layer_black = Image.new("RGBA", (poster_width, poster_height), (0, 0, 0, overlay_a_black))
+        poster_image = Image.alpha_composite(poster_image, overlay_layer_black)
+        # poster_image.paste(overlay_layer_black, (0, 0))
         contrast_factor = 1.3  # 色阶增强因子，大于1增强，小于1减弱
     
     try:
@@ -572,7 +584,7 @@ def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
             movies_n = len(movies)
             i=1
             for movie in movies:
-                # if i>1:
+                # if i>4:
                 #     return
                 add_info_one(movie,'movie',movies_n,lib_name,force_add,i,'','',restore,show_log)
                 i=i+1

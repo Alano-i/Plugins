@@ -12,7 +12,7 @@ from mbot.core.plugins import PluginContext,PluginMeta,plugin
 from mbot.openapi import mbot_api
 from . import plex_sortout
 from .get_top250 import get_top250_config
-from .import_to_mbot import import_config
+from .sub_to_mbot import import_config
 from .add_info import add_config,add_info_to_posters_main
 logger = logging.getLogger(__name__)
 plugins_name = '「PLEX 工具箱」'
