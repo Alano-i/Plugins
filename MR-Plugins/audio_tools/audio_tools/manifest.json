@@ -3,7 +3,7 @@
   "title": "有声书工具箱",
   "author": "Alano",
   "description": "剪辑片头片尾，修改元数据，制作有声书、音乐播客源（宝藏App播客是时候用起来了，Apple原生应用播放 Nas 中的海量音乐），元数据 plex、Audiobookshelf 可识别。",
-  "version": "3.2.03",
+  "version": "3.2.07",
   "requirements": null,
   "configField": [
     {

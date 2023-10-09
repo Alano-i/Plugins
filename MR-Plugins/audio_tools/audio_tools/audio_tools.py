@@ -193,7 +193,6 @@ def thread_audio_clip(filenames_group, input_dir, cliped_folder, audio_start, au
 ################################################################################################################
                 if clip_configs == 'clip_and_move':
                     thread_move_to_dir(cliped_folder_dir,filename,authors,year,reader,series,summary,album,art_album,use_filename,subject,fill_num)
-
         except Exception as e:
             logger.error(f"{plugins_name}['{filename}'] 剪辑失败，原因：{e}")
             return
@@ -504,34 +503,52 @@ def add_tag(file_path, authors, year, reader, series, summary, album, art_album,
 # 线程任务文件分配到文件夹中
 def thread_move_to_dir(dir_path, filename, authors, year, reader, series, summary, album, art_album, use_filename, subject,fill_num):
     src_file_path = os.path.join(dir_path, filename)
-    # 只处理文件, 跳过文件夹
-    if os.path.isfile(src_file_path):
-        file_path = src_file_path
-        subfolder,filename_text = match_subfolder(filename,series,fill_num)
-        subfolder = album or subfolder
-        # 添加tag
-        add_tag(file_path, authors, year, reader, series, summary, album, art_album, subfolder, use_filename, subject, filename_text)
-        if subfolder:    
-            # 创建子文件夹, 如果不存在
-            subfolder_path = os.path.join(dir_path, subfolder)
-            dst_file_path = os.path.join(subfolder_path, filename)
-            if not os.path.exists(subfolder_path):
-                os.makedirs(subfolder_path)
-            # 移动文件到子文件夹
-            # os.rename(os.path.join(dir_path, filename), os.path.join(subfolder_path, filename))
-            if os.path.exists(dst_file_path):
-                os.remove(dst_file_path)  # 先删除目标文件
-            shutil.move(src_file_path, dst_file_path)
+    for i in range(3):
+        try:
+            # 只处理文件, 跳过文件夹
+            if os.path.isfile(src_file_path):
+                file_path = src_file_path
+                subfolder,filename_text = match_subfolder(filename,series,fill_num)
+                subfolder = album or subfolder
+                # 添加tag
+                add_tag(file_path, authors, year, reader, series, summary, album, art_album, subfolder, use_filename, subject, filename_text)
+                if subfolder:    
+                    # 创建子文件夹, 如果不存在
+                    subfolder_path = os.path.join(dir_path, subfolder)
+                    dst_file_path = os.path.join(subfolder_path, filename)
+                    if not os.path.exists(subfolder_path):
+                        os.makedirs(subfolder_path)
+                    # 移动文件到子文件夹
+                    # os.rename(os.path.join(dir_path, filename), os.path.join(subfolder_path, filename))
+                    if os.path.exists(dst_file_path):
+                        os.remove(dst_file_path)  # 先删除目标文件
+                    shutil.move(src_file_path, dst_file_path)
+                    if i>0:
+                        logger.info(f"{plugins_name}{i+1}/3 次移动 ['{src_file_path}'] -> ['{dst_file_path}'] 成功。")
+                    break
+        except Exception as e:
+            if os.path.isfile(src_file_path):
+                subfolder,filename_text = match_subfolder(filename,series,fill_num)
+                subfolder = album or subfolder
+                if subfolder: 
+                    subfolder_path = os.path.join(dir_path, subfolder)
+                    dst_file_path = os.path.join(subfolder_path, filename)
+                    logger.error(f"{plugins_name}{i+1}/3 次移动 ['{src_file_path}'] -> ['{dst_file_path}'] 失败，原因：{e}")
+            else:
+                logger.error(f"{plugins_name}{i+1}/3 次移动 ['{filename}'] 失败，原因：{e}")
+            time.sleep(3)
+            continue
 
 # 文件分配到文件夹中
 def move_to_dir(output_dir, authors, year, reader, series, summary, album, art_album, clip_configs, use_filename, subject):
     dir_path = output_dir
+    fill_num = 3
     # 如果目录不存在, 则创建
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     # 遍历目录中的所有文件
     for filename in os.listdir(dir_path):
-        thread_move_to_dir(dir_path, filename, authors, year, reader, series, summary, album, art_album, use_filename, subject)
+        thread_move_to_dir(dir_path, filename, authors, year, reader, series, summary, album, art_album, use_filename, subject,fill_num)
     if clip_configs != 'clip_and_move':
         logger.info(f'{plugins_name}添加元数据并分配到子文件夹完成')
 

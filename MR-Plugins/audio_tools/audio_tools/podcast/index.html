@@ -590,10 +590,22 @@
                     return null;
                 },
                 // 跳转
+                // ToPodcast(url) {
+                //     // window.location.href = url;
+                //     // window.open('podcast:' + url, '_blank');
+                //     location.href = 'podcast:' + url;
+                // },
                 ToPodcast(url) {
-                    // window.location.href = url;
-                    // window.open('podcast:' + url, '_blank');
-                    location.href = 'podcast:' + url;
+                    // 检测用户设备类型
+                    var isAppleDevice = /(iPhone|iPad|iPod|Mac)/i.test(navigator.userAgent);
+                    
+                    if (isAppleDevice) {
+                        // 如果是苹果设备，使用 'podcast:' + url 打开链接
+                        location.href = 'podcast:' + url;
+                    } else {
+                        // 如果不是苹果设备，在新标签页打开链接
+                        window.open(url, '_blank');
+                    }
                 },
                 fetchPodcasts() {
                     axios({

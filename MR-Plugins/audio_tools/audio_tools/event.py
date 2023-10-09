@@ -59,7 +59,8 @@ def on_event(ctx: PluginContext, event_type: str, data: Dict):
         audio_files,fill_num,audio_num = get_audio_files(save_path)
         input_dir = save_path
         output_dir = src_base_path_book
-        cliped_folder = book_title
+        book_dir_name = get_book_dir_name(book_title, podcast_author, reader)
+        cliped_folder = book_dir_name
         audio_start,audio_end = 0, 0
         clip_configs = 'clip_and_move'
         authors = podcast_author
@@ -76,7 +77,8 @@ def on_event(ctx: PluginContext, event_type: str, data: Dict):
             # result = audio_clip(input_dir,output_dir,cliped_folder,audio_start,audio_end,clip_configs,authors,year,reader,series,podcast_summary,album,art_album,use_filename,subject,xmly_dl)
             if audio_clip(input_dir,output_dir,cliped_folder,audio_start,audio_end,clip_configs,authors,year,reader,series,podcast_summary,album,art_album,use_filename,subject,xmly_dl):
                 # 剪辑成功，执行生成播客源
-                state = auto_podcast(os.path.join(output_dir, book_title),'',series,podcast_summary,subject,authors,reader,year,is_group,short_filename,is_book)
+                state = auto_podcast(os.path.join(output_dir, book_dir_name),'',series,podcast_summary,subject,authors,reader,year,is_group,short_filename,is_book)
+                # state = auto_podcast(os.path.join(output_dir, book_title),'',series,podcast_summary,subject,authors,reader,year,is_group,short_filename,is_book)
             else:
                 # 剪辑失败，则不剪辑直接生成播客源
                 auto_podcast(save_path,first_path,book_title,podcast_summary,podcast_category,podcast_author,reader,pub_year,is_group,short_filename,is_book)

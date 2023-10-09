@@ -206,54 +206,6 @@ def modify_file_name(path,index_on,index,index_offset,book_title):
     new_path = os.path.join(directory,new_file_name)
     return new_path
 
-def run_bash_script(command):
-    try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-        if result.stderr:
-            print(result.stderr)    
-    except subprocess.CalledProcessError as e:
-        logger.info("Error:", e)
-        exit(-1)
-
-def run_command(command, capture, **kwargs):
-    """Run a command while printing the live output"""
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        **kwargs,
-    )
-    while True:  # Could be more pythonic with := in Python3.8+
-        line = process.stdout.readline()
-        if not line and process.poll() is not None:
-            break
-        if capture:
-            logger.info(line.decode().strip())
-
-def xmly(save_path,dl,album_id,page,track):
-    sh_path = "/data/plugins/audio_tools/xmlyfetcher"
-    # sh_path = '/usr/local/bin/xmlyfetcher'
-    if dl == 'all':
-        bash_command = f"{sh_path} -o {save_path} {album_id} all"
-    if dl == 'page':
-        bash_command = f"{sh_path} -o {save_path} {album_id} page {page}"
-    if dl == 'track':
-        bash_command = f"{sh_path} -o {save_path} {album_id} track {track}"
-        # bash_command = f"/data/plugins/audio_tools/xmlyfetcher -o /data/test_xmly 49964578 track 423744747"
-    logger.info(f"bash_command:{bash_command}")
-    run_bash_script(bash_command)
-    # run_command(
-    #     [
-    #         "./xmlyfetcher",
-    #         f"-o  {save_path}",
-    #         album_id,
-    #         f"track {track}",
-    #     ],
-    #     True,
-    #     cwd=pathlib.Path(__file__).parent.absolute(),
-    # )
-
-
 def aes_decrypt(ciphertext, key):
     key = bytes.fromhex(key)
     cipher = AES.new(key, AES.MODE_ECB)
@@ -470,22 +422,9 @@ def cut(book_title,folder_path_base,folder_path,output_dir,audio_start,audio_end
     return new_audios
 
 def xmly_main():
-
-    """
-    阴阳刺青师,墨大先生,头陀渊,1,/Media/downloads/有声书,75986638,0,0,false,0
-    头狼,寻飞,头陀渊,1,/Media/downloads/有声书,68724415,18,20,false,0
-    完美世界,辰东,头陀渊,1,/Media/downloads/有声书,76163734,0,0,false,0
-    夜听,喜马拉雅,夜听频道,1,/Media/downloads/有声书,3062741,0,0,true,0
-    李治你别怂,贼眉鼠眼,紫襟剧社,1,/Media/downloads/有声书,75097160,15,20,false,0
-    万病之源说脾胃,李晴,李晴,1,/Media/downloads/有声书,27916653,0,0,true,0
-    埃隆·马斯克传,沃尔特·艾萨特森,王明军,1,/Media/downloads/有声书,77789950,0,0,true,0
-
-    """
-
     global downloaded_list,sub_infos
     sub = True
     result = True
-    # sub_infos=[['阴阳刺青师','/Media/downloads/有声书/阴阳刺青师-墨大先生-头陀渊','75986638','0','0']]
     try:
         lines = sub_infos_set.strip().split('\n')
         sub_infos = []
@@ -506,7 +445,6 @@ def xmly_main():
             album_id = int(sub_info[5])
             audio_start = int(sub_info[6])
             audio_end = int(sub_info[7])
-            # index_offset = int(sub_info[6]) if len(sub_info) > 6 and sub_info[6].isdigit() else 0
             try:
                 index_on = sub_info[8]
                 if index_on == 'true':
@@ -551,7 +489,6 @@ def xmly_main():
             for track in new_track_list:
                 index = track['index']
                 save_path = fetch_track_by_id(track['trackId'],folder_path,folder_path_base,index_on,index,index_offset)
-                # xmly(folder_path,'track',album_id,'',track['trackId'])
                 if not save_path:
                     empty_count += 1
                 else:

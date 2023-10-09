@@ -4,7 +4,7 @@ from mbot.core.params import ArgSchema, ArgType
 from .audio_tools import audio_clip, move_to_dir, diy_abs, move_out, all_add_tag, add_cover
 from .podcast import podcast_main,get_xml_url
 from .event import auto_podcast
-from .xmly_download import xmly,xmly_main,xmly_download
+from .xmly_download import xmly_main,xmly_download
 import logging
 import datetime
 import time
@@ -175,6 +175,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
 
     server.common.set_cache('audio_clip', 'input_dirs', input_dirs)
     input_dirs_s = input_dirs.split('\n')
+    albums_s = []
     if albums: albums_s = albums.split('\n')
     album = ''
     xmly_dl = False
@@ -216,7 +217,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
     
     return PluginCommandResponse(True, f'音频剪辑任务完成')
 
-@plugin.command(name='poscast_m', title='生成播客源', desc='生成 Apple 播客源 URL', icon='Podcasts',run_in_background=True)
+@plugin.command(name='poscast_m', title='生成播客源', desc='生成 Apple 播客源 URL，只支持有声书、音乐父文件夹下的音频（整理存量无此限制）', icon='Podcasts',run_in_background=True)
 def poscast_m_echo(ctx: PluginCommandContext,
                 is_book_config: ArgSchema(ArgType.Enum, '类型：📕 有声书', '', enum_values=lambda: media_list, default_value='audio_book', multi_value=False, required=False),
                 book_title: ArgSchema(ArgType.String, '书名或音乐名称', '', default_value = '', required=False),
@@ -348,7 +349,7 @@ def add_cover_m_echo(ctx: PluginCommandContext,
         for dirpath, _, filenames in os.walk(audio_path):
             for filename in filenames:
                 file_path = os.path.join(dirpath, filename)
-                if datetime.datetime.now().second % 10 == 0 or i==0:
+                if datetime.now().second % 10 == 0 or i==0:
                     logger.info(f"{plugins_name}开始处理: {file_path}")
                 add_cover(file_path,cover_art_path)
                 i = i+1
