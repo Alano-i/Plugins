@@ -16,6 +16,7 @@ import_list=[
 # 判断依赖库是否安装,未安装则安装对应依赖库
 sourcestr = "https://pypi.tuna.tsinghua.edu.cn/simple/"  # 镜像源
 def GetPackage(PackageName):
+    PackageName = 'pyyaml' if PackageName == 'yaml' else PackageName
     comand = "pip install " + PackageName +" -i "+sourcestr
     # 正在安装
     print("------------------正在安装" + str(PackageName) + " ----------------------")
