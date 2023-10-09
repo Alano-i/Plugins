@@ -3,7 +3,7 @@
   "title": "Plex工具箱",
   "author": "BeiMou(yewei)",
   "description": "➊自动翻译标签 ➋拼音排序 ➌添加TOP250标签 ➍筛选Fanart封面 ➎为海报添加媒体信息",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "requirements": null,
   "configField": [
     {

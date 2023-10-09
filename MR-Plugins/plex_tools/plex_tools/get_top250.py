@@ -11,6 +11,7 @@ from moviebotapi.core.models import MediaType
 import logging
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from .sub_to_mbot import movie_sub, tv_sub
 
 logger = logging.getLogger(__name__)
 plugins_name = '「PLEX 工具箱」'
@@ -315,7 +316,7 @@ def is_local(tmdb_id):
         local_flag = True
     return local_flag, title, release_date
 
-def get_lost_douban_top250():
+def get_lost_douban_top250(sub_set=False,filter_name=''):
     logger.info(f'{plugins_name}开始查询媒体库中缺失的豆瓣 TOP250 影片')
     lost_doubantop250_list = []
     lost_doubantop250 = {}
@@ -350,11 +351,20 @@ def get_lost_douban_top250():
             #     }
             #     lost_doubantop250_list.append(lost_doubantop250)
         logger.info(f'{plugins_name}媒体库中缺失豆瓣TOP250： {len(lost_doubantop250_list)} 部电影，如下：\n{lost_doubantop250_list}')
+        # 订阅缺失的 豆瓣TOP250
+        if sub_set and lost_doubantop250_list:
+            lost_doubantop250_count = len(lost_doubantop250_list)
+            for lost_doubantop250,i in zip(lost_doubantop250_list,range(lost_doubantop250_count)):
+                title = lost_doubantop250['title']
+                tmdb_id = lost_doubantop250['tmdb_id']
+                movie_sub(title, tmdb_id, i, lost_doubantop250_count,filter_name)
+                time.sleep(1)
+                # if i>=0: return
     except Exception as e:
         logger.error(f"{plugins_name}获取媒体库中缺失的豆瓣 TOP250 列表失败，原因：{e}")
 
 
-def get_lost_imdb_top250():
+def get_lost_imdb_top250(sub_set,filter_name=''):
     logger.info(f'{plugins_name}开始查询媒体库中缺失的 IMDB TOP250 影片')
     lost_imdbtop250_list = []
     imdb_top250_tmdb_ids_list = []
@@ -380,12 +390,21 @@ def get_lost_imdb_top250():
                 }
                 lost_imdbtop250_list.append(lost_imdb_top250)
         logger.info(f'{plugins_name}媒体库中缺失 IMDB TOP250： {len(lost_imdbtop250_list)} 部电影，如下：\n{lost_imdbtop250_list}')
+        # 订阅缺失的 IMDB TOP250
+        if sub_set and lost_imdbtop250_list:
+            lost_imdbtop250_count = len(lost_imdbtop250_list)
+            for lost_imdbtop250,i in zip(lost_imdbtop250_list,range(lost_imdbtop250_count)):
+                title = lost_imdbtop250['title']
+                tmdb_id = lost_imdbtop250['tmdb_id']
+                movie_sub(title, tmdb_id, i, lost_imdbtop250_count,filter_name)
+                time.sleep(1)
+                # if i>=0: return
     except Exception as e:
         logger.error(f"{plugins_name} 获取媒体库中缺失的 IMDB TOP250 列表失败，原因：{e}")
 
-def get_lost_top250():
-    get_lost_douban_top250()
-    get_lost_imdb_top250()
+def get_lost_top250(sub_set,filter_name):
+    get_lost_douban_top250(sub_set,filter_name)
+    get_lost_imdb_top250(sub_set,filter_name)
 
 def get_top250():
     get_douban_top250_tmdb_list()

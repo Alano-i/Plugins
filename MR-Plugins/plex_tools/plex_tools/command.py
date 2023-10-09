@@ -3,7 +3,7 @@ from . import plex_sortout
 from mbot.openapi import mbot_api
 from mbot.core.params import ArgSchema, ArgType
 from .get_top250 import get_top250, get_lost_top250, get_lost_douban_top250, get_lost_imdb_top250
-from .import_to_mbot import push_sub_main
+from .sub_to_mbot import push_sub_main, movie_sub, tv_sub
 from .add_info import add_info_to_posters_main
 import logging
 
@@ -11,6 +11,9 @@ server = mbot_api
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 plugins_name = '「PLEX 工具箱」'
+
+def get_filter_list():
+    return [{'name':x.filter_name, 'value':x.filter_name} for x in server.subscribe.get_filters()]
 
 is_lock_list = [
     {
@@ -133,18 +136,22 @@ def get_top250_echo(ctx: PluginCommandContext):
     return PluginCommandResponse(True, f'手动获取最新 TOP250 列表完成')
 
 
-@plugin.command(name='get_lost_top250', title='TOP250缺了哪些', desc='查询媒体库中缺失的 TOP250 列表', icon='MilitaryTech', run_in_background=True)
+@plugin.command(name='get_lost_top250', title='TOP250缺了哪些', desc='查询媒体库中缺失的 TOP250 列表并订阅缺失的影片', icon='MilitaryTech', run_in_background=True)
 def get_lost_douban_top250_echo(ctx: PluginCommandContext,
-                                lost_top250_config: ArgSchema(ArgType.Enum, '选择查询缺失类型：🟢 豆瓣 TOP250', '', enum_values=lambda: lost_top250_list, default_value=1, multi_value=False, required=False)):
+                                lost_top250_config: ArgSchema(ArgType.Enum, '选择查询缺失类型：🟢 豆瓣 TOP250', '', enum_values=lambda: lost_top250_list, default_value=1, multi_value=False, required=False),
+                                sub_config: ArgSchema(ArgType.Enum, '订阅 TOP250 缺失的影片：📴 关闭', '', enum_values=lambda: state_list, default_value='off', multi_value=False, required=False),
+                                filter_name: ArgSchema(ArgType.Enum, '选择订阅时使用的过滤器，默认：自动选择', '', enum_values=get_filter_list, default_value='', multi_value=False, required=False)):
+    sub_set = bool(sub_config and sub_config.lower() != 'off')
     logger.info(f'{plugins_name}开始获取缺失的TOP250列表')
     if lost_top250_config == 1:
-        get_lost_douban_top250()
+        get_lost_douban_top250(sub_set,filter_name)
     elif lost_top250_config == 2:
-        get_lost_imdb_top250()
+        get_lost_imdb_top250(sub_set,filter_name)
     else:
-        get_lost_top250()
-    logger.info(f'{plugins_name}缺失的 TOP250 列表获取完成')
-    return PluginCommandResponse(True, f'缺失的 TOP250 列表获取完成')
+        get_lost_top250(sub_set,filter_name)
+    result_text = f'缺失的 TOP250 列表获取完成并订阅' if sub_set else f'缺失的 TOP250 列表获取完成'
+    logger.info(f'{plugins_name}{result_text}')
+    return PluginCommandResponse(True, result_text)
 
 
 @plugin.command(name='single_video', title='整理 PLEX 媒体', desc='整理指定电影名称的媒体', icon='LocalMovies', run_in_background=True)
