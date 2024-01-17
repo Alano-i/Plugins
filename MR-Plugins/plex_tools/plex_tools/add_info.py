@@ -54,6 +54,10 @@ def save_img(media,img_url,title,img_path,img_dir):
         try:
             http = urllib3.PoolManager()
             response = http.request('GET', img_url)
+            if response.status == 404:
+                logger.error(f'「{title}」保存 {img_url} 到本地失败，跳过处理。可能这个媒体没有刮削出封面，你需要手动设置一下封面！')
+                break
+
             with open(f"{img_dir}/tmp.jpg", "wb") as f:
                 f.write(response.data)
 
@@ -477,6 +481,7 @@ def get_episode(media,media_type,lib_name,force_add,restore,show_log):
 def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,restore,show_log):
     media_title = ''
     media_s = media
+    poster_url = ''
     for v in range(3):
         try:
             if media_type == 'movie':
