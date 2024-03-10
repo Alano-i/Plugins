@@ -21,7 +21,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from datetime import datetime
 server = mbot_api
-_LOGGER = logging.getLogger(__name__)
+loger = logging.getLogger(__name__)
 
 plugins_name = '「每天60秒读懂世界」'
 plugins_path = '/data/plugins/daily_news'
@@ -36,14 +36,14 @@ def after_setup(plugin_meta: PluginMeta, config: Dict[str, Any]):
     message_to_uid = config.get('uid')
     if config.get('channel'):
         channel = config.get('channel')
-        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+        loger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     else:
         channel = 'qywx'
     city = config.get('city')
     key = config.get('key')
     news_type = config.get('news_type')
     if not message_to_uid:
-        _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
+        loger.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
 @plugin.config_changed
 def config_changed(config: Dict[str, Any]):
@@ -51,30 +51,74 @@ def config_changed(config: Dict[str, Any]):
     message_to_uid = config.get('uid')
     if config.get('channel'):
         channel = config.get('channel')
-        _LOGGER.info(f'{plugins_name}已切换通知通道至「{channel}」')
+        loger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     else:
         channel = 'qywx'
     city = config.get('city')
     key = config.get('key')
     news_type = config.get('news_type')
     if not message_to_uid:
-        _LOGGER.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
+        loger.error(f'{plugins_name}获取推送用户失败，可能是设置了没保存成功或者还未设置')
 
 @plugin.task('daily_news', '每天60秒读懂世界', cron_expression='0 8-18,23 * * *')
 def task():
     time.sleep(random.randint(1, 600))
-    _LOGGER.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
     if datetime.now().time().hour in [8, 23]:
         server.common.set_cache('is_get_news', 'daily_news', False)
         server.common.set_cache('is_get_news', 'entertainment', False)
     if datetime.now().time().hour != 23:
+        loger.info(f'{plugins_name}定时任务启动，开始获取每日新闻和天气')
         if main():
-            _LOGGER.info(f'{plugins_name}定时任务获取每日新闻和天气完成！')
+            loger.info(f'{plugins_name}定时任务获取每日新闻和天气完成！')
 
 # 热点新闻
 def get_daily_news():
     exit_falg = False
-    wecom_title = '🌎 每天60秒读懂世界'
+    wecom_title = '🌏 每天60秒读懂世界'
+    url = "https://api.jun.la/60s.php?format=imgapi"
+    headers = {
+        "Content-Type": "text/html;charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Headers": "x-requested-with, content-type"
+    }
+    res = session.request("GET", url, headers=headers, timeout=30)
+    if res.status_code == 200:
+        loger.info(f'{plugins_name}请求每日新闻源：{res.text}')
+        image_url = json.loads(res.text)["imageBaidu"]
+        image_time = json.loads(res.text)["imageTime"]
+        # 格式化日期，只保留年月日
+        updated_date = image_time
+        # 获取今天的日期
+        today = datetime.today().strftime("%Y-%m-%d")
+        # loger.error(f"运行前获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
+        if updated_date < today:
+            loger.error(f'{plugins_name}今天的每日新闻还未更新，一小时后会再次重试！')
+            server.common.set_cache('is_get_news', 'daily_news', False)
+            exit_falg = True
+            return '', '', '', '', exit_falg
+        elif server.common.get_cache('is_get_news', 'daily_news'):
+            loger.info(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天 8:00 再次获取！')
+            exit_falg = True
+            return '', '', '', '', exit_falg
+        else:
+            news_url = image_url
+            
+            news_content = f'<img src="{news_url}" style="border-radius: 12px;" alt="每天60秒读懂世界" width="100%">'
+            server.common.set_cache('is_get_news', 'daily_news',True)
+            # news_content = f'<div style="border-radius: 12px; overflow: hidden;"><img src="{img_url}" alt="封面"></div>{news_content}'
+    else:
+        news_content = '获取热点新闻内容失败，请检查网络！'
+        news_digest = '获取热点新闻内容失败，请检查网络！'
+        news_url = 'https://api.jun.la/60s.php?format=imgapi'
+        loger.error('热点新闻获取失败，请检查网络！')
+    news_digest = '点击了解世界'
+    # loger.error(f"运行后获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
+    return wecom_title, news_digest, news_content, news_url, exit_falg
+
+def get_daily_news_old():
+    exit_falg = False
+    wecom_title = '🌏 每天60秒读懂世界'
     url = "https://www.zhihu.com/api/v4/columns/c_1261258401923026944/items"
     headers = {
         "Content-Type": "text/html;charset=utf-8",
@@ -93,14 +137,14 @@ def get_daily_news():
         updated_date = date.strftime("%Y-%m-%d")
         # 获取今天的日期
         today = datetime.today().strftime("%Y-%m-%d")
-        # _LOGGER.error(f"运行前获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
+        # loger.error(f"运行前获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
         if updated_date < today:
-            _LOGGER.error(f'{plugins_name}今天的每日新闻还未更新，一小时后会再次重试！')
+            loger.error(f'{plugins_name}今天的每日新闻还未更新，一小时后会再次重试！')
             server.common.set_cache('is_get_news', 'daily_news', False)
             exit_falg = True
             return '', '', '', '', exit_falg
         elif server.common.get_cache('is_get_news', 'daily_news'):
-            _LOGGER.info(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天 8:00 再次获取！')
+            loger.info(f'{plugins_name}今天的每日新闻源已经更新，但今天已经获取过了，将在明天 8:00 再次获取！')
             exit_falg = True
             return '', '', '', '', exit_falg
         else:
@@ -136,8 +180,8 @@ def get_daily_news():
         news_content = '获取热点新闻内容失败，请检查网络！'
         news_digest = '获取热点新闻内容失败，请检查网络！'
         news_url = 'https://www.zhihu.com/people/mt36501'
-        _LOGGER.error('热点新闻获取失败，请检查网络！')
-    # _LOGGER.error(f"运行后获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
+        loger.error('热点新闻获取失败，请检查网络！')
+    # loger.error(f"运行后获取标识：{server.common.get_cache('is_get_news', 'daily_news')}")
     return wecom_title, news_digest, news_content, news_url, exit_falg
 
 # 影视快讯
@@ -192,7 +236,7 @@ def get_weather():
     city_url = "https://geoapi.qweather.com/v2/city/lookup?location=" + city + "&key=" + key
     response_city = session.request("GET", city_url, timeout=30)
     city_data = response_city.json()
-    # _LOGGER.error(f'city_data:{city_data}')
+    # loger.error(f'city_data:{city_data}')
     daily_weather_iconDay = '100'
     if city_data['code'] == '200':
         city_data = city_data["location"][0]
@@ -210,13 +254,13 @@ def get_weather():
             cond = f'{daily_weather_desc}  {daily_weather_tempMin}°~{daily_weather_tempMax}°'
         else:
             cond = '风雨难测°'
-            _LOGGER.error(f'{plugins_name}获取天气信息失败')
+            loger.error(f'{plugins_name}获取天气信息失败')
     else:
         city_name = '你在天涯海角'
         cond = '风雨难测°'
-        _LOGGER.error(f'{plugins_name}获取城市名失败,请确定 ➊【城市名称】是否设置正确，示例：北京。➋【和风天气】的 key 设置正确')
-        _LOGGER.error(f'{plugins_name}【和风天气】的 KEY 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 KEY')
-        _LOGGER.error(f'{plugins_name}在项目管理找到新建的项目，KEY 下面有个查看，点开查看，即可查看需要填入到插件的 API KEY 值')
+        loger.error(f'{plugins_name}获取城市名失败,请确定 ➊【城市名称】是否设置正确，示例：北京。➋【和风天气】的 key 设置正确')
+        loger.error(f'{plugins_name}【和风天气】的 KEY 在 https://dev.qweather.com 申请，创建项目后进入控制台新建项目然后添加 KEY')
+        loger.error(f'{plugins_name}在项目管理找到新建的项目，KEY 下面有个查看，点开查看，即可查看需要填入到插件的 API KEY 值')
  
     return city_name, cond, daily_weather_iconDay
 
@@ -441,7 +485,7 @@ def generate_image():
         if not os.path.exists(image_path):
             image_path = f'{plugins_path}/logo.jpg'
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
+        loger.error(f'{plugins_name}检查文件是否存在时发生异常，原因：{e}')
     return image_path, lunar_date, weekday
 
 def upload_image_to_mr(image_path):
@@ -449,10 +493,10 @@ def upload_image_to_mr(image_path):
     for i in range(3):
         try:
             pic_url = mbot_api.user.upload_img_to_cloud_by_filepath(image_path)
-            _LOGGER.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{pic_url}')
+            loger.info(f'{plugins_name}上传到 MR 服务器的图片 URL 是:{pic_url}')
             break
         except Exception as e:
-            _LOGGER.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
+            loger.error =  (f'{plugins_name}第 {i+1} 次尝试，消息推送异常，天气封面未能上传到MR服务器,若尝试 3 次还是失败，将用插件封面代替，原因: {e}')
     return pic_url
 
 def push_msg_mr(msg_title, msg_digest, msg_content, author, link_url, image_path, pic_url, news):
@@ -485,25 +529,25 @@ def push_msg_mr(msg_title, msg_digest, msg_content, author, link_url, image_path
                 server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data, to_uid=_, to_channel_name = channel)
         else:
             server.notify.send_message_by_tmpl('{{title}}', '{{a}}', msg_data)
-        _LOGGER.info(f'{plugins_name}已推送「{news_name[news]}」消息')
+        loger.info(f'{plugins_name}已推送「{news_name[news]}」消息')
         return
     except Exception as e:
-        _LOGGER.error(f'{plugins_name}推送「{news_name[news]}」消息异常，原因: {e}')
+        loger.error(f'{plugins_name}推送「{news_name[news]}」消息异常，原因: {e}')
     return
 
 def main():
-    _LOGGER.info(f'{plugins_name}消息推送通道「{channel}」')
+    loger.info(f'{plugins_name}消息推送通道「{channel}」')
     exit_falg = False
     hour = server.common.get_cache('is_get_news', 'hour') or datetime.now().time().hour
     get_news_flag_entertainment = True
     get_news_flag_daily = True
     generate_image_flag = False
     if not news_type:
-        _LOGGER.error(f'{plugins_name}未设置新闻类型，请先设置！')
+        loger.error(f'{plugins_name}未设置新闻类型，请先设置！')
         return False
     for news in news_type:
         if news == 'entertainment' and hour != 8 and server.common.get_cache('is_get_news', 'entertainment'):
-            _LOGGER.info(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
+            loger.info(f'{plugins_name}今天已获取过影视快讯，将在明天 8:00 再次获取。')
             get_news_flag_entertainment = False
             continue
         if news == 'daily': 
