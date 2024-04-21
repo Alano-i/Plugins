@@ -410,7 +410,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     #     overlay_flag = True
     return out_path
 
-def get_local_info(media):
+def get_local_info(media,media_title=''):
     # 文件名
     try:
         file_name = os.path.basename(media.locations[0])
@@ -439,6 +439,10 @@ def get_local_info(media):
         videoResolution = videoResolution.upper()
     except Exception as e:
         videoResolution = ''
+
+    # 如果没有获取到分辨率
+    if not videoResolution:
+        logger.error(f"{plugins_name} 没有获取到 ['{media_title}'] 的分辨率，请检查 PLEX 对该影片是否已分析完成。")
     # 动态范围
     try:
         key = media.key # /library/metadata/33653
@@ -540,7 +544,7 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
                         medias.sort(key=lambda media: media.addedAt, reverse=True)  # 最新的排在最前面
                         media = medias[0]
 
-                    file_name,duration,size,bitrate,videoResolution,display_title = get_local_info(media)
+                    file_name,duration,size,bitrate,videoResolution,display_title = get_local_info(media,media_title)
                     if poster_path:
                         out_path = new_poster(media_type,videoResolution,display_title,duration,rating,poster_path,media_title)
 
@@ -553,8 +557,9 @@ def add_info_one(media,media_type,media_n,lib_name,force_add,i,rating,show_year,
             break
         except Exception as e:
             media = media_s
-            media_title = media_title or '未知' 
+            media_title = media_title or '未知'
             logger.error(f"{plugins_name}第 {v+1}/3 次处理 ['{media_title}'] 时失败，原因：{e}")
+            time.sleep(3)
 
 def add_info_to_posters(library,lib_name,force_add,restore,show_log,only_show):
     lib_type = library.type
