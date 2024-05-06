@@ -1,0 +1,40 @@
+{
+  "name": "115_tools",
+  "title": "115工具箱",
+  "author": "Alano",
+  "description": "115工具箱，获取不同设备类型的cookie",
+  "version": "0.1",
+  "requirements": null,
+  "configField": [
+    {
+      "fieldName": "uid",
+      "fieldType": "Enum",
+      "label": "推送用户",
+      "helperText": "",
+      "enumValuesRef": "UserList",
+      "multiValue": true
+    },
+    {
+      "fieldName": "channel",
+      "fieldType": "Enum",
+      "label": "推送通道",
+      "helperText": "",
+      "enumValuesRef": "ChannelNameList",
+      "multiValue": false
+    },
+    {
+      "fieldName": "pic_url",
+      "fieldType": "String",
+      "label": "推送消息封面",
+      "helperText": "",
+      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/audio_tools/audio_tools/logo.jpg"
+    }
+  ],
+  "logoUrl": "/plugins/115_tools/logo.jpg",
+  "githubUrl": "",
+  "helpDocUrl": "",
+  "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
+  "dependencies": {
+    "appVersion": ">=1.9.30"
+  }
+}
