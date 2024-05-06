@@ -212,7 +212,8 @@ def login_with_qrcode(app="web", scan_in_console=True,app_name='web'):
         elif status == -2:
             raise OSError(f"{plugins_name}扫描二维码：已取消")
         else:
-            raise OSError("qrcode: aborted with %r" % resp)
+            raise OSError(f"{plugins_name}扫描二维码出错：{resp}")
+
     return post_qrcode_result(qrcode_token["uid"], app)
 
 def get_cookie(app,scan_in_console=False,app_name='web'):
