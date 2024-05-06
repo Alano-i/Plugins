@@ -7,6 +7,13 @@
   "requirements": null,
   "configField": [
     {
+      "fieldName": "push_msg",
+      "fieldType": "Bool",
+      "label": "启用通知",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
       "fieldName": "uid",
       "fieldType": "Enum",
       "label": "推送用户",
@@ -27,7 +34,7 @@
       "fieldType": "String",
       "label": "推送消息封面",
       "helperText": "",
-      "defaultValue": "https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MR-Plugins/115_tools/logo.jpg"
+      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/audio_tools/audio_tools/logo.jpg"
     }
   ],
   "logoUrl": "/plugins/115_tools/logo.jpg",
