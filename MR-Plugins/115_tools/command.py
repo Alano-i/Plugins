@@ -9,7 +9,7 @@ plugins_name = '「115工具箱」'
 
 app_config = [
     {
-        "name": "网页版",
+        "name": "115 网页版",
         "value": 'web'
     },
     {
@@ -29,7 +29,7 @@ app_config = [
         "value": 'mac'
     },
     {
-        "name": "Windows 端",
+        "name": "115 Windows 端",
         "value": 'windows'
     },
     {
