@@ -19,10 +19,11 @@ from typing import Dict, Any
 server = mbot_api
 
 def config_setup(config):
-    global message_to_uid,channel,pic_url
+    global message_to_uid,channel,pic_url,push_msg
     message_to_uid = config.get('uid','')
     channel = config.get('channel','qywx')
     pic_url = config.get('pic_url','')
+    push_msg = config.get('push_msg',True)
     logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     if not message_to_uid:
         logger.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
@@ -188,10 +189,11 @@ def login_with_qrcode(app="web", scan_in_console=True,app_name='web'):
         qrcode_image_url = get_qrcode(qrcode_token["uid"])
         # print(f"请打开下方的链接，使用115客户端扫描二维码：{qrcode_image_url}")
         logger.info(f"{plugins_name}请打开下方的链接，使用115客户端扫描二维码：{qrcode_image_url}")
-        if qrcode_image_url:
-            msg_title=f'{app_name}请求登录'
-            msg_digest=f'点击查看二维码'
-            push_msg_to_mbot(msg_title, msg_digest,qrcode_image_url)
+        if push_msg:
+            if qrcode_image_url:
+                msg_title=f'{app_name}请求登录'
+                msg_digest=f'点击查看二维码'
+                push_msg_to_mbot(msg_title, msg_digest,qrcode_image_url)
     while True:
         try:
             resp = get_qrcode_status(qrcode_token)
@@ -218,6 +220,7 @@ def get_cookie(app,scan_in_console=False,app_name='web'):
     cookie=("; ".join(f"{key}={value}" for key, value in resp['data']['cookie'].items()))
     # logger.info(f"{plugins_name}获取到的cookie如下：\nUID={resp['data']['cookie']['UID']}; CID={resp['data']['cookie']['CID']}; SEID={resp['data']['cookie']['SEID']}")
     logger.info(f"{plugins_name}获取到的cookie如下：\n{cookie}")
-    msg_title=f'{app_name}的cookie'
-    msg_digest=f'{cookie}'
-    push_msg_to_mbot(msg_title, msg_digest)
+    if push_msg:
+        msg_title=f'{app_name}的cookie'
+        msg_digest=f'{cookie}'
+        push_msg_to_mbot(msg_title, msg_digest)
