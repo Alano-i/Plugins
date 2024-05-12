@@ -16,14 +16,17 @@ from mbot.core.plugins import plugin
 from mbot.core.plugins import PluginMeta
 from mbot.openapi import mbot_api
 from typing import Dict, Any
+
+from .cookie_to_json import cookie2json
 server = mbot_api
 
 def config_setup(config):
-    global message_to_uid,channel,pic_url,push_msg
+    global message_to_uid,channel,pic_url,push_msg,cookie2cookie
     message_to_uid = config.get('uid','')
     channel = config.get('channel','qywx')
     pic_url = config.get('pic_url','')
     push_msg = config.get('push_msg',True)
+    cookie2cookie = config.get('cookie2cookie','')
     logger.info(f'{plugins_name}已切换通知通道至「{channel}」')
     if not message_to_uid:
         logger.error(f'{plugins_name}获取推送用户失败, 可能是设置了没保存成功或者还未设置')
@@ -216,11 +219,14 @@ def login_with_qrcode(app="web", scan_in_console=True,app_name='web'):
 
     return post_qrcode_result(qrcode_token["uid"], app)
 
-def get_cookie(app,scan_in_console=False,app_name='web'):
+def get_cookie(app,scan_in_console=False,app_name='web',EditThisCookie=False):
     resp = login_with_qrcode(app, scan_in_console,app_name)
     cookie=("; ".join(f"{key}={value}" for key, value in resp['data']['cookie'].items()))
     # logger.info(f"{plugins_name}获取到的cookie如下：\nUID={resp['data']['cookie']['UID']}; CID={resp['data']['cookie']['CID']}; SEID={resp['data']['cookie']['SEID']}")
-    logger.info(f"{plugins_name}获取到的cookie如下：\n{cookie}")
+    if EditThisCookie:
+        logger.info(f"{plugins_name}获取到的cookie如下,已转换为 EditThisCookie 格式：\n{cookie2json(cookie)}")
+    else:
+        logger.info(f"{plugins_name}获取到的cookie如下：\n{cookie}")
     if push_msg:
         msg_title=f'{app_name}的cookie'
         msg_digest=f'{cookie}'
