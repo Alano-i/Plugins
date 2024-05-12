@@ -49,15 +49,28 @@ app_config = [
         "value": 'qandroid'
     }
 ]
+state_list = [
+    {
+        "name": "✅ 开启",
+        "value": 'on'
+    },
+    {
+        "name": "📴 关闭",
+        "value": 'off'
+    }
+]
 
 @plugin.command(name='get_115_ck', title='获取 115 cookie', desc='获取不同设备的 cookie', icon='Cookie',run_in_background=True)
 def audio_clip_m_echo(ctx: PluginCommandContext,
                 app: ArgSchema(ArgType.Enum, '选择获取 cookie 的设备', '', enum_values=lambda: app_config, default_value='web', multi_value=False, required=True),
+                EditThisCookie_config: ArgSchema(ArgType.Enum, '转换为 EditThisCookie 格式：📴 关闭', '', enum_values=lambda: state_list, default_value='off', multi_value=False, required=False),
                 ):
+    EditThisCookie = False
+    EditThisCookie = bool(EditThisCookie_config and EditThisCookie_config.lower() != 'off')
     # 从 app_config 中找到匹配 app 值的配置
-    app_name = next((config['name'] for config in app_config if config['value'] == app), None)
+    app_name = next((config['name'] for config in app_config if config['value'] == app), '')
     loger.info(f"{plugins_name}开始获取['{app_name}']的 cookie")            
-    get_cookie(app,False,app_name)
+    get_cookie(app,False,app_name,EditThisCookie)
     loger.info(f"{plugins_name}获取['{app_name}']的 cookie 完成")
     return PluginCommandResponse(True, f'获取cookie完成')
     
