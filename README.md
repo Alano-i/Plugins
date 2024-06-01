@@ -1,4 +1,4 @@
-# Mbot-Plugins
+# Plugins
 
 <a href="https://github.com/Alano-i/Mbot-Plugins"><img src="https://img.shields.io/github/stars/Alano-i/Mbot-Plugins" alt="Stars Badge"/></a>
 <a href="https://github.com/Alano-i/Mbot-Plugins"><img src="https://img.shields.io/github/forks/Alano-i/Mbot-Plugins" alt="Forks Badge"/></a>
