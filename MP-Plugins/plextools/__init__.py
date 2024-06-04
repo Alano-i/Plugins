@@ -29,9 +29,9 @@ class plextools(_PluginBase):
     # 插件版本
     plugin_version = "1.2"
     # 插件作者
-    plugin_author = "BeiMou"
+    plugin_author = "Alano-i"
     # 作者主页
-    author_url = "https://github.com/jxxghp"
+    author_url = "https://github.com/Alano-i"
     # 插件配置项ID前缀
     plugin_config_prefix = "plextools_"
     # 加载顺序
@@ -53,49 +53,6 @@ class plextools(_PluginBase):
     _emby = None
     _jellyfin = None
     _plex = None
-    # def init_plugin(self, config: dict = None):
-    #     self.tmdbchain = TmdbChain()
-    #     self.mschain = MediaServerChain()
-    #     if config:
-    #         self._enabled = config.get("enabled")
-    #         self._onlyonce = config.get("onlyonce")
-    #         self._cron = config.get("cron")
-    #         self._type = config.get("type") or "all"
-    #         self._delay = config.get("delay") or 0
-    #         self._remove_nozh = config.get("remove_nozh") or False
-
-    #     # 停止现有任务
-    #     self.stop_service()
-
-    #     # 启动服务
-    #     if self._onlyonce:
-    #         self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-    #         self._scheduler.add_job(func=self.scrap_library, trigger='date',
-    #                                 run_date=datetime.datetime.now(
-    #                                     tz=pytz.timezone(settings.TZ)) + datetime.timedelta(seconds=3)
-    #                                 )
-    #         logger.info(f"演职人员刮削服务启动，立即运行一次")
-    #         # 关闭一次性开关
-    #         self._onlyonce = False
-    #         # 保存配置
-    #         self.__update_config()
-    #         # 启动服务
-    #         if self._scheduler.get_jobs():
-    #             self._scheduler.print_jobs()
-    #             self._scheduler.start()
-
-    # def __update_config(self):
-    #     """
-    #     更新配置
-    #     """
-    #     self.update_config({
-    #         "enabled": self._enabled,
-    #         "onlyonce": self._onlyonce,
-    #         "cron": self._cron,
-    #         "type": self._type,
-    #         "delay": self._delay,
-    #         "remove_nozh": self._remove_nozh
-    #     })
     def init_plugin(self, config: dict = None):
         self._emby = Emby()
         self._plex = Plex()
@@ -106,7 +63,7 @@ class plextools(_PluginBase):
             self._library_ids = config.get("library_ids")
 
         # 启动服务
-                # 停止现有任务
+        # 停止现有任务
         self.stop_service()
 
         self._scheduler = BackgroundScheduler(timezone=settings.TZ)
