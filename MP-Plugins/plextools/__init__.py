@@ -25,7 +25,7 @@ class plextools(_PluginBase):
     # 插件描述
     plugin_desc = "Plex美化工具箱"
     # 插件图标
-    plugin_icon = "refresh2.png"
+    plugin_icon = "https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MP-Plugins/plextools/logo.jpg"
     # 插件版本
     plugin_version = "1.2"
     # 插件作者
