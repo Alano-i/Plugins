@@ -1,5 +1,5 @@
 ## 青龙
-`docker` 映射端口 `1150`，然后反代`青龙的ip:1150` 已获得外网可访问地址
+`docker` 映射端口 `1150`，然后反代`青龙的ip:1150` 以获得外网可访问地址
 ## 依赖
 依赖管理-创建依赖-python3-是-填入依赖名称
 ```console
@@ -33,7 +33,7 @@ ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong
 <img width="1248"  alt="image" src="https://github.com/Alano-i/Plugins/assets/68833595/4a756bd8-65f0-4a6e-859b-ba8c970d387f">
 
 ## 添加 cookie
-`Alano-i_Plugins/qinglong/115Master/cookies` 文件夹内有分别在 `pull.txt` `push.txt` 中填两个不同设备的 `cookie` (必须不同设备)
+`Alano-i_Plugins/qinglong/115Master/cookies` 文件夹内分别在 `pull.txt` `push.txt` 中填两个不同设备的 `cookie` (必须不同设备)
 
 ## 定时任务设置参数
 找到 `push_server.py` 的定时任务
