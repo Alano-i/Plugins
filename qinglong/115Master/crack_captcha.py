@@ -6,18 +6,30 @@ from p115.tool import crack_captcha
 class P115AutoCrack:
     def __init__(self, client):
         self.client = client
-        self.pickcode = 'alano'
+        self.pickcode = 'x'
 
     def check_risk(self):
-        @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
-        def risk():
-            print(f"开始检测风控...")
-            return self.client.download_url_web(self.pickcode)
-        try:
-            return risk()
-        except Exception as e:
-            print(f"检测风控时发生异常，原因：{e}")
-            return {}
+        # @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
+        # def risk():
+        #     print(f"开始检测风控...")
+        #     return self.client.download_url_web(self.pickcode)
+        # try:
+        #     return risk()
+        # except Exception as e:
+        #     print(f"检测风控时发生异常，原因：{e}")
+        #     return {}
+
+        result={}
+        print(f"开始检测风控...")
+        for i in range(3):
+            try:
+                result = self.client.download_url_web(self.pickcode)
+                break
+            except Exception as e:
+                print(f'第 {i+1}/3 次检测风控时发生异常，原因：{e}')
+                time.sleep(3)
+                continue
+        return result
 
     def auto_crack(self):
         print("开始识别验证码验证码...")
@@ -35,6 +47,7 @@ class P115AutoCrack:
         while True:
             crack_flag = False
             result = self.check_risk()
+            if not result: return
             if not result.get('state', True) and result.get('code', 9999) == 911:
                 crack_flag = True
                 print("检测到风控，尝试破解验证码以解除...")

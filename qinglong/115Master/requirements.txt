@@ -2,3 +2,4 @@ requests
 python-115
 ddddocr==1.4.11
 tenacity
+numpy==1.26.4

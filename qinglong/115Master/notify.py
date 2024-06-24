@@ -25,6 +25,18 @@ class WeComNotify:
         data = json.loads(req.text)
         return data["access_token"]
 
+    def upload_media(self, file_path, media_type='image'):
+        url = f'{self.BASE_API_URL}/cgi-bin/media/upload?access_token={self.access_token}&type={media_type}'
+        with open(file_path, 'rb') as file:
+            files = {'media': file}
+            response = requests.post(url, files=files).json()
+            if 'media_id' in response:
+                print(f"上传媒体文件成功: {response['media_id']}")
+                return response['media_id']
+            else:
+                print(f"上传媒体文件失败: {response}")
+                return None
+
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
     def send_text(self, message, touser="@all"):
         send_url = f"{self.BASE_API_URL}/cgi-bin/message/send?access_token={self.get_access_token()}"
@@ -73,7 +85,7 @@ class WeComNotify:
 
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
-    def send_mpnews(self, title, message, media_id, touser="@all"):
+    def send_mpnews(self, title, message, media_id, touser="@all",content='',content_source_url=''):
         send_url = f"{self.BASE_API_URL}/cgi-bin/message/send?access_token={self.get_access_token()}"
         send_values = {
             "touser": touser,
@@ -84,9 +96,9 @@ class WeComNotify:
                     {
                         "title": title,
                         "thumb_media_id": media_id,
-                        "author": "Author",
-                        "content_source_url": "",
-                        "content": message.replace("\n", "<br/>"),
+                        "author": "115Master",
+                        "content_source_url": content_source_url,
+                        "content": message.replace("\n", "<br/>") if not content else content,
                         "digest": message,
                     }
                 ]

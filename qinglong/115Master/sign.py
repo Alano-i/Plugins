@@ -37,6 +37,7 @@ class P115AutoSign:
                 wecom_notify.send_news(title=title, message=message, link_url="", pic_url=pic_url, touser=touser)
         else:
             print("签到失败！")
+            print(f'result:{result}')
             if push_notify:
                 wecom_notify.send_mpnews(title="115今日签到失败", message=str(self.reason), media_id = media_id, touser=touser)
 

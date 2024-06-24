@@ -10,6 +10,11 @@ corpsecret = os.getenv('corpsecret')
 agentid = os.getenv('agentid')
 pic_url = os.getenv('pic_url_115')
 media_id = os.getenv('media_id_115')
+del_root_id = os.getenv('del_root_id')
 proxy_api_url = os.getenv('wecom_proxy_api_url')
 push_notify = os.environ.get('push_notify_115', 'True').lower() in ['true', '1', 'on', 'yes']
 normal_notify = os.environ.get('normal_notify_115', 'True').lower() in ['true', '1', 'on', 'yes']
+
+
+
+

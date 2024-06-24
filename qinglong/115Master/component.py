@@ -6,7 +6,7 @@ from notify import WeComNotify
 
 if push_notify:        
     wecom_notify = WeComNotify(corpid=corpid, corpsecret=corpsecret, agentid=agentid, proxy_api_url=proxy_api_url)
-
+    
 cookies = cookies.split('\n')
 clients = []
 for cookie in cookies:
@@ -20,7 +20,8 @@ for cookie in cookies:
             if isinstance(e.args[0], dict):
                 if not e.args[0].get('state', False) and e.args[0].get('errno', 99) == 99:
                     print(f'115 cookie 已失效，请重新获取')
-                    wecom_notify.send_news(title="115 cookie 已失效", message="无法检测到账号状态，请更换cookie", link_url="", pic_url=pic_url, touser=touser)
+                    if push_notify:
+                        wecom_notify.send_news(title="115 cookie 已失效", message="无法检测到账号状态，请更换cookie", link_url="", pic_url=pic_url, touser=touser)
                     exit()
             time.sleep(3)
             continue
