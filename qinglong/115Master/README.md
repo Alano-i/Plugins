@@ -36,12 +36,14 @@ ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong
 `Alano-i_Plugins/qinglong/115Master/cookies` 文件夹内分别在 `pull.txt` `push.txt` 中填两个不同设备的 `cookie` (必须不同设备)
 
 ## 定时任务设置参数
-找到 `push_server.py` 的定时任务（服务端，别人拉你的文件需要启动这个服务）
+### 服务端
+别人拉你的文件需要启动这个服务：找到 `push_server.py` 的定时任务
 ```console
 task Alano-i_Plugins/qinglong/115Master/push_server.py -cp ./cookies/push.txt -p 1150 -ur urllib3
 ```
 
-找到 `pull.py` 的定时任务（客户端，你拉别人的文件需要运行这个）
+### 客户端
+你拉别人的文件运行的服务：找到 `pull.py` 的定时任务
 ```console
 task Alano-i_Plugins/qinglong/115Master/pull.py -ur urllib3 -s 90 -cp ./cookies/pull.txt -m 4 -u https://xxx.com -p 12345678 -t 23456789
 ```
