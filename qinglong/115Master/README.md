@@ -18,7 +18,7 @@ requests
 ## 订阅
 订阅管理-创建订阅-粘贴下方代码
 ```console
-ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong/115Master/crack_captcha|qinglong/115Master/pull.py|qinglong/115Master/push_server" "" "__init__|component|config|get_new_cookie|notify|requirements|pull|push|del|pull_after" "" "py|txt"
+ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong/115Master/crack_captcha|qinglong/115Master/pull.py|qinglong/115Master/push_server" "" "__init__|component|config|get_new_cookie|notify|requirements|pull|push|del|pull_after" ""
 ```
 名称
 ```console
@@ -46,7 +46,7 @@ ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong
 
 
 ## 添加 cookie
-`Alano-i_Plugins/qinglong/115Master/cookies` 文件夹内分别在 `pull.txt` `push.txt` 中填两个不同设备的 `cookie` (必须不同设备)
+`Alano-i_Plugins/qinglong/115Master/cookies` 文件夹内（如果没有就新建一个）分别新建 `pull.txt` `push.txt` 两个文件，并分别填入两个不同设备的 `cookie` (必须不同设备)
 
 ## 定时任务设置参数
 ### 服务端
