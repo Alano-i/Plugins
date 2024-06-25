@@ -30,7 +30,20 @@ ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong
 ```
 
 ## 环境变量
-<img width="1248"  alt="image" src="https://github.com/Alano-i/Plugins/assets/68833595/4a756bd8-65f0-4a6e-859b-ba8c970d387f">
+
+| 变量名      | 说明                   |
+| :---------- | :--------------------- |
+| cookie_115     | cookie               |
+| touser     | 企业微信通知接收者               |
+| corpid     | 企业 ID               |
+| corpsecret     | corp secret               |
+| agentid     | 应用 ID               |
+| pic_url_115     | 115通知封面               |
+| push_notify_115     | 115通知开关，on 或 off               |
+| normal_notify_115     | 115无风控通知开关，on 或 off               |
+| media_id_115     | 企业微信 封面素材 Media id               |
+| del_root_id     | 删除大于10万的文件夹，文件夹id               |
+
 
 ## 添加 cookie
 `Alano-i_Plugins/qinglong/115Master/cookies` 文件夹内分别在 `pull.txt` `push.txt` 中填两个不同设备的 `cookie` (必须不同设备)
