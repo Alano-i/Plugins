@@ -52,9 +52,9 @@ ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong
 ### 服务端
 别人拉你的文件需要启动这个服务：找到 `push_server.py` 的定时任务
 ```console
-task Alano-i_Plugins/qinglong/115Master/push_server.py -cp ./cookies/push.txt -p 1150 -ur urllib3 -r 0
+task Alano-i_Plugins/qinglong/115Master/push_server.py -cp ./cookies/push.txt -p 1150 -ur urllib3 -r 12345678
 ```
-说明：可指定挂载目录，使用 `-r 目录cid` 默认为0，挂载根目录。 
+说明：可指定挂载目录，使用 `-r 目录cid` ，默认不加 `-r` 参数则挂载根目录（注意不能添加 `-r 0` 来挂载根目录）。 
 
 ### 客户端
 你拉别人的文件运行的服务：找到 `pull.py` 的定时任务
