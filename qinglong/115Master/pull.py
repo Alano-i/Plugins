@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 __author__ = "ChenyangGao <https://chenyanggao.github.io>"
-__version__ = (0, 2)
+__version__ = (0, 2, 1)
 __doc__ = "从运行 web-115-302.py 的服务器上拉取文件到你的 115 网盘"
 
 from argparse import ArgumentParser, RawTextHelpFormatter
@@ -12,6 +12,7 @@ parser = ArgumentParser(
     description=__doc__, 
 )
 parser.add_argument("-u", "--base-url", default="http://localhost", help="挂载的网址，默认值: http://localhost")
+parser.add_argument("-P", "--password", default="", help="挂载的网址的密码，默认值：''，即没密码")
 parser.add_argument("-p", "--src-path", default=0, help="对方 115 网盘中的文件或文件夹的 id 或路径，默认值: 0")
 parser.add_argument("-t", "--dst-path", default=0, help="保存到我的 115 网盘中的文件夹的 id 或路径，默认值: 0")
 parser.add_argument("-c", "--cookies", help="115 登录 cookies，优先级高于 -c/--cookies-path")
@@ -101,6 +102,7 @@ COLORS_8_BIT: dict[str, int] = {
 }
 
 base_url = args.base_url
+password = args.password
 src_path = args.src_path
 dst_path = args.dst_path
 cookies = args.cookies
@@ -341,24 +343,32 @@ def ensure_cm(cm):
 
 def attr(
     id_or_path: int | str = 0, 
-    base_url: str = base_url, 
+    base_url: str = "http://localhost", 
+    password: str = "", 
 ) -> dict:
+    params: dict = {"method": "attr"}
+    if password:
+        params["password"] = password
     if isinstance(id_or_path, int):
-        url = f"{base_url}?id={id_or_path}&method=attr"
+        params["id"] = id_or_path
     else:
-        url = f"{base_url}?path={quote(id_or_path, safe=':/')}&method=attr"
-    return urlopen(url, parse=True)
+        params["path"] = id_or_path
+    return urlopen(base_url, params=params, parse=True)
 
 
 def listdir(
     id_or_path: int | str = 0, 
-    base_url: str = base_url, 
+    base_url: str = "http://localhost", 
+    password: str = "", 
 ) -> list[dict]:
+    params: dict = {"method": "list"}
+    if password:
+        params["password"] = password
     if isinstance(id_or_path, int):
-        url = f"{base_url}?id={id_or_path}&method=list"
+        params["id"] = id_or_path
     else:
-        url = f"{base_url}?path={quote(id_or_path, safe=':/')}&method=list"
-    return urlopen(url, parse=True)
+        params["path"] = id_or_path
+    return urlopen(base_url, params=params, parse=True)
 
 
 def read_bytes_range(url: str, bytes_range: str = "0-") -> bytes:
@@ -627,18 +637,25 @@ def pull(
                         (attr["name"], attr["is_directory"]): attr 
                         for attr in relogin_wrap(fs.listdir_attr, dst_id)
                     }
-                subattrs = listdir(task_id, base_url)
+                subattrs = listdir(task_id, base_url, password)
                 update_tasks(
                     total=len(subattrs), 
                     files=sum(not a["is_directory"] for a in subattrs), 
                     size=sum(a["size"] for a in subattrs if not a["is_directory"]), 
                 )
+                files_seen: set[tuple[str, str, int]] = set()
                 pending_to_remove: list[int] = []
                 for subattr in subattrs:
                     subname = subattr["name"]
                     subpath = subattr["path"]
                     is_directory = subattr["is_directory"]
                     key = subname, is_directory
+                    if not is_directory:
+                        file_key = (subname, subattr["sha1"], subattr["size"])
+                        if file_key in files_seen:
+                            continue
+                        else:
+                            files_seen.add(file_key)
                     if key in subdattrs:
                         subdattr = subdattrs[key]
                         subdpath = subdattr["path"]
@@ -697,26 +714,23 @@ def pull(
                 update_success(1)
             else:
                 size = src_attr["size"]
-                for i in reversed(range(3)):
-                    resp = client.upload_file_init(
-                        name, 
-                        pid=dst_pid, 
-                        filesize=size, 
-                        filesha1=src_attr["sha1"], 
-                        read_range_bytes_or_hash=lambda rng, url=src_attr["url"]: read_bytes_range(url, rng), 
-                        request=do_request, 
-                    )
-                    status = resp["status"]
-                    statuscode = resp.get("statuscode", 0)
-                    if status == 2 and statuscode == 0:
-                        break
-                    elif status == 1 and statuscode == 0:
-                        should_direct_upload = direct_upload_max_size is None or size <= direct_upload_max_size
-                        if not should_direct_upload:
-                            raise OSError(f"文件超出给定的直接上传大小限制：{size} > {direct_upload_max_size}，秒传失败返回信息: {resp}")
-                        if size < 1024 * 1024 and i:
-                            continue
-                        logger.warning("""\
+                resp = client.upload_file_init(
+                    name, 
+                    pid=dst_pid, 
+                    filesize=size, 
+                    filesha1=src_attr["sha1"], 
+                    read_range_bytes_or_hash=lambda rng, url=src_attr["url"]: read_bytes_range(url, rng), 
+                    request=do_request, 
+                )
+                status = resp["status"]
+                statuscode = resp.get("statuscode", 0)
+                if status == 2 and statuscode == 0:
+                    pass
+                elif status == 1 and statuscode == 0:
+                    should_direct_upload = direct_upload_max_size is None or size <= direct_upload_max_size
+                    if not should_direct_upload:
+                        raise OSError(f"文件超出给定的直接上传大小限制：{size} > {direct_upload_max_size}，秒传失败返回信息: {resp}")
+                    logger.warning("""\
 {emoji} {prompt}{src_path} ➜ {name} in {pid}
     ├ attr = {attr}
     ├ response = {resp}""".format(
@@ -728,12 +742,16 @@ def pull(
                             attr     = highlight_object(src_attr), 
                             resp     = highlight_as_json(resp), 
                         ))
-                        resp = client.upload_file_sample(urlopen(src_attr["url"]), name, pid=dst_pid, request=do_request)
-                        break
-                    elif status == 0 and statuscode in (0, 413):
-                        raise Retryable(resp)
-                    else:
-                        raise OSError(resp)
+                    resp = client.upload_file_sample(
+                        urlopen(src_attr["url"]), 
+                        filename=name, 
+                        pid=dst_pid, 
+                        request=do_request, 
+                    )
+                elif status == 0 and statuscode in (0, 413):
+                    raise Retryable(resp)
+                else:
+                    raise OSError(resp)
                 resp_data = resp["data"]
                 if debug: logger.debug("""\
 {emoji} {prompt}{src_path} ➜ {name} in {pid}
@@ -801,7 +819,7 @@ def pull(
             src_id = int(src_path)
     else:
         src_id = src_path
-    src_attr = attr(src_id, base_url)
+    src_attr = attr(src_id, base_url, password)
     dst_attr = None
     name = src_attr["name"]
     is_directory = src_attr["is_directory"]
@@ -900,7 +918,6 @@ formatter = ColoredLevelNameFormatter(
 )
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
 
 stats,all_tasks = pull(src_path, dst_path, base_url=base_url, max_workers=max_workers)
 
