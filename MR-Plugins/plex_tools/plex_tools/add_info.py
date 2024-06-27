@@ -203,7 +203,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
         if resolution == '1080P' and media_type_org not in ['show_p','season_p'] and '小时' in duration and '分钟' in duration:
             scale = 1192/1000
             duration = duration.replace(' ','')
-        if rdynamic_range =='DV' and media_type_org not in ['show_p','season_p'] and '小时' in duration and '分钟' in duration:
+        if (rdynamic_range =='DV' or rdynamic_range =='HDR+DV') and media_type_org not in ['show_p','season_p'] and '小时' in duration and '分钟' in duration:
             scale = 1180/1000
             duration = duration.replace(' ','')
         if media_type_org in ['show_p','season_p']:
@@ -364,7 +364,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     font_path = f'{base_path}/font/fzlth.ttf'
     font_path_n = f'{base_path}/font/ALIBABA_Bold.otf'
     draw = ImageDraw.Draw(poster)
-    if rdynamic_range =='DV' and media_type == 'movie':
+    if (rdynamic_range =='DV' or rdynamic_range =='HDR+DV') and media_type == 'movie':
         font_r = ImageFont.truetype(f"{font_path}", int(51 * scale))
     else:
         font_r = ImageFont.truetype(f"{font_path}", int(54 * scale))
@@ -385,7 +385,7 @@ def new_poster(media_type,resolution,rdynamic_range,duration,rating,poster_path,
     y_n = int(y+bar_height/2 - text_height0/2)
     if media_type == 'movie':
         draw.text((x_duration, y_duration-3 * scale), duration, fill=(255,255,255,255),font=font_r)
-        if rdynamic_range =='DV':
+        if rdynamic_range =='DV' or rdynamic_range =='HDR+DV':
             draw.text((right-26 * scale-text_width0, y_n-23 * scale), rating, fill=(255,155,21,255),font=font_n)
         else:
             draw.text((right-30 * scale-text_width0, y_n-23 * scale), rating, fill=(255,155,21,255),font=font_n)
@@ -448,12 +448,16 @@ def get_local_info(media,media_title=''):
         key = media.key # /library/metadata/33653
         display_title = get_display_title(key).lower()
         # display_title = media.media[0].parts[0].streams[0].displayTitle.lower(), #'4K DoVi (HEVC Main 10) 4K HDR10 (HEVC Main 10) 1080p (H.264)
-        if 'dovi' in display_title or 'dov' in display_title or 'dv' in display_title:
+
+        if ('dovi' in display_title or 'dov' in display_title or 'dv' in display_title) and 'hdr' in display_title:
+            display_title = 'HDR+DV'
+        elif 'dovi' in display_title or 'dov' in display_title or 'dv' in display_title:
             display_title = 'DV'
         elif 'hdr' in display_title:
             display_title = 'HDR'
         else:
             display_title = 'SDR'
+
     except Exception as e:
         display_title = ''
     return file_name,duration,size,bitrate,videoResolution,display_title
