@@ -6,6 +6,8 @@ __version__ = (0, 0, 1)
 __doc__ = "115 生活事件监控（周期轮询策略，最大延迟为 1 秒）"
 
 from argparse import ArgumentParser, RawTextHelpFormatter
+from config import *
+
 
 parser = ArgumentParser(
     description=__doc__, 
@@ -209,7 +211,6 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-cookies = args.cookies
 cookies_path = args.cookies_path
 
 if not cookies:
