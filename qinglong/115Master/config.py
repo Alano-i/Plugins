@@ -13,7 +13,7 @@ media_id = os.getenv('media_id_115')
 del_root_id = os.getenv('del_root_id')
 proxy_api_url = os.getenv('wecom_proxy_api_url')
 push_notify = os.environ.get('push_notify_115', 'True').lower() in ['true', '1', 'on', 'yes']
-normal_notify = os.environ.get('normal_notify_115', 'True').lower() in ['true', '1', 'on', 'yes']
+normal_notify = os.environ.get('normal_notify_115', '关掉,不准通知').lower() in ['true', '1', 'on', 'yes']
 
 
 
