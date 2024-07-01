@@ -38,6 +38,7 @@ ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong
 | corpid     | 企业 ID               |
 | corpsecret     | corp secret               |
 | agentid     | 应用 ID               |
+| wecom_proxy_api_url     | 企业微信api代理，按需添加               |
 | pic_url_115     | 115通知封面               |
 | push_notify_115     | 115通知开关，on 或 off               |
 | normal_notify_115     | 115无风控通知开关，on 或 off               |
