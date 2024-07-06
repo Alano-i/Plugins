@@ -66,9 +66,10 @@ class QinglongApi:
         for new_env in new_envs:
             # 环境变量已存在，则跳过    
             if new_env['name'] in [env['name'] for env in self.envs]:
-                print(f'环境变量【{new_env["name"]}】已存在，跳过添加')
+                print(f'环境变量【{new_env["name"]}】已存在，跳过添加\n')
                 continue
             self.update_env(self.token, new_env['name'], new_env['value'], new_env['remarks'])
+            print(f'环境变量【{new_env["name"]}】添加成功\n')
 
     # 批量更新环境变量（若环境变量已存在，则删除原环境变量重新添加）
     def update_envs(self, new_envs):
