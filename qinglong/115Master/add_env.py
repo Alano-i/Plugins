@@ -65,4 +65,4 @@ new_envs = [
 ]
 
 if __name__ == "__main__":
-    QinglongApi.add_env(new_envs)
+    QinglongApi().add_env(new_envs)

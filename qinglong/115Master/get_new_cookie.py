@@ -24,7 +24,7 @@ if __name__ == "__main__":
             'value': new_cookie,
             'remarks': '115 cookie',
         }]
-        QinglongApi.update_envs(new_envs)
+        QinglongApi().update_envs(new_envs)
         print(f'更新cookie成功\n新cookie: {new_cookie}')
         if push_notify:
             wecom_notify.send_mpnews(title = f"更新【{APP_115}】新cookie成功", message = new_cookie, media_id = media_id, touser = touser)
