@@ -18,7 +18,7 @@ requests
 ## 订阅
 订阅管理-创建订阅-粘贴下方代码
 ```console
-ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong/115Master/crack_captcha|qinglong/115Master/pull.py|qinglong/115Master/push_server|qinglong/115Master/life_list_monitor" "" "__init__|component|config|get_new_cookie|notify|requirements|pull|push|del|pull_after" ""
+ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong/115Master/crack_captcha|qinglong/115Master/pull.py|qinglong/115Master/push_server|qinglong/115Master/life_list_monitor|qinglong/115Master/get_new_cookie|qinglong/115Master/add_env" "" "__init__|component|config|notify|qinglong_api|requirements|pull|push|del|pull_after" ""
 ```
 名称
 ```console
