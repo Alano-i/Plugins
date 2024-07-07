@@ -68,6 +68,8 @@ task Alano-i_Plugins/qinglong/115Master/pull.py -ur urllib3 -s 90 -cp ./cookies/
 
 `-t` 你网盘文件夹的 `CID`
 
+## 致谢
+以上功能的核心实现，都来自 [@ChenyangGao](https://github.com/ChenyangGao) 大佬的 [项目](https://github.com/ChenyangGao/web-mount-packs)，本项目只做了微不足道的搬运而已，感谢！
 
 
 
