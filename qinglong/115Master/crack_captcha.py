@@ -33,7 +33,7 @@ class P115AutoCrack:
 
     def auto_crack(self):
         print("开始识别验证码验证码...")
-        @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
+        # @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
         def crack():
             while not crack_captcha(self.client):
                 print("验证码识别失败，正在重试...")

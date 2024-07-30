@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
+from __future__ import annotations
+
 __author__ = "ChenyangGao <https://chenyanggao.github.io>"
-__version__ = (0, 1, 5)
+__version__ = (0, 2, 3)
+__requirements__ = ["cachetools", "flask", "Flask-Compress", "python-115", "urllib3_request", "werkzeug", "wsgidav"]
 __doc__ = """\
     🕸️ 获取你的 115 网盘账号上文件信息和下载链接 🕷️
 
 🚫 注意事项：请求头需要携带 User-Agent。
 如果使用 web 的下载接口，则有如下限制：
     - 大于等于 115 MB 时不能下载
-    - 不能直接请求直链，需要携带特定的 Cookie 和 User-Agent
+    - 不能直接请求直链，因为需要携带特定的 Cookie 和 User-Agent，所以文件由服务器代理转发，不走 302
 """
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from warnings import warn
+
+try:
+    from p115 import AVAILABLE_APPS
+except ImportError:
+    from sys import executable
+    from subprocess import run
+    run([executable, "-m", "pip", "install", "-U", *__requirements__], check=True)
+    from p115 import AVAILABLE_APPS
 
 parser = ArgumentParser(
     formatter_class=RawTextHelpFormatter, 
@@ -39,6 +50,10 @@ parser = ArgumentParser(
 
     GET ?id={id}
 
+也可以通过 sha1 查询（必是文件）
+
+    GET ?sha1={sha1}
+
 2. 查询文件或文件夹的信息，返回 json
 
     GET ?method=attr
@@ -57,29 +72,84 @@ parser = ArgumentParser(
 
 6. 支持的查询参数
 
- 参数    | 类型    | 必填 | 说明
--------  | ------- | ---- | ----------
-pickcode | string  | 否   | 文件或文件夹的 pickcode，优先级高于 id
-id       | integer | 否   | 文件或文件夹的 id，优先级高于 path
-path     | string  | 否   | 文件或文件夹的路径，优先级高于 url 中的路径部分
-method   | string  | 否   | 0. '':     缺省值，直接下载
-         |         |      | 2. 'url':  这个文件的下载链接和请求头，JSON 格式
-         |         |      | 2. 'attr': 这个文件或文件夹的信息，JSON 格式
-         |         |      | 3. 'list': 这个文件夹内所有文件和文件夹的信息，JSON 格式
-         |         |      | 4. 'desc': 这个文件或文件夹的备注，text/html
+ 参数      | 类型    | 必填 | 说明
+---------  | ------- | ---- | ----------
+pickcode   | string  | 否   | 文件或文件夹的 pickcode，优先级高于 id
+id         | integer | 否   | 文件或文件夹的 id，优先级高于 sha1
+sha1       | string  | 否   | 文件或文件夹的 id，优先级高于 path
+path       | string  | 否   | 文件或文件夹的路径，优先级高于 url 中的路径部分
+method     | string  | 否   | 0. '':     缺省值，直接下载
+           |         |      | 2. 'url':  这个文件的下载链接和请求头，JSON 格式
+           |         |      | 2. 'attr': 这个文件或文件夹的信息，JSON 格式
+           |         |      | 3. 'list': 这个文件夹内所有文件和文件夹的信息，JSON 格式
+           |         |      | 4. 'desc': 这个文件或文件夹的备注，text/html
+
+当文件被下载时，可以有其它查询参数
+
+ 参数      | 类型    | 必填 | 说明
+---------  | ------- | ---- | ----------
+web        | string  | 否   | 使用 web 接口获取下载链接（文件由服务器代理转发，不走 302）
+m3u8       | string  | 否   | 文件作为 m3u8 打开，需要用到 web 的 cookies（如不提供则自动扫码）
+definition | integer | 否   | m3u8 的分辨率，默认值 0，即所有分辨率，其它的选项：3 - HD（标清），4 - UD（高清）
+image      | string  | 否   | 文件作为图片打开
+
+7. 支持 webdav
+
+在浏览器或 webdav 挂载软件 中输入（可以有个端口号） http://localhost/<dav
+目前没有用户名和密码就可以浏览，支持 302
 """)
-parser.add_argument("-c", "--cookies", help="115 登录 cookies，优先级高于 -c/--cookies-path")
-parser.add_argument("-cp", "--cookies-path", help="存储 115 登录 cookies 的文本文件的路径，如果缺失，则从 115-cookies.txt 文件中获取，此文件可以在 1. 当前工作目录、2. 用户根目录 或者 3. 此脚本所在目录 下")
+parser.add_argument("-a", "--login-app", choices=("", *AVAILABLE_APPS), help="指定默认的登录 app，如果未指定，则默认为所传入 cookies 对应的 app，获取不到 app 则默认为 'qandroid'")
+parser.add_argument("-c", "--cookies", help="115 登录 cookies，优先级高于 -cp/--cookies-path")
+parser.add_argument("-cp", "--cookies-path", help="""\
+存储 115 登录 cookies 的文本文件的路径，如果缺失，则从 115-cookies.txt 文件中获取，此文件可在如下目录之一: 
+    1. 当前工作目录
+    2. 用户根目录
+    3. 此脚本所在目录""")
+parser.add_argument("-wc", "--web-cookies", default="", help="提供一个 web 的 cookies，因为目前使用的获取 .m3u8 的接口，需要 web 的 cookies 才能正确获取数据，如不提供，则将自动扫码获取")
 parser.add_argument("-l", "--lock-dir-methods", action="store_true", help="对 115 的文件系统进行增删改查的操作（但不包括上传和下载）进行加锁，限制为单线程，这样就可减少 405 响应，以降低扫码的频率")
 parser.add_argument("-pc", "--path-persistence-commitment", action="store_true", help="路径持久性承诺，只要你能保证文件不会被移动（可新增删除，但对应的路径不可被其他文件复用），打开此选项，用路径请求直链时，可节约一半时间")
-parser.add_argument("-ur", "--use-request", choices=("httpx", "requests", "urllib3", "urlopen"), default="httpx", help="选择一个网络请求模块，默认值：httpx")
+parser.add_argument("-ci", "--cdn-image", action="store_true", help="图片走 cdn 接口而不是走下载接口")
+parser.add_argument("-ur", "--use-request", choices=("httpx", "requests", "urllib3", "urlopen"), default="urllib3", help="选择一个网络请求模块，默认值：urllib3")
 parser.add_argument("-r", "--root", default=0, help="选择一个根 路径 或 id，默认值 0")
 parser.add_argument("-P", "--password", default="", help="密码，如果提供了密码，那么每次访问必须携带请求参数 ?password={password}")
+parser.add_argument("-o", "--origin", help="origin 或者说 base_url，用来拼接路径，获取完整链接，默认行为是自行确定")
+parser.add_argument("-p1", "--predicate", help="断言，当断言的结果为 True 时，文件或目录会被显示")
+parser.add_argument(
+    "-t1", "--predicate-type", default="ignore", 
+    choices=("ignore", "ignore-file", "expr", "lambda", "stmt", "module", "file", "re"), 
+    help="""断言类型，默认值为 'ignore'
+    - ignore       （默认值）gitignore 配置文本（有多个时用空格隔开），在文件路径上执行模式匹配，匹配成功则断言为 False
+                   NOTE: https://git-scm.com/docs/gitignore#_pattern_format
+    - ignore-file  接受一个文件路径，包含 gitignore 的配置文本（一行一个），在文件路径上执行模式匹配，匹配成功则断言为 False
+                   NOTE: https://git-scm.com/docs/gitignore#_pattern_format
+    - expr         表达式，会注入一个名为 path 的 p115.P115Path 对象
+    - lambda       lambda 函数，接受一个 p115.P115Path 对象作为参数
+    - stmt         语句，当且仅当不抛出异常，则视为 True，会注入一个名为 path 的 p115.P115Path 对象
+    - module       模块，运行后需要在它的全局命名空间中生成一个 check 或 predicate 函数用于断言，接受一个 p115.P115Path 对象作为参数
+    - file         文件路径，运行后需要在它的全局命名空间中生成一个 check 或 predicate 函数用于断言，接受一个 p115.P115Path 对象作为参数
+    - re           正则表达式，模式匹配，如果文件的名字匹配此模式，则断言为 True
+""")
+parser.add_argument("-p2", "--strm-predicate", help="strm 断言（优先级高于 -p1/--predicate），当断言的结果为 True 时，文件会被显示为带有 .strm 后缀的文本文件，打开后是链接")
+parser.add_argument(
+    "-t2", "--strm-predicate-type", default="filter", 
+    choices=("filter", "filter-file", "expr", "lambda", "stmt", "module", "file", "re"), 
+    help="""断言类型，默认值为 'filter'
+    - filter       （默认值）gitignore 配置文本（有多个时用空格隔开），在文件路径上执行模式匹配，匹配成功则断言为 True
+                   请参考：https://git-scm.com/docs/gitignore#_pattern_format
+    - filter-file  接受一个文件路径，包含 gitignore 的配置文本（一行一个），在文件路径上执行模式匹配，匹配成功则断言为 True
+                   请参考：https://git-scm.com/docs/gitignore#_pattern_format
+    - expr         表达式，会注入一个名为 path 的 p115.P115Path 对象
+    - lambda       lambda 函数，接受一个 p115.P115Path 对象作为参数
+    - stmt         语句，当且仅当不抛出异常，则视为 True，会注入一个名为 path 的 p115.P115Path 对象
+    - module       模块，运行后需要在它的全局命名空间中生成一个 check 或 predicate 函数用于断言，接受一个 p115.P115Path 对象作为参数
+    - file         文件路径，运行后需要在它的全局命名空间中生成一个 check 或 predicate 函数用于断言，接受一个 p115.P115Path 对象作为参数
+    - re           正则表达式，模式匹配，如果文件的名字匹配此模式，则断言为 True
+""")
 
 if __name__ == "__main__":
     parser.add_argument("-H", "--host", default="0.0.0.0", help="ip 或 hostname，默认值：'0.0.0.0'")
     parser.add_argument("-p", "--port", default=80, type=int, help="端口号，默认值：80")
-    parser.add_argument("-d", "--debug", action="store_true", help="启用 flask 的 debug 模式")
+    parser.add_argument("-d", "--debug", action="store_true", help="启用 debug 模式，当文件变动时自动重启 + 输出详细的错误信息")
     parser.add_argument("-v", "--version", action="store_true", help="输出版本号")
 
     args = parser.parse_args()
@@ -101,32 +171,51 @@ try:
     from cachetools import LRUCache, TTLCache
     from flask import request, redirect, render_template_string, send_file, Flask, Response
     from flask_compress import Compress
-    from p115 import P115Client, P115Url, AVAILABLE_APPS
+    from p115 import P115Client, P115FileSystem, P115Path, P115Url, AuthenticationError
     from posixpatht import escape as escape_name
+    from urllib3.poolmanager import PoolManager
+    from urllib3_request import request as urllib3_request
+    from werkzeug.middleware.dispatcher import DispatcherMiddleware
+    from werkzeug.serving import run_simple
+    from wsgidav.wsgidav_app import WsgiDAVApp
+    from wsgidav.dav_error import DAVError
+    from wsgidav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
 except ImportError:
     from sys import executable
     from subprocess import run
-    run([executable, "-m", "pip", "install", "-U", "cachetools", "flask", "Flask-Compress", "httpx", "posixpatht", "python-115"], check=True)
+    run([executable, "-m", "pip", "install", "-U", *__requirements__], check=True)
+    import posixpatht
     from cachetools import LRUCache, TTLCache
     from flask import request, redirect, render_template_string, send_file, Flask, Response
     from flask_compress import Compress # type: ignore
-    from p115 import P115Client, P115Url, AVAILABLE_APPS
+    from p115 import P115Client, P115FileSystem, P115Path, P115Url, AuthenticationError
     from posixpatht import escape as escape_name
+    from urllib3.poolmanager import PoolManager
+    from urllib3_request import request as urllib3_request
+    from werkzeug.middleware.dispatcher import DispatcherMiddleware
+    from werkzeug.serving import run_simple
+    from wsgidav.wsgidav_app import WsgiDAVApp # type: ignore
+    from wsgidav.dav_error import DAVError # type: ignore
+    from wsgidav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider # type: ignore
 
 import errno
 
 from collections.abc import Callable, MutableMapping
-from functools import partial, update_wrapper
+from functools import cached_property, partial, update_wrapper
+from hashlib import sha1
 from html import escape
 from io import BytesIO
 from os import stat
-from os.path import expanduser, dirname, join as joinpath, realpath
-from re import compile as re_compile, MULTILINE
+from os.path import exists, expanduser, dirname, join as joinpath, realpath
+from posixpath import basename, splitext
 from socket import getdefaulttimeout, setdefaulttimeout
 from sys import exc_info
 from threading import Lock
 from typing import cast
-from urllib.parse import unquote, urlsplit
+from urllib.error import HTTPError
+from urllib.parse import quote, unquote, urljoin, urlsplit
+
+from util.predicate import make_predicate # type: ignore
 
 
 if getdefaulttimeout() is None:
@@ -134,14 +223,24 @@ if getdefaulttimeout() is None:
 
 cookies = args.cookies
 cookies_path = args.cookies_path
+web_cookies = args.web_cookies
 cookies_path_mtime = 0
 lock_dir_methods = args.lock_dir_methods
 path_persistence_commitment = args.path_persistence_commitment
+cdn_image = args.cdn_image
 use_request = args.use_request
 root = args.root
 password = args.password
+origin = args.origin
 
-web_cookies = ""
+import re
+
+if predicate := args.predicate or None:
+    predicate = make_predicate(predicate, {"re": re}, type=args.predicate_type)
+
+if strm_predicate := args.strm_predicate or None:
+    strm_predicate = make_predicate(strm_predicate, {"re": re}, type=args.strm_predicate_type)
+
 login_lock = Lock()
 web_login_lock = Lock()
 fs_lock = Lock() if lock_dir_methods else None
@@ -181,22 +280,11 @@ if not cookies:
             except FileNotFoundError:
                 pass
 
-client = P115Client(cookies, app="qandroid")
-if cookies_path and cookies != client.cookies:
+client = P115Client(cookies or None, app=args.login_app or "qandroid")
+if cookies_path and (not exists(cookies_path) or cookies != client.cookies):
     open(cookies_path, "w").write(client.cookies)
 
-from urllib.error import HTTPError
-try:
-    from urllib3.poolmanager import PoolManager
-    from urllib3_request import request as urllib3_request
-except ImportError:
-    from sys import executable
-    from subprocess import run
-    run([executable, "-m", "pip", "install", "-U", "urllib3", "urllib3_request"], check=True)
-    from urllib3.poolmanager import PoolManager
-    from urllib3_request import request as urllib3_request
 urlopen = partial(urllib3_request, pool=PoolManager(num_pools=50))
-
 do_request: None | Callable = None
 match use_request:
     case "httpx":
@@ -235,28 +323,257 @@ match use_request:
         def get_status_code(e):
             return e.status
 
-device = client.login_device(request=do_request)["icon"]
-if device not in AVAILABLE_APPS:
-    # 115 浏览器版
-    if device == "desktop":
-        device = "web"
-    else:
-        warn(f"encountered an unsupported app {device!r}, fall back to 'qandroid'")
-        device = "qandroid"
-fs = client.get_fs(client, path_to_id=LRUCache(65536), request=do_request)
+if args.login_app:
+    device = args.login_app
+else:
+    device = client.login_device(request=do_request)["icon"]
+    if device not in AVAILABLE_APPS:
+        # 115 浏览器版，实际就是 web
+        if device == "desktop":
+            device = "web"
+        else:
+            warn(f"encountered an unsupported app {device!r}, fall back to 'qandroid'")
+            device = "qandroid"
+fs = client.get_fs(client, attr_cache=LRUCache(65536), path_to_id=LRUCache(65536), request=do_request)
 # NOTE: id 到 pickcode 的映射
 id_to_pickcode: MutableMapping[int, str] = LRUCache(65536)
-# NOTE: 有些播放器，例如 IINA，拖动进度条后，可能会有连续 2 次请求下载链接，而后台请求一次链接大约需要 170-200 ms，因此弄个 0.3 秒的缓存
-url_cache: MutableMapping[tuple[str, str], P115Url] = TTLCache(64, ttl=0.3)
-
+# NOTE: sha1 到 pickcode 到映射
+sha1_to_pickcode: MutableMapping[str, str] = LRUCache(65536)
+# NOTE: 链接缓存，如果改成 None，则不缓存，可以自行设定 ttl (time-to-live)
+url_cache: None | MutableMapping[tuple[str, str], P115Url] = TTLCache(1024, ttl=0.3)
+# NOTE: 缓存图片的 CDN 直链 1 小时
+image_url_cache: MutableMapping[str, None | P115Url] = TTLCache(65536, ttl=3600)
+# NOTE: 每个 ip 对于某个资源的某个 range 请求，一定时间范围内，分别只放行一个，可以自行设定 ttl (time-to-live)
+range_request_cooldown: MutableMapping[tuple[str, str, str, str], None] = TTLCache(1024, ttl=0.1)
+# NOTE: webdav 的文件对象缓存
+webdav_file_cache: MutableMapping[str, DAVNonCollection] = LRUCache(65536)
 
 KEYS = (
     "id", "parent_id", "name", "path", "relpath", "sha1", "pickcode", "is_directory", 
     "size", "format_size", "ctime", "mtime", "atime", "thumb", "star", "labels", 
-    "score", "hidden", "described", "violated", "url", "short_url", 
+    "score", "hidden", "described", "violated", "url", "short_url", "ancestors", 
 )
-application = Flask(__name__)
-Compress(application)
+flask_app = Flask(__name__)
+Compress(flask_app)
+
+
+class DavPathBase:
+
+    def __getattr__(self, attr, /):
+        try:
+            return self.attr[attr]
+        except KeyError as e:
+            raise AttributeError(attr) from e
+
+    @cached_property
+    def name(self, /) -> str:
+        return basename(self.path)
+
+    @cached_property
+    def creationdate(self, /) -> float:
+        return self.ctime
+
+    @cached_property
+    def ctime(self, /) -> float:
+        if (ctime := self.attr.get("ctime")) is None:
+            ctime = self.attr["ptime"].timestamp()
+        return ctime
+
+    @cached_property
+    def mtime(self, /) -> float:
+        if (mtime := self.attr.get("mtime")) is None:
+            mtime = self.attr["etime"].timestamp()
+        return mtime
+
+    def get_creation_date(self, /) -> float:
+        return self.ctime
+
+    def get_display_name(self, /) -> str:
+        return self.name
+
+    def get_last_modified(self, /) -> float:
+        return self.mtime
+
+    def is_link(self, /) -> bool:
+        return False
+
+    def support_modified(self, /) -> bool:
+        return True
+
+
+class FileResource(DavPathBase, DAVNonCollection):
+
+    def __init__(
+        self, 
+        /, 
+        path: str, 
+        environ: dict, 
+        attr: P115Path, 
+    ):
+        super().__init__(path, environ)
+        self.attr = attr
+        if cdn_image and image_url_cache and (url := image_url_cache.get(attr["pickcode"])):
+            self.__dict__["url"] = url
+            self.__dict__["size"] = url["size"]
+        webdav_file_cache[path] = self
+
+    @cached_property
+    def origin(self, /) -> str:
+        if origin:
+            return origin
+        return f"{self.environ['wsgi.url_scheme']}://{self.environ['HTTP_HOST']}"
+
+    @cached_property
+    def size(self, /) -> int:
+        if self.path.endswith(".strm"):
+            return len(self.strm_data)
+        return self.attr["size"]
+
+    @cached_property
+    def strm_data(self, /) -> bytes:
+        attr = self.attr
+        name = attr["name"].translate({0x23: "%23", 0x2F: "%2F", 0x3F: "%3F"})
+        url = joinpath(
+            self.origin, 
+            f"{name}?pickcode={attr['pickcode']}&password={password}", 
+        )
+        if attr.get("class") == "PIC" or attr.get("thumb"):
+            url += "&image=true"
+        return bytes(url, "utf-8")
+
+    @property
+    def url(self, /) -> str:
+        if (url := self.__dict__.get("url", "")):
+            return str(url)
+        attr = self.attr
+        user_agent = self.environ.get("HTTP_USER_AGENT", "")
+        if cdn_image and attr.get("class") == "PIC" or attr.get("thumb"):
+            url = get_image_url(attr["pickcode"], user_agent)
+            self.__dict__["url"] = url
+            self.__dict__["size"] = url["size"]
+            return url["data"]["source_url"]
+        else:
+            url = relogin_wrap(attr.get_url, headers={"User-Agent": user_agent})
+        return str(url)
+
+    def get_etag(self, /) -> str:
+        return "%s-%s-%s" % (
+            self.attr["sha1"], 
+            self.mtime, 
+            self.size, 
+        )
+
+    def get_content(self, /):
+        if self.path.endswith(".strm"):
+            return BytesIO(self.strm_data)
+        raise DAVError(302, add_headers=[("Location", self.url)])
+
+    def get_content_length(self, /) -> int:
+        return self.size
+
+    def support_content_length(self, /) -> bool:
+        return True
+
+    def support_etag(self, /) -> bool:
+        return True
+
+    def support_ranges(self, /) -> bool:
+        return True
+
+
+class FolderResource(DavPathBase, DAVCollection):
+
+    def __init__(
+        self, 
+        /, 
+        path: str, 
+        environ: dict, 
+        attr: P115Path, 
+    ):
+        super().__init__(path, environ)
+        self.attr = attr
+
+    @cached_property
+    def children(self, /) -> dict[str, P115Path]:
+        children: dict[str, P115Path] = {}
+        for attr in relogin_wrap(self.attr.listdir_path):
+            name = attr["name"]
+            if not attr.is_dir() and strm_predicate and strm_predicate(attr):
+                name = splitext(name)[0] + ".strm"
+            elif predicate and not predicate(attr):
+                continue
+            children[name] = attr
+        return children
+
+    def get_etag(self, /) -> str:
+        return "%s-%s-%s" % (
+            sha1(bytes(self.path, "utf-8")).hexdigest(), 
+            self.mtime, 
+            0, 
+        )
+
+    def get_member(self, /, name: str) -> FileResource | FolderResource:
+        if not (attr := self.children.get(name)):
+            raise DAVError(404, self.path + "/" + name)
+        relpath = attr["path"][len(root_dir)-1:]
+        if attr.is_dir():
+            return FolderResource(relpath, self.environ, attr)
+        else:
+            if name.endswith(".strm"):
+                relpath = splitext(relpath)[0] + ".strm"
+            return FileResource(relpath, self.environ, attr)
+
+    def get_member_list(self, /) -> list[FileResource | FolderResource]:
+        return list(map(self.get_member, self.get_member_names()))
+
+    def get_member_names(self, /) -> list[str]:
+        return list(self.children)
+
+    def get_property_value(self, /, name: str):
+        if name == "{DAV:}getcontentlength":
+            return 0
+        elif name == "{DAV:}iscollection":
+            return True
+        return super().get_property_value(name)
+
+    def support_etag(self):
+        return True
+
+
+class P115FileSystemProvider(DAVProvider):
+
+    def __init__(self, /, fs: P115FileSystem):
+        super().__init__()
+        self.fs = fs
+
+    def get_resource_inst(
+        self, 
+        /, 
+        path: str, 
+        environ: dict, 
+    ) -> FolderResource | FileResource:
+        if path in webdav_file_cache:
+            return webdav_file_cache[path]
+        id_or_path: int | str = self.fs.abspath(path.lstrip("/"))
+        if id_or_path == "/":
+            id_or_path = 0
+        elif path_persistence_commitment and (fid := fs.path_to_id.get(id_or_path)):
+            id_or_path = fid
+        try:
+            attr = relogin_wrap(self.fs.as_path, id_or_path)
+        except FileNotFoundError:
+            raise DAVError(404, path)
+        if attr.is_dir():
+            return FolderResource(path, environ, attr)
+        else:
+            if not attr.is_dir() and strm_predicate and strm_predicate(attr):
+                path = splitext(path)[0] + ".strm"
+            elif predicate and not predicate(attr):
+                raise DAVError(404, path)
+            return FileResource(path, environ, attr)
+
+    def is_readonly(self, /) -> bool:
+        return True
 
 
 def format_bytes(
@@ -277,33 +594,118 @@ def format_bytes(
     return f"%.{precision}f {u}B" % (n / b)
 
 
+class HTTPStatus(Exception):
+    __slots__ = ("status", "message")
+
+    def __init__(self, status: int, message: str = ""):
+        self.status = status
+        self.message = message
+
+
 def redirect_exception_response(func, /):
     def wrapper(*args, **kwds):
         try:
             return func(*args, **kwds)
-        except StatusError as exc:
-            return str(exc), get_status_code(exc)
-        except PermissionError as exc:
-            return str(exc), 403 # Forbidden
-        except FileNotFoundError as exc:
-            return str(exc), 404 # Not Found
-        except OSError as exc:
-            return str(exc), 500 # Internal Server Error
-        except Exception as exc:
-            return str(exc), 503 # Service Unavailable
+        except BaseException as exc:
+            if isinstance(exc, HTTPStatus):
+                return exc.message, exc.status
+            elif isinstance(exc, StatusError):
+                return str(exc), get_status_code(exc)
+            elif isinstance(exc, AuthenticationError):
+                return str(exc), 401 # Unauthorized
+            elif isinstance(exc, PermissionError):
+                return str(exc), 403 # Forbidden
+            elif isinstance(exc, FileNotFoundError):
+                return str(exc), 404 # Not Found
+            elif isinstance(exc, (IsADirectoryError, NotADirectoryError)):
+                return str(exc), 406 # Not Acceptable
+            elif isinstance(exc, OSError):
+                flask_app.logger.exception("500: internal server error")
+                return str(exc), 500 # Internal Server Error
+            else:
+                flask_app.logger.exception("can't make response")
+                return str(exc), 503 # Service Unavailable
     return update_wrapper(wrapper, func)
 
 
+def get_m3u8(pickcode: str):
+    global web_cookies
+    user_agent = request.headers.get("User-Agent") or ""
+    definition = request.args.get("definition") or "0"
+
+    url = f"http://115.com/api/video/m3u8/{pickcode}.m3u8?definition={definition}"
+
+    with web_login_lock:
+        if not web_cookies:
+            if device == "web":
+                web_cookies = client.cookies
+            else:
+                web_cookies = client.login_another_app("web").cookies
+    while True:
+        try:
+            data = urlopen(url, parse=False, headers={"User-Agent": user_agent, "Cookie": web_cookies})
+            break
+        except HTTPError as e:
+            if e.status not in (403, 405):
+                raise
+            with web_login_lock:
+                web_cookies = client.login_another_app("web", replace=device=="web").cookies
+    if not data:
+        raise FileNotFoundError(errno.ENOENT, f"this file does not have .m3u8, pickcode: {pickcode!r}")
+    if definition == "0":
+        return Response(data, mimetype="flask_app/x-mpegurl")
+    return redirect(data.split()[-1].decode("ascii"))
+
+
+def get_image_url(pickcode: str, user_agent: str = "") -> str:
+    if image_url_cache and (url := image_url_cache.get(pickcode)):
+        return url
+    resp = relogin_wrap(
+        client.fs_files_image, 
+        pickcode, 
+        headers={"User-Agent": user_agent}, 
+        request=do_request, 
+    )
+    if not resp["state"]:
+        raise FileNotFoundError(errno.ENOENT, pickcode)
+    data = resp["data"]
+    url = data["origin_url"]
+    with urlopen(url, "HEAD", headers={"User-Agent": user_agent}) as resp:
+        url = cast(str, resp.url)
+    url = P115Url(url, data=data, size=int(resp.headers["Content-Length"]))
+    if image_url_cache is not None:
+        image_url_cache[pickcode] = url
+    return url
+
+
 def get_url(pickcode: str):
-    if request.args.get("m3u8") not in (None, "false"):
-        return send_file(BytesIO(get_m3u8(pickcode)), mimetype="application/x-mpegurl")
-    use_web_api = request.args.get("web") not in (None, "false")
+    if request.args.get("m3u8") not in (None, "0", "false"):
+        return get_m3u8(pickcode)
+    elif (
+        cdn_image and 
+        (as_image := request.args.get("image")) not in ("0", "false") and 
+        (as_image is not None or image_url_cache and pickcode in image_url_cache)
+    ):
+        return redirect(get_image_url(pickcode))
+    use_web_api = request.args.get("web") not in (None, "0", "false")
     request_headers = request.headers
     user_agent = request_headers.get("User-Agent") or ""
-    try:
-        url = url_cache[(pickcode, user_agent)]
-    except KeyError:
-        url = url_cache[(pickcode, user_agent)] = relogin_wrap(
+    range_request_key = (request.remote_addr or "", user_agent, pickcode, str(request.range))
+    if range_request_key in range_request_cooldown:
+        return "Too Many Requests", 429
+    range_request_cooldown[range_request_key] = None
+    if url_cache is not None:
+        try:
+            url = url_cache[(pickcode, user_agent)]
+        except KeyError:
+            url = url_cache[(pickcode, user_agent)] = relogin_wrap(
+                fs.get_url_from_pickcode, 
+                pickcode, 
+                headers={"User-Agent": user_agent}, 
+                use_web_api=use_web_api, 
+            )
+    else:
+        url = relogin_wrap(
             fs.get_url_from_pickcode, 
             pickcode, 
             headers={"User-Agent": user_agent}, 
@@ -326,33 +728,12 @@ def get_url(pickcode: str):
             headers=resp_headers, 
             status=resp.status, 
         )
+    if cdn_image and url["file_name"].lower().endswith(
+        (".bmp", ".gif", ".heic", ".heif", ".jpeg", ".jpg", ".png", 
+         ".raw", ".svg", ".tif", ".tiff", ".webp")
+    ):
+        image_url_cache[pickcode] = None
     return redirect(url)
-
-
-def get_m3u8(pickcode, definition=4) -> bytes:
-    global web_cookies
-    user_agent = request.headers.get("User-Agent") or ""
-    url = f"http://115.com/api/video/m3u8/{pickcode}.m3u8?definition={definition}"
-    with web_login_lock:
-        if not web_cookies:
-            if device == "web":
-                web_cookies = client.cookies
-            else:
-                web_cookies = client.login_another_app("web").cookies
-    while True:
-        try:
-            data = urlopen(url, parse=False, headers={"User-Agent": user_agent, "Cookie": web_cookies})
-            break
-        except HTTPError as e:
-            if e.status != 405:
-                raise
-            with web_login_lock:
-                web_cookies = client.login_another_app("web", replace=device=="web").cookies
-    if not data:
-        raise FileNotFoundError
-    url = data.split()[-1].decode("ascii")
-    data = urlopen(url, headers={"User-Agent": user_agent}, parse=False)
-    return re_compile(b"^(?=/)", MULTILINE).sub(b'https://cpats01.115.com', data)
 
 
 def relogin(exc=None):
@@ -370,12 +751,13 @@ def relogin(exc=None):
                     cookies_path_mtime = mtime
                     need_update = False
             except FileNotFoundError:
-                application.logger.error("\x1b[1m\x1b[33m[SCAN] 🦾 文件空缺\x1b[0m")
+                flask_app.logger.error("\x1b[1m\x1b[33m[SCAN] 🦾 文件空缺: %r\x1b[0m", cookies_path)
         if need_update:
             if exc is None:
-                application.logger.error("\x1b[1m\x1b[33m[SCAN] 🦾 重新扫码\x1b[0m")
+                flask_app.logger.error("\x1b[1m\x1b[33m[SCAN] 🦾 重新扫码: %s\x1b[0m", device)
             else:
-                application.logger.error("""{prompt}一个 Web API 受限 (响应 "405: Not Allowed"), 将自动扫码登录同一设备\n{exc}""".format(
+                flask_app.logger.error("""{prompt}一个 Web API 受限 (响应 "405: Not Allowed"), 将自动扫码登录同一设备: {device}\n{exc}""".format(
+                    device = device, 
                     prompt = "\x1b[1m\x1b[33m[SCAN] 🤖 重新扫码：\x1b[0m", 
                     exc    = f"    ├ \x1b[31m{type(exc).__qualname__}\x1b[0m: {exc}")
                 )
@@ -399,14 +781,14 @@ def relogin_wrap(func, /, *args, **kwds):
     return relogin_wrap(func, *args, **kwds)
 
 
-@application.get("/")
+@flask_app.get("/")
 @redirect_exception_response
 def index():
     match request.args.get("pic"):
         case "favicon":
             return send_file(BytesIO(b'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="16" height="16" rx="8" fill="#2777F8"/><path d="M4.5874 6.99646C4.60631 6.96494 4.61891 6.92713 4.63152 6.90192C5.17356 5.81784 5.7219 4.74006 6.25764 3.64969C6.38999 3.37867 6.60429 3.25891 6.88792 3.25891H9.39012C9.71786 3.25891 10.0582 3.25261 10.3859 3.25891C10.7326 3.26521 11.0729 3.19589 11.4007 3.08243C11.4259 3.07613 11.4637 3.05722 11.4826 3.06352C11.5646 3.06983 11.6087 3.15807 11.5772 3.24C11.4196 3.56145 11.2557 3.88289 11.0793 4.20433C10.9532 4.43123 10.7515 4.55098 10.4994 4.55098H7.72618C7.42364 4.55098 7.20305 4.68334 7.077 4.96697C6.95094 5.23168 6.81228 5.49009 6.67992 5.75481C6.66101 5.78002 6.65471 5.80523 6.6358 5.83674C6.81858 5.88087 7.00767 5.91238 7.18414 5.94389C7.73249 6.06365 8.29343 6.1834 8.81026 6.4166C9.5792 6.75695 10.2158 7.25487 10.6444 7.97969C10.9091 8.42088 11.0667 8.88098 11.0982 9.3915C11.1927 10.5638 10.7578 11.5219 9.88176 12.2845C9.28296 12.8013 8.58336 13.1038 7.80812 13.2488C7.35432 13.3308 6.89422 13.3559 6.44042 13.3244C5.92359 13.2803 5.42567 13.1479 4.95927 12.9084C4.95296 12.9022 4.94036 12.9022 4.91515 12.8833C5.00969 12.8895 5.07271 12.9022 5.14205 12.9022C5.85426 12.9652 6.54756 12.8833 7.21566 12.6564C7.79551 12.4546 8.32494 12.1584 8.74723 11.6857C9.09388 11.295 9.28927 10.8475 9.35229 10.3306C9.44684 9.61841 9.18212 9.03855 8.72202 8.52173C8.24931 8.00489 7.66315 7.67716 7.00767 7.45655C6.49715 7.28639 5.98662 7.16663 5.45088 7.091C5.17986 7.04688 4.90254 7.02167 4.63152 6.99646C4.61891 7.00906 4.61261 7.00906 4.5874 6.99646Z" fill="white"/></svg>'), mimetype="image/svg+xml")
         case "figplayer":
-            return redirect("https://omiapps.com/resource/app/icons/potplayerx.png")
+            return redirect("https://omiapps.com/resource/app/icons/potplayerx.webp")
         case "fileball":
             return send_file(BytesIO(b'<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 6.5C0 2.91015 2.91015 0 6.5 0H25.5C29.0899 0 32 2.91015 32 6.5V25.5C32 29.0899 29.0899 32 25.5 32H6.5C2.91015 32 0 29.0899 0 25.5V6.5Z" fill="#FFCA28"/><path fill-rule="evenodd" clip-rule="evenodd" d="M7.75 7.875C6.50736 7.875 5.5 8.88236 5.5 10.125V21.875C5.5 23.1176 6.50736 24.125 7.75 24.125H24.25C25.4926 24.125 26.5 23.1176 26.5 21.875V12.025C26.5 10.7726 25.4774 9.7613 24.2251 9.77514L15.3125 9.875L13.1891 8.17631C12.9453 7.98126 12.6424 7.875 12.3302 7.875H7.75ZM16 20.7917C17.933 20.7917 19.5 19.2247 19.5 17.2917C19.5 15.3587 17.933 13.7917 16 13.7917C14.067 13.7917 12.5 15.3587 12.5 17.2917C12.5 19.2247 14.067 20.7917 16 20.7917Z" fill="white"/><path d="M15.5623 15.8389C15.476 15.7814 15.365 15.776 15.2735 15.825C15.1821 15.8739 15.125 15.9692 15.125 16.0729V18.3229C15.125 18.4267 15.1821 18.522 15.2735 18.5709C15.365 18.6199 15.476 18.6145 15.5623 18.557L17.2498 17.432C17.328 17.3798 17.375 17.292 17.375 17.1979C17.375 17.1039 17.328 17.0161 17.2498 16.9639L15.5623 15.8389Z" fill="white"/></svg>'), mimetype="image/svg+xml")
         case "iina":
@@ -429,7 +811,7 @@ def index():
             return query("/")
 
 
-@application.get("/<path:path>")
+@flask_app.get("/<path:path>")
 @redirect_exception_response
 def query(path: str):
     if password and request.args.get("password") != password:
@@ -439,6 +821,7 @@ def query(path: str):
     origin = f"{scheme}://{netloc}"
     pickcode = request.args.get("pickcode")
     fid = request.args.get("id")
+    sha1 = request.args.get("sha1") or ""
     path = fs.abspath(unquote(request.args.get("path") or path).lstrip("/"))
 
     def update_attr(attr):
@@ -448,14 +831,21 @@ def query(path: str):
             attr["url"] = f"{path_url}?id={attr['id']}"
             attr["short_url"] = f"{origin}?id={attr['id']}"
         else:
-            short_url = f"{origin}?pickcode={attr['pickcode']}"
-            url = f"{path_url}?pickcode={attr['pickcode']}"
+            pickcode = cast(str, attr["pickcode"])
+            short_url = f"{origin}?pickcode={pickcode}"
+            url = f"{path_url}?pickcode={pickcode}"
             if attr["violated"] and attr["size"] < 1024 * 1024 * 115:
                 short_url += "&web=true"
                 url += "&web=true"
             attr["url"] = url
             attr["short_url"] = short_url
             attr["format_size"] = format_bytes(attr["size"])
+            sha1_to_pickcode[attr["sha1"]] = id_to_pickcode[attr["id"]] = pickcode
+            if attr.get("class") == "PIC" or attr.get("thumb"):
+                if cdn_image:
+                    image_url_cache[pickcode] = None
+                attr["url"] += "&image=true"
+                attr["short_url"] += "&image=true"
         if password:
             attr["url"] += "&password=" + password
             attr["short_url"] += "&password=" + password
@@ -463,27 +853,39 @@ def query(path: str):
 
     match request.args.get("method"):
         case "attr":
-            if root_dir is None:
+            if not root_dir:
                 attr = relogin_wrap(fs.attr, root)
             else:
                 if pickcode:
                     fid = relogin_wrap(fs.get_id_from_pickcode, pickcode)
                 if fid is not None:
                     attr = relogin_wrap(fs.attr, int(fid))
+                elif sha1 := sha1.strip():
+                    if len(sha1) != 40:
+                        return "Bad sha1", 400
+                    try:
+                        attr = next(relogin_wrap(fs.search, root, search_value=sha1, limit=1, show_dir=0))
+                        attr.path
+                    except StopIteration:
+                        return f"no such file: sha1={sha1!r}", 404
+                elif path_persistence_commitment and (fid := fs.path_to_id.get(path)):
+                    attr = relogin_wrap(fs.attr, fid)
                 else:
                     attr = relogin_wrap(fs.attr, path)
                 if root != 0 and not any(info["id"] == root for info in attr["ancestors"]):
                     raise PermissionError(errno.EACCES, "out of root range")
             update_attr(attr)
             json_str = dumps({k: attr.get(k) for k in KEYS})
-            return Response(json_str, content_type='application/json; charset=utf-8')
+            return Response(json_str, content_type="application/json; charset=utf-8")
         case "list":
-            if root_dir is None:
+            if not root_dir:
                 raise NotADirectoryError(errno.ENOTDIR, "root is not directory")
             if pickcode:
                 fid = relogin_wrap(fs.get_id_from_pickcode, pickcode)
             if fid is not None:
                 children = relogin_wrap(fs.listdir_attr, int(fid))
+            elif path_persistence_commitment and (fid := fs.path_to_id.get(path)):
+                children = relogin_wrap(fs.listdir_attr, fid)
             else:
                 children = relogin_wrap(fs.listdir_attr, path)
             if children and root != 0 and not any(info["id"] == root for info in children[0]["ancestors"][:-1]):
@@ -492,19 +894,21 @@ def query(path: str):
                 {k: attr.get(k) for k in KEYS} 
                 for attr in map(update_attr, children)
             ])
-            return Response(json_str, content_type='application/json; charset=utf-8')
+            return Response(json_str, content_type="application/json; charset=utf-8")
         case "desc":
-            if root_dir is None:
+            if not root_dir:
                 return relogin_wrap(fs.desc, root)
             else:
                 if pickcode:
                     fid = relogin_wrap(fs.get_id_from_pickcode, pickcode)
                 if fid is not None:
                     return relogin_wrap(fs.desc, int(fid))
+                elif path_persistence_commitment and (fid := fs.path_to_id.get(path)):
+                    return relogin_wrap(fs.desc, fid)
                 else:
                     return relogin_wrap(fs.desc, path)
 
-    if root_dir is None:
+    if not root_dir:
         return get_url(root_pickcode)
     if pickcode:
         return get_url(pickcode)
@@ -513,19 +917,25 @@ def query(path: str):
         if pickcode := id_to_pickcode.get(file_id):
             return get_url(pickcode)
         attr = relogin_wrap(fs.attr, file_id)
+    elif sha1 := sha1.strip():
+        if pickcode := sha1_to_pickcode.get(sha1):
+            return get_url(pickcode)
+        try:
+            attr = next(relogin_wrap(fs.search, root, search_value=sha1, limit=1, show_dir=0))
+        except StopIteration:
+            return f"no such file: sha1={sha1!r}", 404
+    elif path_persistence_commitment and (fid := fs.path_to_id.get(path)):
+        if pickcode := id_to_pickcode.get(fid):
+            return get_url(pickcode)
+        else:
+            attr = relogin_wrap(fs.attr, fid)
     else:
-        abspath = fs.abspath(path)
-        if path_persistence_commitment and (fid := fs.path_to_id.get(abspath)):
-            if pickcode := id_to_pickcode.get(fid):
-                return get_url(pickcode)
-        attr = relogin_wrap(fs.attr, abspath)
+        attr = relogin_wrap(fs.attr, path)
     if root != 0 and not any(info["id"] == root for info in attr["ancestors"]):
         raise PermissionError(errno.EACCES, "out of root range")
     if not attr["is_directory"]:
-        pickcode = cast(str, attr["pickcode"])
-        if id_to_pickcode is not None:
-            id_to_pickcode[attr["id"]] = pickcode
-        return get_url(pickcode)
+        update_attr(attr)
+        return get_url(attr["pickcode"])
     children = relogin_wrap(fs.listdir_attr, attr["id"])
     for subattr in children:
         update_attr(subattr)
@@ -684,7 +1094,7 @@ def query(path: str):
         <th>Size</th>
         <th>Attr</th>
         <th>Desc</th>
-        <th>M3U8</th>
+        <th style="width: 70px">M3U8</th>
         <th>Last Modified</th>
       </tr>
     </thead>
@@ -723,7 +1133,11 @@ def query(path: str):
         {%- if attr["is_directory"] %}
         <td style="text-align: center;">--</td>
         {%- else %}
-        <td style="text-align: right;"><a href="{{ url }}&m3u8=true&password={{ password }}">m3u8</a></td>
+        <td style="text-align: right">
+            <a href="{{ url }}&m3u8=true&password={{ password }}">ALL(全部)</a><br />
+            <a href="{{ url }}&m3u8=true&password={{ password }}&definition=3">HD(标清)</a><br />
+            <a href="{{ url }}&m3u8=true&password={{ password }}&definition=4">UD(高清)</a>
+        </td>
         {%- endif %}
         <td>{{ attr["etime"] }}</td>
       </tr>
@@ -741,7 +1155,18 @@ def query(path: str):
     )
 
 
-root_dir: None | str
+# NOTE: https://wsgidav.readthedocs.io/en/latest/user_guide_configure.html
+WSGIDAV_CONFIG = {
+    "host": args.host, 
+    "port": args.port, 
+    "mount_path": "/<dav", 
+    "provider_mapping": {"/": P115FileSystemProvider(fs)}, 
+    "simple_dc": {"user_mapping": {"*": True}}, 
+}
+wsgidav_app = WsgiDAVApp(WSGIDAV_CONFIG)
+application = DispatcherMiddleware(flask_app, {"/<dav": wsgidav_app})
+
+root_dir: str = ""
 if root == 0:
     root_dir = "/"
 elif not root.strip("./"):
@@ -755,7 +1180,6 @@ else:
     except NotADirectoryError:
         root_attr = relogin_wrap(fs.attr, root)
         root = root_attr["id"]
-        root_dir = None
         root_pickcode = root_attr["pickcode"]
     else:
         root = fs.id
@@ -766,4 +1190,19 @@ else:
 
 
 if __name__ == "__main__":
-    application.run(host=args.host, port=args.port, threaded=True, debug=args.debug)
+    debug = args.debug
+    kwargs = dict(
+        hostname=args.host, 
+        port=args.port, 
+        application=application, 
+        use_reloader=debug, 
+        use_debugger=debug, 
+        use_evalex=debug, 
+        threaded=True, 
+    )
+    run_simple(**kwargs)
+
+# TODO: 如果某个目录正在获取中，返回 concurrent.futures.Future，另一个线程如果也需要获取此目录，则直接获取此 future，对 web 和 webdav 都如此
+# TODO: 可能是 wsgidav 的问题，propfind 响应太慢了，即使给文件夹做了缓存，需要看看怎么优化，可能需要对 propfind 的结果做缓存
+# TODO: 完整的 wsgidav 配置文件支持
+# TODO: 更完整信息的支持，类似 xattr
