@@ -18,7 +18,7 @@ requests
 ## 订阅
 订阅管理-创建订阅-粘贴下方代码
 ```console
-ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong/115Master/crack_captcha|qinglong/115Master/pull.py|qinglong/115Master/push_server|qinglong/115Master/life_list_monitor|qinglong/115Master/get_new_cookie|qinglong/115Master/add_env" "" "__init__|component|config|notify|qinglong_api|requirements|pull|push|del|pull_after" ""
+ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/qrcode_cookie_115_web|qinglong/115Master/sign|qinglong/115Master/crack_captcha|qinglong/115Master/pull.py|qinglong/115Master/push_server|qinglong/115Master/life_list_monitor|qinglong/115Master/get_new_cookie|qinglong/115Master/add_env|qinglong/115Master/qrcode_cookie_115_web" "" "__init__|component|config|notify|qinglong_api|requirements|pull|push|del|pull_after" ""
 ```
 名称
 ```console
@@ -50,6 +50,14 @@ ql repo https://github.com/Alano-i/Plugins.git "qinglong/115Master/sign|qinglong
 `Alano-i_Plugins/qinglong/115Master/cookies` 文件夹内（如果没有就新建一个）分别新建 `pull.txt` `push.txt` 两个文件，并分别填入两个不同设备的 `cookie` (必须不同设备)
 
 ## 定时任务设置参数
+
+### 获取cookie网页端
+找到 `qrcode_cookie_115_web.py` 的定时任务（需要在青龙的docker参数中将7115端口映射出来）
+```console
+task Alano-i_Plugins/qinglong/115Master/qrcode_cookie_115_web.py -p 7115 -H 0.0.0.0
+```
+
+
 ### 服务端
 别人拉你的文件需要启动这个服务：找到 `push_server.py` 的定时任务
 ```console
