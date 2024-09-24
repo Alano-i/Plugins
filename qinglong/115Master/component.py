@@ -2,7 +2,7 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential
 from config import *
 import time
 from p115 import P115Client
-from notify import WeComNotify
+from notify_server import WeComNotify
 
 if push_notify:        
     wecom_notify = WeComNotify(corpid=corpid, corpsecret=corpsecret, agentid=agentid, proxy_api_url=proxy_api_url)
