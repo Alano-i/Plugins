@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 __author__ = "ChenyangGao <https://chenyanggao.github.io>"
-__version__ = (0, 2, 3)
-__requirements__ = ["cachetools", "flask", "Flask-Compress", "python-115", "urllib3_request", "werkzeug", "wsgidav"]
+__version__ = (0, 2, 5)
+__requirements__ = ["cachetools", "flask", "Flask-Compress", "orjson", "python-115", "urllib3_request", "werkzeug", "wsgidav"]
 __doc__ = """\
     🕸️ 获取你的 115 网盘账号上文件信息和下载链接 🕷️
 
@@ -171,7 +171,8 @@ try:
     from cachetools import LRUCache, TTLCache
     from flask import request, redirect, render_template_string, send_file, Flask, Response
     from flask_compress import Compress
-    from p115 import P115Client, P115FileSystem, P115Path, P115Url, AuthenticationError
+    from orjson import dumps, loads
+    from p115 import P115Client, P115FileSystem, P115Path, P115URL, AuthenticationError
     from posixpatht import escape as escape_name
     from urllib3.poolmanager import PoolManager
     from urllib3_request import request as urllib3_request
@@ -188,7 +189,8 @@ except ImportError:
     from cachetools import LRUCache, TTLCache
     from flask import request, redirect, render_template_string, send_file, Flask, Response
     from flask_compress import Compress # type: ignore
-    from p115 import P115Client, P115FileSystem, P115Path, P115Url, AuthenticationError
+    from orjson import dumps, loads
+    from p115 import P115Client, P115FileSystem, P115Path, P115URL, AuthenticationError
     from posixpatht import escape as escape_name
     from urllib3.poolmanager import PoolManager
     from urllib3_request import request as urllib3_request
@@ -200,6 +202,7 @@ except ImportError:
 
 import errno
 
+from collections import UserString
 from collections.abc import Callable, MutableMapping
 from functools import cached_property, partial, update_wrapper
 from hashlib import sha1
@@ -207,10 +210,11 @@ from html import escape
 from io import BytesIO
 from os import stat
 from os.path import exists, expanduser, dirname, join as joinpath, realpath
-from posixpath import basename, splitext
+from posixpath import splitext
 from socket import getdefaulttimeout, setdefaulttimeout
 from sys import exc_info
 from threading import Lock
+from time import localtime, strftime
 from typing import cast
 from urllib.error import HTTPError
 from urllib.parse import quote, unquote, urljoin, urlsplit
@@ -245,44 +249,36 @@ login_lock = Lock()
 web_login_lock = Lock()
 fs_lock = Lock() if lock_dir_methods else None
 
-dumps: Callable[..., bytes]
-loads: Callable
-try:
-    from orjson import dumps, loads
-except ImportError:
-    odumps: Callable[..., str]
-    try:
-        from ujson import dumps as odumps, loads
-    except ImportError:
-        from json import dumps as odumps, loads
-    dumps = lambda obj: bytes(odumps(obj, ensure_ascii=False), "utf-8")
+def default(obj, /):
+    if isinstance(obj, UserString):
+        return str(obj)
+    return NotImplemented
 
 if not cookies:
     if cookies_path:
         try:
-            cookies = open(cookies_path).read()
+            cookies = open(cookies_path, encoding="utf-8").read().strip()
         except FileNotFoundError:
             pass
     else:
         seen = set()
-        for dir_ in (".", expanduser("~"), dirname(__file__)):
-            dir_ = realpath(dir_)
-            if dir_ in seen:
+        for cookies_dir in (".", expanduser("~"), dirname(__file__)):
+            cookies_dir = realpath(cookies_dir)
+            if cookies_dir in seen:
                 continue
-            seen.add(dir_)
+            seen.add(cookies_dir)
             try:
-                path = joinpath(dir_, "115-cookies.txt")
-                cookies = open(path).read()
-                cookies_path_mtime = stat(path).st_mtime_ns
-                if cookies:
+                path = joinpath(cookies_dir, "115-cookies.txt")
+                if cookies := open(path, encoding="utf-8").read().strip():
                     cookies_path = path
+                    cookies_path_mtime = stat(path).st_mtime_ns
                     break
             except FileNotFoundError:
                 pass
 
 client = P115Client(cookies or None, app=args.login_app or "qandroid")
 if cookies_path and (not exists(cookies_path) or cookies != client.cookies):
-    open(cookies_path, "w").write(client.cookies)
+    open(cookies_path, "w", encoding="utf-8").write(client.cookies)
 
 urlopen = partial(urllib3_request, pool=PoolManager(num_pools=50))
 do_request: None | Callable = None
@@ -334,15 +330,15 @@ else:
         else:
             warn(f"encountered an unsupported app {device!r}, fall back to 'qandroid'")
             device = "qandroid"
-fs = client.get_fs(client, attr_cache=LRUCache(65536), path_to_id=LRUCache(65536), request=do_request)
+fs = client.get_fs(client, cache_id_to_readdir=65536, cache_path_to_id=1048576, request=do_request)
 # NOTE: id 到 pickcode 的映射
 id_to_pickcode: MutableMapping[int, str] = LRUCache(65536)
 # NOTE: sha1 到 pickcode 到映射
 sha1_to_pickcode: MutableMapping[str, str] = LRUCache(65536)
 # NOTE: 链接缓存，如果改成 None，则不缓存，可以自行设定 ttl (time-to-live)
-url_cache: None | MutableMapping[tuple[str, str], P115Url] = TTLCache(1024, ttl=0.3)
+url_cache: None | MutableMapping[tuple[str, str], P115URL] = TTLCache(1024, ttl=0.3)
 # NOTE: 缓存图片的 CDN 直链 1 小时
-image_url_cache: MutableMapping[str, None | P115Url] = TTLCache(65536, ttl=3600)
+image_url_cache: MutableMapping[str, None | P115URL] = TTLCache(65536, ttl=3600)
 # NOTE: 每个 ip 对于某个资源的某个 range 请求，一定时间范围内，分别只放行一个，可以自行设定 ttl (time-to-live)
 range_request_cooldown: MutableMapping[tuple[str, str, str, str], None] = TTLCache(1024, ttl=0.1)
 # NOTE: webdav 的文件对象缓存
@@ -366,24 +362,20 @@ class DavPathBase:
             raise AttributeError(attr) from e
 
     @cached_property
-    def name(self, /) -> str:
-        return basename(self.path)
-
-    @cached_property
     def creationdate(self, /) -> float:
         return self.ctime
 
     @cached_property
     def ctime(self, /) -> float:
-        if (ctime := self.attr.get("ctime")) is None:
-            ctime = self.attr["ptime"].timestamp()
-        return ctime
+        return self.attr["ctime"]
 
     @cached_property
     def mtime(self, /) -> float:
-        if (mtime := self.attr.get("mtime")) is None:
-            mtime = self.attr["etime"].timestamp()
-        return mtime
+        return self.attr["mtime"]
+
+    @cached_property
+    def name(self, /) -> str:
+        return self.attr["name"]
 
     def get_creation_date(self, /) -> float:
         return self.ctime
@@ -391,11 +383,21 @@ class DavPathBase:
     def get_display_name(self, /) -> str:
         return self.name
 
+    def get_etag(self, /) -> str:
+        return "%s-%s-%s" % (
+            self.attr["pickcode"], 
+            self.mtime, 
+            self.size, 
+        )
+
     def get_last_modified(self, /) -> float:
         return self.mtime
 
     def is_link(self, /) -> bool:
         return False
+
+    def support_etag(self, /) -> bool:
+        return True
 
     def support_modified(self, /) -> bool:
         return True
@@ -435,7 +437,7 @@ class FileResource(DavPathBase, DAVNonCollection):
         name = attr["name"].translate({0x23: "%23", 0x2F: "%2F", 0x3F: "%3F"})
         url = joinpath(
             self.origin, 
-            f"{name}?pickcode={attr['pickcode']}&password={password}", 
+            f"{name}?pickcode={attr['pickcode']}&id={attr['id']}&sha1={attr['sha1']}&password={password}", 
         )
         if attr.get("class") == "PIC" or attr.get("thumb"):
             url += "&image=true"
@@ -453,15 +455,7 @@ class FileResource(DavPathBase, DAVNonCollection):
             self.__dict__["size"] = url["size"]
             return url["data"]["source_url"]
         else:
-            url = relogin_wrap(attr.get_url, headers={"User-Agent": user_agent})
-        return str(url)
-
-    def get_etag(self, /) -> str:
-        return "%s-%s-%s" % (
-            self.attr["sha1"], 
-            self.mtime, 
-            self.size, 
-        )
+            return f"/{quote(attr['name'], safe='')}?id={attr['id']}&password={password}"
 
     def get_content(self, /):
         if self.path.endswith(".strm"):
@@ -472,9 +466,6 @@ class FileResource(DavPathBase, DAVNonCollection):
         return self.size
 
     def support_content_length(self, /) -> bool:
-        return True
-
-    def support_etag(self, /) -> bool:
         return True
 
     def support_ranges(self, /) -> bool:
@@ -505,13 +496,6 @@ class FolderResource(DavPathBase, DAVCollection):
             children[name] = attr
         return children
 
-    def get_etag(self, /) -> str:
-        return "%s-%s-%s" % (
-            sha1(bytes(self.path, "utf-8")).hexdigest(), 
-            self.mtime, 
-            0, 
-        )
-
     def get_member(self, /, name: str) -> FileResource | FolderResource:
         if not (attr := self.children.get(name)):
             raise DAVError(404, self.path + "/" + name)
@@ -535,9 +519,6 @@ class FolderResource(DavPathBase, DAVCollection):
         elif name == "{DAV:}iscollection":
             return True
         return super().get_property_value(name)
-
-    def support_etag(self):
-        return True
 
 
 class P115FileSystemProvider(DAVProvider):
@@ -661,7 +642,7 @@ def get_image_url(pickcode: str, user_agent: str = "") -> str:
     if image_url_cache and (url := image_url_cache.get(pickcode)):
         return url
     resp = relogin_wrap(
-        client.fs_files_image, 
+        client.fs_image, 
         pickcode, 
         headers={"User-Agent": user_agent}, 
         request=do_request, 
@@ -672,7 +653,7 @@ def get_image_url(pickcode: str, user_agent: str = "") -> str:
     url = data["origin_url"]
     with urlopen(url, "HEAD", headers={"User-Agent": user_agent}) as resp:
         url = cast(str, resp.url)
-    url = P115Url(url, data=data, size=int(resp.headers["Content-Length"]))
+    url = P115URL(url, data=data, size=int(resp.headers["Content-Length"]))
     if image_url_cache is not None:
         image_url_cache[pickcode] = url
     return url
@@ -747,7 +728,7 @@ def relogin(exc=None):
             try:
                 mtime = stat(cookies_path).st_mtime_ns
                 if mtime != cookies_path_mtime:
-                    client.cookies = open(cookies_path).read()
+                    client.cookies = open(cookies_path, encoding="utf-8").read()
                     cookies_path_mtime = mtime
                     need_update = False
             except FileNotFoundError:
@@ -763,7 +744,7 @@ def relogin(exc=None):
                 )
             client.login_another_app(device, replace=True, request=do_request, timeout=5)
             if cookies_path:
-                open(cookies_path, "w").write(client.cookies)
+                open(cookies_path, "w", encoding="utf-8").write(client.cookies)
                 cookies_path_mtime = stat(cookies_path).st_mtime_ns
 
 
@@ -849,6 +830,8 @@ def query(path: str):
         if password:
             attr["url"] += "&password=" + password
             attr["short_url"] += "&password=" + password
+        attr["ancestors"] = attr["path"].ancestors
+        attr["mtime_str"] = strftime("%F %X", localtime(attr["mtime"]))
         return attr
 
     match request.args.get("method"):
@@ -872,10 +855,10 @@ def query(path: str):
                     attr = relogin_wrap(fs.attr, fid)
                 else:
                     attr = relogin_wrap(fs.attr, path)
-                if root != 0 and not any(info["id"] == root for info in attr["ancestors"]):
+                if root != 0 and not any(info["id"] == root for info in attr["path"].ancestors):
                     raise PermissionError(errno.EACCES, "out of root range")
             update_attr(attr)
-            json_str = dumps({k: attr.get(k) for k in KEYS})
+            json_str = dumps({k: attr.get(k) for k in KEYS}, default=default)
             return Response(json_str, content_type="application/json; charset=utf-8")
         case "list":
             if not root_dir:
@@ -888,12 +871,12 @@ def query(path: str):
                 children = relogin_wrap(fs.listdir_attr, fid)
             else:
                 children = relogin_wrap(fs.listdir_attr, path)
-            if children and root != 0 and not any(info["id"] == root for info in children[0]["ancestors"][:-1]):
+            if children and root != 0 and not any(info["id"] == root for info in children[0]["path"].ancestors[:-1]):
                 raise PermissionError(errno.EACCES, "out of root range")
             json_str = dumps([
                 {k: attr.get(k) for k in KEYS} 
                 for attr in map(update_attr, children)
-            ])
+            ], default=default)
             return Response(json_str, content_type="application/json; charset=utf-8")
         case "desc":
             if not root_dir:
@@ -931,7 +914,7 @@ def query(path: str):
             attr = relogin_wrap(fs.attr, fid)
     else:
         attr = relogin_wrap(fs.attr, path)
-    if root != 0 and not any(info["id"] == root for info in attr["ancestors"]):
+    if root != 0 and not any(info["id"] == root for info in attr["path"].ancestors):
         raise PermissionError(errno.EACCES, "out of root range")
     if not attr["is_directory"]:
         update_attr(attr)
@@ -943,7 +926,7 @@ def query(path: str):
     if fid == root:
         header = f'<strong><a href="/?id={root}&method=list&password={password}" style="border: 1px solid black; text-decoration: none">/</a></strong>'
     else:
-        ancestors = attr["ancestors"]
+        ancestors = attr["path"].ancestors
         last_info = ancestors[-1]
         for i, info in enumerate(ancestors):
             if info["id"] == root:
@@ -1139,7 +1122,7 @@ def query(path: str):
             <a href="{{ url }}&m3u8=true&password={{ password }}&definition=4">UD(高清)</a>
         </td>
         {%- endif %}
-        <td>{{ attr["etime"] }}</td>
+        <td>{{ attr["mtime_str"] }}</td>
       </tr>
       {%- endfor %}
     </tbody>
@@ -1206,3 +1189,6 @@ if __name__ == "__main__":
 # TODO: 可能是 wsgidav 的问题，propfind 响应太慢了，即使给文件夹做了缓存，需要看看怎么优化，可能需要对 propfind 的结果做缓存
 # TODO: 完整的 wsgidav 配置文件支持
 # TODO: 更完整信息的支持，类似 xattr
+
+# TODO: 多应用共用 cookies
+# TODO: 401 报错检查 cookies 是否被更新，如果是，则重跑
