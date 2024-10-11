@@ -15,7 +15,7 @@ parser.add_argument("-u", "--base-url", default="http://localhost", help="挂载
 parser.add_argument("-P", "--password", default="", help="挂载的网址的密码，默认值：''，即没密码")
 parser.add_argument("-p", "--src-path", default="/", help="对方 115 网盘中的文件或文件夹的 id 或路径，默认值: '/'")
 parser.add_argument("-t", "--dst-path", default="/", help="保存到我的 115 网盘中的文件夹的 id 或路径，默认值: '/'")
-parser.add_argument("-c", "--cookies", help="115 登录 cookies，优先级高于 -c/--cookies-path")
+parser.add_argument("-c", "--cookies", help="115 登录 cookies，优先级高于 -cp/--cookies-path")
 parser.add_argument("-cp", "--cookies-path", help="""\
 存储 115 登录 cookies 的文本文件的路径，如果缺失，则从 115-cookies.txt 文件中获取，此文件可在如下目录之一: 
     1. 当前工作目录
@@ -48,7 +48,7 @@ import errno
 import logging
 
 from collections.abc import Callable, Iterable, Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, AbstractContextManager
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import partial
@@ -63,7 +63,7 @@ from _thread import start_new_thread
 from threading import Lock, current_thread
 from time import perf_counter, sleep
 from traceback import format_exc
-from typing import cast, ContextManager, NamedTuple, TypedDict
+from typing import cast, NamedTuple, TypedDict
 from urllib.error import URLError
 from urllib.parse import quote, urljoin
 from warnings import warn
@@ -118,9 +118,9 @@ use_request = args.use_request
 stats_interval = args.stats_interval
 debug = args.debug
 
-login_lock: None | ContextManager = None
-count_lock: None | ContextManager = None
-fs_lock: None | ContextManager = None
+login_lock: None | AbstractContextManager = None
+count_lock: None | AbstractContextManager = None
+fs_lock: None | AbstractContextManager = None
 if max_workers > 1:
     login_lock = Lock()
     count_lock = Lock()
@@ -334,7 +334,7 @@ def highlight_traceback() -> str:
 
 @contextmanager
 def ensure_cm(cm):
-    if isinstance(cm, ContextManager):
+    if isinstance(cm, AbstractContextManager):
         with cm as val:
             yield val
     else:
@@ -458,14 +458,14 @@ def relogin(
 
 
 def relogin_wrap(func, /, *args, **kwds):
-    try:
-        with ensure_cm(fs_lock):
-            return func(*args, **kwds)
-    except StatusError as e:
-        if get_status_code(e) != 405:
-            raise
-        relogin(e)
-    return relogin_wrap(func, *args, **kwds)
+    while True:
+        try:
+            with ensure_cm(fs_lock):
+                return func(*args, **kwds)
+        except StatusError as e:
+            if get_status_code(e) != 405:
+                raise
+            relogin(e)
 
 
 def pull(
@@ -683,7 +683,7 @@ def pull(
                     for i in range(0, len(pending_to_remove), 1_000):
                         part_ids = pending_to_remove[i:i+1_000]
                         try:
-                            resp = relogin_wrap(fs.fs_batch_delete, part_ids)
+                            resp = relogin_wrap(fs.fs_delete, part_ids)
                             if debug: logger.debug("""\
 {emoji} {prompt}: in {dst_pid}
     ├ ids({ids_cnt}) = {part_ids}
@@ -914,6 +914,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 stats,all_tasks = pull(src_path, dst_path, base_url=base_url, max_workers=max_workers)
-
+  
 from pull_after import push_msg
+pull(src_path, dst_path, base_url=base_url, max_workers=max_workers)
 push_msg(stats,all_tasks)
