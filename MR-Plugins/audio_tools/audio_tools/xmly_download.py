@@ -9,6 +9,7 @@ import shutil
 from requests import auth
 from requests.adapters import HTTPAdapter
 from mbot.core.plugins import PluginContext,PluginMeta,plugin
+from mbot.openapi import mbot_api
 from requests.packages.urllib3.util.retry import Retry
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
@@ -20,14 +21,16 @@ from urllib3.exceptions import MaxRetryError, ConnectionError, TimeoutError
 from .functions import *
 from .podcast import podcast_add_main
 from .audio_tools import audio_clip, push_msg_to_mbot, move_to_dir, all_add_tag, add_cover
+from .draw import draw_cover
 
+server = mbot_api
 session = requests.Session()
 retry = Retry(connect=3, backoff_factor=0.5)
 adapter = HTTPAdapter(max_retries=retry)
 session.mount('https://', adapter)
 logger = logging.getLogger(__name__)
-user_agent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
-# user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+# user_agent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
 def xmly_dl_config(config):
     global plugins_name,src_base_path_book, src_base_path_music,dst_base_path
     global sub_infos_set,update_podcast_config,magic,headers,mbot_url
@@ -84,6 +87,7 @@ def get_downloaded_list(folder_path):
     return episode_numbers
 
 def get_new_track(album_id,index_on=False,index_offset=0,sub_start=1):
+
     base_url = "https://www.ximalaya.com/revision/album/v1/getTracksList"
     page_size =100
     num_pages = 50
@@ -102,12 +106,16 @@ def get_new_track(album_id,index_on=False,index_offset=0,sub_start=1):
             if len(tracks) > 0:
                 for track in tracks:
                     title = track["title"]
+                    title_num = get_num(title)
                     ep = 0
+                    ep_num = ''
                     if index_on:
                         ep = int(track['index']) + index_offset
                         title = f'第{ep}集 {title}'
-                    title_num = get_num(title)
-                    ep_num = title_num or int(track['index'])+index_offset
+                        ep_num = ep
+                    else:
+                        ep_num = title_num
+                    ep_num = ep_num or 1
                     track_info = {
                         'index': track['index'],
                         'trackId': track['trackId'],
@@ -128,7 +136,8 @@ def get_new_track(album_id,index_on=False,index_offset=0,sub_start=1):
             else:
                 break
         else:
-            print(f"Error fetching data from page {page_num}")
+            logger.error(f"Error fetching data from page {page_num}")
+    logger.info(f'new_track_list:{new_track_list}')        
     return new_track_list,new_ep_mum_list
 
 def get_all_track(album_id,page):
@@ -139,6 +148,14 @@ def get_all_track(album_id,page):
     track_id_list = []
     track_info={}
     all_track_list = []
+    xm_sign, user_agent = get_xm_sign()
+    user_agent='MicroMessenger Client'
+    headers = {
+        'cookie': magic,
+        'user-agent': user_agent,
+        'Xm-Sign': xm_sign,
+    }
+    logger.info(f"get_all_track headers为： {headers}")
     if not page:
         for page_num in range(1, num_pages + 1):
             response = session.request("GET", base_url, params={"albumId": album_id, "pageNum": page_num, "pageSize": page_size}, headers=headers, timeout=30)  
@@ -187,12 +204,17 @@ def modify_file_name(path,index_on,index,index_offset,book_title):
     new_file_name = re.sub(r'[_-]', ' ', file_name)  # 将_替换为空格
     # new_file_name = re.sub(r'[\（\(【].*?[\）\)】]', '', new_file_name)  # 去掉括号及其内部内容
 
-    # 匹配并删除所有括号及其内容，除非括号内的内容仅仅是 上、中、下 或者 0-99 的数字
+    # 匹配并删除所有括号及其内容，除非括号内的内容仅仅是 上、中、下 或者 0-9999 的数字
     # 调整正则表达式以考虑方括号中指定内容的周围空格。
-    new_file_name = re.sub(r'[\（\(\[「『【]\s*(?:(上|中|下|\d{1,2})\s*[\）\)\]」』】]|.*?[\）\)\]」』】])', r'(\1)', new_file_name)
+    new_file_name = re.sub(r'[\（\(\[「『【]\s*(?:(上|中|下|一|二|三|四|五|六|七|八|九|十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十|二十一|二十二|二十三|二十四|二十五|二十六|二十七|二十八|二十九|三十|\d{1,4})\s*[\）\)\]」』】]|.*?[\）\)\]」』】])', r'(\1)', new_file_name)
     # 移除空括号
     new_file_name = re.sub(r'[\（\(\[「『【]\s*[\）\)\]」』】]', '', new_file_name).strip()
+    
+# 正则表达式匹配 "抽" 后面跟任意字符，直到 "会员"
+    pattern = "抽.*?会员"
 
+# 使用 re.sub() 替换匹配的文字为空字符串，即移除它们
+    new_file_name = re.sub(pattern, "",new_file_name).strip()
     # 去除多余的空格
     new_file_name = ' '.join(new_file_name.split())
     # 将扩展名从.mp4替换为.m4a
@@ -245,19 +267,138 @@ def cover_size(url):
     pattern = r'(columns=\d+&rows=\d+)'
     new_url = re.sub(pattern, f'columns={new_columns}&rows={new_rows}', url)
     return new_url
-def fetch_track_by_id(track_id,path,folder_path_base,index_on = False,index=0,index_offset=0):
+
+# 函数用于获取最终的音频 URL
+def get_final_audio_url(playUrl):
+    # 如果 playUrl 是第一种类型，需要处理重定向
+    if 'ximalaya.com' or 'redirect' in playUrl:
+        # 发送 GET 请求
+        response = requests.get(playUrl)
+        # 获取最终的音频 URL（这里假设重定向的 URL 在响应的某个部分，例如 header 或 body 中）
+        # 这个部分需要根据实际的返回数据结构进行相应调整
+        final_url = response.url
+    else:
+        # 如果 playUrl 已经是直接的音频 URL，不需要处理
+        final_url = playUrl
+    return final_url
+
+# 函数用于从 URL 中提取音频格式
+def extract_audio_format(url):
+    # 使用正则表达式提取 URL 的文件扩展名
+    match = re.search(r'\.([A-Za-z0-9]+)(?:\?|$)', url)
+    audio_format = match.group(1) if match else None
+    return audio_format
+
+def fetch_track_by_id2(track_id,path,folder_path_base,index_on = False,index=0,index_offset=0,book_title='',author='',reader='',headers=''):
     if not track_id or not path: return ''
     folder_path_base = folder_path_base or path
     key = "aaad3e4fd540b0f79dca95606e72bf93"
     # headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'}
     timestamp = int(time.time())
+    logger.info(f'timestamp:{timestamp}')
     device = 'web'
     # device = 'iPhone'
     # url = f"http://mobile.ximalaya.com/v1/track/baseInfo?device=iPhone&trackId={track_id}"
-    url = f"https://mobile.ximalaya.com/mobile-playpage/track/v3/baseInfo/{timestamp}?device={device}&trackId={track_id}"
+    # url = f"https://mobile.ximalaya.com/mobile-playpage/track/v3/baseInfo/{timestamp}?device={device}&trackId={track_id}"
+    url = f"https://mobwsa.ximalaya.com/mobile-playpage/playpage/tabs/{track_id}/{timestamp}"
     response = session.request("GET", url, headers=headers, timeout=30)
     if response.status_code == 200:
         data = response.json()
+        # uid = data.get('data', {}).get('playpage', {}).get('trackInfo', {}).get('uid', '')
+        # title = data['trackInfo']['title']
+        # playUrl = data['trackInfo']['playUrlList'][0]['url']
+        title = data.get('data', {}).get('playpage', {}).get('trackInfo', {}).get('title', '')
+
+        # 修复文件名中含有/导致下载错误
+        title = title.replace('/',' ')
+        
+        # 音频更新时间
+        createdAt = data.get('data', {}).get('playpage', {}).get('trackInfo', {}).get('createdAt', '')
+        update_time = ''
+        if createdAt:
+            update_time = convert_timestamp_to_beijing_time(createdAt)
+            # 将更新时间写入缓存
+            if book_title and author and reader:
+                server.common.set_cache(book_title, f'{author}·{reader}', update_time)
+
+        trackId = data.get('data', {}).get('playpage', {}).get('trackInfo', {}).get('trackId', '')
+        # playUrl = data.get('trackInfo', {}).get('playUrlList', [{}])[0].get('url', '')
+        playUrl = data.get('data', {}).get('playpage', {}).get('trackInfo', {}).get('playUrl64', '')
+
+        if playUrl:
+            # str2 = playUrl.replace('-','+').replace('_','/')
+            # num = len(str2) % 4
+            # if num: str2 += '=' * (4 - num)
+            # ciphertext = base64.b64decode(str2)
+            # decrypted = aes_decrypt(ciphertext, key)
+            cover_url = data.get('data', {}).get('playpage', {}).get('trackInfo', {}).get('coverLarge', '')
+            cover_url = cover_size(cover_url) if cover_url else ''
+            isFree = data.get('data', {}).get('playpage', {}).get('trackInfo', {}).get('isFree', None)
+
+            # track_type = data.get('trackInfo', {}).get('playUrlList', [{}])[0].get('type', 'mp3')
+            # track_ext = track_type.split('_')[0].lower()
+            # 获取最终的音频 URL
+            final_audio_url = get_final_audio_url(playUrl)
+            # 从最终的音频 URL 中提取音频格式
+            audio_format = extract_audio_format(final_audio_url)
+            track_ext = audio_format
+            track_info= {
+                'title': title,
+                'index': index,
+                'trackId': trackId,
+                'download_url': playUrl,
+                'cover_url': cover_url,
+                'isFree': isFree,
+                # 'track_type': track_type,
+                'update_time': update_time,
+            }
+            logger.info(f"「获取喜马拉雅」解析后的信息：\n{track_info}")
+            # path = '/Users/alano/Downloads/12563'
+            cover_art_path = os.path.join(folder_path_base, 'cover.jpg')
+            try:
+                if cover_url and not os.path.exists(cover_art_path):
+                    save_track(path, cover_url, 'cover','jpg',False,index,0)
+            except Exception as e:
+                logger.error(f'{plugins_name}下载喜马拉雅封面异常, 原因: {e}')
+            try:
+                if playUrl:
+                    save_path = save_track(path, playUrl,title,track_ext,index_on,index,index_offset)
+                    return save_path
+                else:
+                    if title:
+                        logger.error(f"['{title}'] 没有解析到下载地址")
+                    else:
+                        logger.error(f"没有解析到下载地址")
+                    return ''
+            except Exception as e:
+                logger.error(f'{plugins_name}下载喜马拉雅音频异常, 原因: {e}')
+                return ''
+        else:
+            if title:
+                logger.error(f"['{title}'] 没有解析到下载地址,可能是下载限流了，明天再来试试！")
+            else:
+                logger.error(f"没有解析到下载地址,可能是下载限流了，明天再来试试！")
+            return ''
+    else:
+        logger.error(f"请求 {track_id} 所在的页面失败")
+        return ''
+
+def fetch_track_by_id(track_id,path,folder_path_base,index_on = False,index=0,index_offset=0,book_title='',author='',reader='',headers=''):
+    if not track_id or not path: return ''
+    folder_path_base = folder_path_base or path
+    logger.info(f"fetch_track_by_id headers为： {headers}")
+    key = "aaad3e4fd540b0f79dca95606e72bf93"
+    # headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'}
+    timestamp = int(time.time())
+    device = 'web'
+    # url = f"http://mobile.ximalaya.com/v1/track/baseInfo?device=iPhone&trackId={track_id}"
+    url = f"https://mobile.ximalaya.com/mobile-playpage/track/v3/baseInfo/{timestamp}?device={device}&trackId={track_id}"
+    url = f"https://www.ximalaya.com/mobile-playpage/track/v3/baseInfo/{timestamp}?device={device}&trackId={track_id}"
+    logger.info(f"xmly_download url2:{url}")
+    response = session.request("GET", url, headers=headers, timeout=30)
+    if response.status_code == 200:
+        data = response.json()
+        logger.info(f"xmly_download data:{data}")
         uid = data.get('trackInfo', {}).get('uid', '')
         # title = data['trackInfo']['title']
         # playUrl = data['trackInfo']['playUrlList'][0]['url']
@@ -314,6 +455,7 @@ def fetch_track_by_id(track_id,path,folder_path_base,index_on = False,index=0,in
     else:
         logger.error(f"请求 {track_id} 所在的页面失败")
         return ''
+
 # track_id = "657306328"
 # folder_path_base = '/Users/alano/Downloads'
 # path = '/Users/alano/Downloads/25'
@@ -321,6 +463,12 @@ def fetch_track_by_id(track_id,path,folder_path_base,index_on = False,index=0,in
 def xmly_download(save_path,dl,album_id,page,track,index_on,index_offset):
     result = True
     try:
+        xm_sign, user_agent = get_xm_sign()
+        headers = {
+            'cookie': magic,
+            'user-agent': user_agent,
+            'Xm-Sign': xm_sign,
+        }
         if dl == 'track':
             if album_id:
                 page = ''
@@ -332,7 +480,8 @@ def xmly_download(save_path,dl,album_id,page,track,index_on,index_offset):
                 if track_info:
                     track_id = track_info['trackId']
                     index = int(track_info['index'])
-                    result = fetch_track_by_id(track_id,save_path,save_path,index_on,index,index_offset)
+
+                    result = fetch_track_by_id(track_id,save_path,save_path,index_on,index,index_offset,book_title='',author='',reader='',headers=headers)
                 else:
                     logger.error("没有获取到音频信息")
                     return False
@@ -351,7 +500,7 @@ def xmly_download(save_path,dl,album_id,page,track,index_on,index_offset):
                 track_id = track_info['trackId']
                 title = track_info['title']
                 index = track_info['index']
-                result = fetch_track_by_id(track_id,save_path,save_path,index_on,index,index_offset)
+                result = fetch_track_by_id(track_id,save_path,save_path,index_on,index,index_offset,book_title='',author='',reader='',headers=headers)
                 if not result:
                     empty_count += 1
                 else:
@@ -400,10 +549,29 @@ def cut(book_title,folder_path_base,folder_path,output_dir,audio_start,audio_end
         cover_image_url = ''
         try:
             cover_image_path = os.path.join(output_dir, cliped_folder,'cover.jpg')
-            cover_image_path_hlink = f"{dst_base_path}/{book_dir_name}_cover.jpg"
-            light_link(cover_image_path,cover_image_path_hlink)
+
+            # 绘制通知封面
+            cover_image_out_path = os.path.join(output_dir, cliped_folder,'notify_cover.jpg')
+
+            if not os.path.exists(cover_image_out_path):
+                draw_cover(cover_image_path, cover_image_out_path, series, authors, reader)
+                time.sleep(1)
+            else:
+                # 获取文件最后修改时间
+                last_modified_time = os.path.getmtime(cover_image_out_path)
+                current_time = time.time()
+                # 检查是否超过3天未修改
+                if (current_time - last_modified_time) > (3 * 24 * 60 * 60):
+                    draw_cover(cover_image_path, cover_image_out_path, series, authors, reader)
+                    time.sleep(1)
+
+            cover_image_path_h = cover_image_out_path if os.path.exists(cover_image_out_path) else cover_image_path
+
+            cover_image_path_hlink = f"{dst_base_path}/{book_dir_name}/{os.path.basename(cover_image_path_h)}"
+            light_link(cover_image_path_h,cover_image_path_hlink)
+
             if os.path.exists(cover_image_path_hlink):
-                cover_image_url = f'{mbot_url}/static/podcast/audio/{book_dir_name}_cover.jpg'
+                cover_image_url = f'{mbot_url}/static/podcast/audio/{book_dir_name}/{os.path.basename(cover_image_path_h)}'
                 cover_image_url = url_encode(cover_image_url)
             else:
                 cover_image_url = ''
@@ -415,7 +583,9 @@ def cut(book_title,folder_path_base,folder_path,output_dir,audio_start,audio_end
                 msg_title = f'{series} - 新增 {len(new_audios)} 个音频'
                 msg_digest = [os.path.basename(path) for path in new_audios]
                 # msg_digest = ['第2集 久别重逢.m4a','第3集 久别.m4a']
-                msg_digest = '\n'.join([f"• {item}" for item in msg_digest])
+                # msg_digest = '\n'.join([f"• {item}" for item in msg_digest])
+                msg_digest = '\n'.join([f"• {item.replace(series, '').strip()}" if item.startswith(series) else f"• {item}" for item in msg_digest])
+
                 push_msg_to_mbot(msg_title, msg_digest,cover_image_url,link_url)
         except Exception as e:
             logger.error(f"{plugins_name}发送更新消息失败，原因：{e}")
@@ -486,9 +656,15 @@ def xmly_main():
             # logger.info(f"喜马拉雅已更新集：{new_track_list}\n")
             empty_count = 0
             dl_flag = False
+            xm_sign, user_agent = get_xm_sign()
+            headers = {
+                'cookie': magic,
+                'user-agent': user_agent,
+                'Xm-Sign': xm_sign,
+            }
             for track in new_track_list:
                 index = track['index']
-                save_path = fetch_track_by_id(track['trackId'],folder_path,folder_path_base,index_on,index,index_offset)
+                save_path = fetch_track_by_id(track['trackId'],folder_path,folder_path_base,index_on,index,index_offset,book_title,author,reader,headers)
                 if not save_path:
                     empty_count += 1
                 else:

@@ -6,7 +6,7 @@ import io
 from urllib.parse import quote
 from cn2an import cn2an
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import requests
 from pypinyin import lazy_pinyin
 import logging
@@ -554,4 +554,17 @@ def create_podcast_flag_file(audio_path):
     except Exception as e:
         logger.error(f"{plugins_name} 生成已处理标识文件失败，原因：{e}")
 
+# 将时间戳转为标准时间格式
+def convert_timestamp_to_beijing_time(timestamp_ms):
+    timestamp_ms = int(timestamp_ms)
+    # 将毫秒转换为秒
+    timestamp_sec = timestamp_ms / 1000
+    # 转换为 UTC 时间
+    utc_time = datetime.utcfromtimestamp(timestamp_sec)
+    # 添加东八区的时差
+    beijing_tz = timezone(timedelta(hours=8))
+    beijing_time = utc_time.replace(tzinfo=timezone.utc).astimezone(beijing_tz)
+    # 格式化为 'yyyy-mm-dd hh:mm:ss'
+    formatted_time = beijing_time.strftime('%Y-%m-%d %H:%M:%S')
+    return formatted_time
 

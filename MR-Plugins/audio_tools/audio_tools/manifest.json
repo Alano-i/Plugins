@@ -3,7 +3,7 @@
   "title": "有声书工具箱",
   "author": "Alano",
   "description": "剪辑片头片尾，修改元数据，制作有声书、音乐播客源（宝藏App播客是时候用起来了，Apple原生应用播放 Nas 中的海量音乐），元数据 plex、Audiobookshelf 可识别。",
-  "version": "3.2.07",
+  "version": "3.2.16",
   "requirements": null,
   "configField": [
     {
@@ -27,7 +27,7 @@
       "fieldType": "String",
       "label": "推送消息封面",
       "helperText": "",
-      "defaultValue": "https://raw.githubusercontent.com/Alano-i/wecom-notification/main/MR-Plugins/audio_tools/audio_tools/logo.jpg"
+      "defaultValue": "https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MR-Plugins/115_tools/logo.jpg"
     },
     {
       "fieldName": "mbot_url",
@@ -65,6 +65,55 @@
       "defaultValue": ""
     },
     {
+      "fieldName": "local_to_115_switch",
+      "fieldType": "Bool",
+      "label": "本地音频是否映射到115",
+      "helperText": "",
+      "defaultValue": true
+    },
+    {
+      "fieldName": "src_root",
+      "fieldType": "String",
+      "label": "本地音频存放路径",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "dst_root",
+      "fieldType": "String",
+      "label": "生成用于同步到远程mbot的目录",
+      "helperText": "里面存放的是音频的元数据和封面，没有音频文件。",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "src_url",
+      "fieldType": "String",
+      "label": "本地mbot的url",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "dst_url",
+      "fieldType": "String",
+      "label": "有声书目的url",
+      "helperText": "能用于请求返回115 302直链的服务url",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "dst_mbot_url",
+      "fieldType": "String",
+      "label": "远程Mbot的url",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "dst_path",
+      "fieldType": "String",
+      "label": "有声书在115中的存放路径",
+      "helperText": "115网盘中的存放路径，注意：不能以/结尾。",
+      "defaultValue": ""
+    },
+    {
       "fieldName": "update_podcast_config",
       "fieldType": "Bool",
       "label": "同步喜马拉雅并更新播客",
@@ -88,7 +137,7 @@
   ],
   "logoUrl": "/plugins/audio_tools/logo.jpg",
   "githubUrl": "",
-  "helpDocUrl": "https://github.com/Alano-i/Mbot-Plugins/tree/main/MR-Plugins/audio_tools",
+  "helpDocUrl": "https://alano-i.github.io/doc/audio_tools/",
   "payImageUrl": "https://p.xmoviebot.com/donate/alano_wechat.jpg",
   "dependencies": {
     "appVersion": ">=1.9.30"

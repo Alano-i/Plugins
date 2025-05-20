@@ -5,6 +5,7 @@ from .audio_tools import audio_clip, move_to_dir, diy_abs, move_out, all_add_tag
 from .podcast import podcast_main,get_xml_url
 from .event import auto_podcast
 from .xmly_download import xmly_main,xmly_download
+from .local_to_115 import local_to_115
 import logging
 import datetime
 import time
@@ -85,6 +86,16 @@ dl_list = [
     {
         "name": "🎹 指定单集",
         "value": 'track'
+    }
+]
+local_to_115_list = [
+    {
+        "name": "✅ 所有音频",
+        "value": 'all'
+    },
+    {
+        "name": "🎹 指定具体路径",
+        "value": 'path'
     }
 ]
 if server.common.get_cache('audio_clip', 'input_dirs'):
@@ -208,6 +219,7 @@ def audio_clip_m_echo(ctx: PluginCommandContext,
                 state = auto_podcast(audio_path,'',series,podcast_summary,subject,authors,reader,year,is_group,short_filename,is_book)
                 # state = podcast_main(series, audio_path, podcast_summary, subject, authors, reader,year,is_group,short_filename,is_book)
                 if state:
+                    local_to_115(f'{src_base_path_book}/{cliped_folder}')
                     return PluginCommandResponse(True, f'生成博客源 RSS XML 任务完成')
                 else:
                     return PluginCommandResponse(False, f'生成博客源 RSS XML 任务失败')
@@ -391,18 +403,18 @@ def move_to_dir_echo(ctx: PluginCommandContext,
         all_add_tag(output_dir,authors,year,reader,series, podcast_summary, album,art_album,use_filename,subject,diy_cover,cut,audio_start,audio_end)
     return PluginCommandResponse(True, f'整理系列文件夹任务完成')
 
-@plugin.command(name='diy_abs', title='修改metadata.abs', desc='修改 Audiobookshelf 元数据', icon='SwitchAccessShortcutAdd',run_in_background=True)
-def diy_abs_echo(ctx: PluginCommandContext,
-                folder_path: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='/Media/有声书/', required=True),
-                series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value='', required=False),
-                podcast_summary: ArgSchema(ArgType.String, '简介，用于生成播客简介', '', default_value='', required=False),
-                authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value='', required=False),
-                reader: ArgSchema(ArgType.String, '演播者，多个示例：演播A,,演播B,,', '', default_value='', required=False),
-                year: ArgSchema(ArgType.String, '发布年份', '', default_value='', required=False)):
-    folder_path = process_path(folder_path)
-    logger.info(f"{plugins_name}任务\n开始运行 DIY 音频元数据\n输入路径：[{folder_path}]\n系列：['{series}']\n作者：['{authors}']\n演播者：['{reader}']\n发布年份：['{year}']")
-    diy_abs(folder_path, series, podcast_summary, authors, reader, year)
-    return PluginCommandResponse(True, f'DIY 音频元数据任务完成')
+# @plugin.command(name='diy_abs', title='修改metadata.abs', desc='修改 Audiobookshelf 元数据', icon='SwitchAccessShortcutAdd',run_in_background=True)
+# def diy_abs_echo(ctx: PluginCommandContext,
+#                 folder_path: ArgSchema(ArgType.String, '输入路径', '/Media/有声书/', default_value='/Media/有声书/', required=True),
+#                 series: ArgSchema(ArgType.String, '系列：推荐填写书名', '', default_value='', required=False),
+#                 podcast_summary: ArgSchema(ArgType.String, '简介，用于生成播客简介', '', default_value='', required=False),
+#                 authors: ArgSchema(ArgType.String, '作者：推荐填写原著作家', '', default_value='', required=False),
+#                 reader: ArgSchema(ArgType.String, '演播者，多个示例：演播A,,演播B,,', '', default_value='', required=False),
+#                 year: ArgSchema(ArgType.String, '发布年份', '', default_value='', required=False)):
+#     folder_path = process_path(folder_path)
+#     logger.info(f"{plugins_name}任务\n开始运行 DIY 音频元数据\n输入路径：[{folder_path}]\n系列：['{series}']\n作者：['{authors}']\n演播者：['{reader}']\n发布年份：['{year}']")
+#     diy_abs(folder_path, series, podcast_summary, authors, reader, year)
+#     return PluginCommandResponse(True, f'DIY 音频元数据任务完成')
 
 @plugin.command(name='xmly_download', title='下载喜马拉雅', desc='此功能很迷，仅用作测试，谨慎使用！仅支持免费音频，版权归喜马拉雅所有，请支持正版', icon='Downloading',run_in_background=True)
 def xmly_download_echo(ctx: PluginCommandContext,
@@ -436,6 +448,21 @@ def update_podcast_echo(ctx: PluginCommandContext):
     else:
         logger.error(f'{plugins_name}同步喜马拉雅并更新播客失败')
         return PluginCommandResponse(False, f'同步喜马拉雅并更新到本地失败')
+    
+@plugin.command(name='update_115', title='更新播客资源到115', desc='将音频请求接到115', icon='TipsAndUpdatesOutlined',run_in_background=True)
+# def update_115_echo(ctx: PluginCommandContext):
+def update_115_echo(ctx: PluginCommandContext,
+                local_to_115_path: ArgSchema(ArgType.Enum, '选择处理类型：✅ 所有音频', '', enum_values=lambda: local_to_115_list, default_value='all', multi_value=False, required=True),
+                # choose: ArgSchema(ArgType.Enum, '选择下载方案：📕 方案一', '', enum_values=lambda: choose_config, default_value='one', multi_value=False, required=False),
+                path: ArgSchema(ArgType.String, '指定具体文件夹（上方选所有时，此项设置无效）', '', default_value = '', required=False)):
+    src_path = '' if local_to_115_path == 'all' else path
+    logger.info(f"src_path：{src_path}")
+    if local_to_115(src_path):
+        logger.info(f'{plugins_name}更新播客到115完成')
+        return PluginCommandResponse(True, f'更新播客到115完成')
+    else:
+        logger.error(f'{plugins_name}更新播客到115失败')
+        return PluginCommandResponse(False, f'更新播客到115')
 
 ################# 将作者和总集数补充到json文件中，用于前端展示 ############# 若要启用，取消注释即可
 # @plugin.command(name='rewrite_json', title='补全有声书数据', desc='将作者和总集数补充到json文件中，用于前端展示', icon='SwitchAccessShortcutAdd',run_in_background=True)

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="Generator" content="EditPlus®">
+    <meta name="Author" content="">
+    <meta name="Keywords" content="">
+    <meta name="Description" content="">
+    <title>xm_sign</title>
+
+    <script src="https://s1.xmcdn.com/yx/static-source/last/dist/js/dws1.6.8.js"></script>
+    <script>
+        var U = {};
+
+        U.dwsSetConfig = function () {
+            window.du_web_sdk && window.du_web_sdk.setConfig({
+                deb: "true"
+            })
+        }
+        U.dwsGetBrowserId = function (browserID, cid, KFp) {
+            return browserID ? Promise.resolve(browserID) : new Promise((function (e, t) {
+                window.du_web_sdk.getBrowserID(cid, KFp, "", (function (t) {
+                    t && (browserID = t),
+                        e(t || "")
+                }
+                ))
+            }
+            ));
+        }
+        U.dwsGetSessionID = function (cid, KFp) {
+            return new Promise((function (e, t) {
+                window.du_web_sdk.getSessionID(cid, KFp, "", (function (t) {
+                    e(t || "")
+                }
+                ))
+            }
+            ));
+        }
+
+
+        setTimeout(() => {
+            var cid = "t6pfoml9679z52kqw93uqu75eflqdg1bykhl";
+            var KFp = "h5_goyxvzyohd";
+            var browserID = "";
+            var browserIDPromise = U.dwsGetBrowserId(browserID, cid, KFp);
+            var sessionIDPromise = U.dwsGetSessionID(cid, KFp);
+            Promise.all([browserIDPromise, sessionIDPromise])
+                .then((function ([browserID, sessionID]) {
+                    var xm_sign = "".concat(browserID, "&&").concat(sessionID);
+                    var html = "";
+                    html = html + "<input id='xm_sign' type='text' value='" + xm_sign + "'/>";
+                    document.body.innerHTML = html;
+                }
+                )).catch((function (e) { }
+                ))
+        }, 1000);
+
+    </script>
+</head>
+
+<body>
+    <input id="xm_sign" value="">
+</body>
+
+</html>

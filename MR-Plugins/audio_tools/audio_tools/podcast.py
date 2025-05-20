@@ -12,6 +12,7 @@ import ffmpeg
 from .functions import *
 from mbot.openapi import mbot_api
 from moviebotapi.common import MenuItem
+from .draw import draw_cover
 server = mbot_api
 logger = logging.getLogger(__name__)
 # dst_base_path = "/app/frontend/static/podcast/audio"
@@ -112,7 +113,12 @@ def update_xml_url0(file_path,display_title,link,cover_image_url,podcast_author,
         result = False
     return result
 
-def update_xml_url(file_path, display_title, link, cover_image_url, podcast_author, audio_num, reader, album_id='', sub=False):
+def update_xml_url(file_path, display_title, link, cover_image_url, podcast_author, audio_num, reader, sync_time='', album_id='', sub=False):
+    update_time = ''
+    try:
+        update_time = server.common.get_cache(display_title, f'{podcast_author}·{reader}') or ''
+    except Exception as e:
+        logger.error(f"{plugins_name}获取缓存的有声书更新时间出错，原因：{e}")
     reader = format_reader(reader)
     result = True
     try:
@@ -127,7 +133,9 @@ def update_xml_url(file_path, display_title, link, cover_image_url, podcast_auth
             "sub": sub,
             "xmly_url": xmly_url,
             "audio_num": audio_num,
-            "cover_url": cover_image_url
+            "cover_url": cover_image_url,
+            "sync_time": sync_time,
+            "update_time": update_time
         }
         # 读取原始JSON文件内容
         original_data = read_json_file(file_path)
@@ -339,7 +347,7 @@ def get_audio_info(file_path,book_title,short_filename,fill_num):
                         summary = audio.get('comment', [''])[0]
                     trck_num = audio.get('tracknumber', [''])[0]
                 if short_filename:
-                    org_title = org_title or os.path.basename(file_path)[0]
+                    org_title = org_title or os.path.basename(file_path)
                     try:
                         org_title = sortout_filename(org_title,book_title,fill_num)
                     except Exception as e:
@@ -404,7 +412,8 @@ def create_itunes_rss_xml(audio_files, base_url, cover_image_url, podcast_title,
     SubElement(channel, 'itunes:category', attrib={'text': podcast_category})
     SubElement(channel, 'itunes:image', attrib={'href': cover_image_url}) # 封面
     SubElement(channel, 'description').text = podcast_summary  # 简介
-    pub_date = datetime.now()
+    pub_date = datetime.now()                              # 获取当前时间
+    sync_time = pub_date.strftime('%Y-%m-%d %H:%M:%S')   #将当前时间转为 2023-11-22 12:22:18 格式
     for i, audio_file in enumerate(audio_files, start=1):
 
         org_title,pub_year_in,authors,duration,summary,trck_num,reader_no = get_audio_info(audio_file,book_title,short_filename,fill_num)
@@ -417,10 +426,10 @@ def create_itunes_rss_xml(audio_files, base_url, cover_image_url, podcast_title,
             title_text = get_filename(audio_file,book_title)
         else:
             title_text = org_title
-        SubElement(item, 'itunes:episodeType').text = "full"  # 完整的内容，可选trailer:预告  bonus:类似特别篇
-        SubElement(item, 'itunes:season').text = season_num  # 季编号
+        SubElement(item, 'itunes:episodeType').text = "full"     # 完整的内容，可选trailer:预告  bonus:类似特别篇
+        SubElement(item, 'itunes:season').text = season_num      # 季编号
         SubElement(item, 'itunes:episode').text = episode_num    # 集编号
-        SubElement(item, 'title').text = title_text    # 集标题
+        SubElement(item, 'title').text = title_text              # 集标题
         audio_url_m = f'{base_url}{audio_path.replace(src_base_path,"")}{audio_file.replace(audio_path,"")}'
         audio_url = url_encode(audio_url_m)
         SubElement(item, 'enclosure', attrib={'url': audio_url, 'type': 'audio/mpeg'})   # 指向音频文件的url
@@ -433,8 +442,8 @@ def create_itunes_rss_xml(audio_files, base_url, cover_image_url, podcast_title,
             if isinstance(pub_year, int) and len(str(pub_year)) == 4:
                 pub_date = pub_date.replace(year=int(pub_year))
         SubElement(item, 'pubDate').text = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT+8')
-        SubElement(item, 'itunes:duration').text = duration  # Replace with actual duration if available
-        SubElement(item, 'itunes:explicit').text = 'false'  # 是否存在露骨内容
+        SubElement(item, 'itunes:duration').text = duration  # 音频时长
+        SubElement(item, 'itunes:explicit').text = 'false'   # 是否存在露骨内容
         # pub_date += timedelta(minutes=1)
         pub_date += timedelta(seconds=1)
     return minidom.parseString(tostring(rss)).toprettyxml(indent='    '),podcast_author,reader
@@ -480,6 +489,9 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     if not audio_path:
         logger.info(f"{plugins_name}未设置输入路径，请设置后重试")
         return False
+    if not mbot_url:
+        logger.info(f"{plugins_name}未设置 Mbot 外网访问地址，请设置后重试")
+        return False
     # podcast_summary,reader = get_local_info(audio_path,podcast_summary,reader)
     base_url = f'{mbot_url}/static/podcast/audio'
     # base_url = f'{mbot_url}/plugins/podcast'
@@ -494,8 +506,30 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
     # audio_path = '/Media/有声书/ABC/DEF'
     # src_base_path = '/Media/有声书'
     add_path = audio_path.replace(src_base_path,'').strip('/') # ABC/DEF
+    notify_cover_url = ''
     if os.path.exists(cover_file):
         cover_file_hlink = f"{dst_base_path}/{add_path}/{os.path.basename(cover_file)}"
+
+        # 绘制通知封面
+        cover_image_out_path = os.path.join(audio_path,'notify_cover.jpg')
+        if not os.path.exists(cover_image_out_path):
+            draw_cover(cover_file,cover_image_out_path,book_title,podcast_author,reader)
+            time.sleep(1)
+        else:
+            # 获取文件最后修改时间
+            last_modified_time = os.path.getmtime(cover_image_out_path)
+            current_time = time.time()
+            # 检查是否超过3天未修改
+            if (current_time - last_modified_time) > (3 * 24 * 60 * 60):
+                draw_cover(cover_file,cover_image_out_path,book_title,podcast_author,reader)
+                time.sleep(1)
+        
+        if os.path.exists(cover_image_out_path):
+            cover_image_path_h = f"{dst_base_path}/{add_path}/notify_cover.jpg"
+            light_link(cover_image_out_path,cover_image_path_h)
+            notify_cover_url = f"{base_url}/{add_path}/notify_cover.jpg"
+            notify_cover_url = url_encode(notify_cover_url)
+    
         time.sleep(2)
         if not light_link(cover_file,cover_file_hlink):
             return False
@@ -535,14 +569,18 @@ def podcast_main(book_title, audio_path, podcast_summary, podcast_category, podc
         return False
     if not light_link(out_file,out_file_hlink):
         return False
-    podcast_json_path = src_base_path_book or src_base_path_music   
-    if not update_xml_url(os.path.join(podcast_json_path, 'podcast.json'),display_title,link,cover_image_url,podcast_author,audio_num,reader,album_id,sub):
+    podcast_json_path = src_base_path_book or src_base_path_music
+    sync_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')   # 将当前时间转为 2023-11-22 12:22:18 格式
+    if not update_xml_url(os.path.join(podcast_json_path, 'podcast.json'),display_title,link,cover_image_url,podcast_author,audio_num,reader,sync_time,album_id,sub):
         return False       
     link_url = link
     logger.info(f"有声书「{book_title}」的播客 RSS URL 链接如下：\n{link_url}")
     msg_title = f"{book_title} - 播客源"
     msg_digest = f"轻点卡片 - 再点右上角 - 在默认浏览器中打开，可快速添加至播客App中。"
-    push_msg_to_mbot(msg_title, msg_digest,link_url,cover_image_url)
+
+    pic_url_cover = notify_cover_url or cover_image_url
+
+    push_msg_to_mbot(msg_title, msg_digest,link_url,pic_url_cover)
     create_podcast_flag_file(audio_path)
     return True
 
@@ -577,7 +615,8 @@ def podcast_add_main(book_title,author,reader,book_dir_name,audio_path,xml_path,
     # root.attrib = {'xmlns:itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'version': '2.0'}
     channel = root.find('channel')
     base_url = f'{mbot_url}/static/podcast/audio'
-    pub_date = datetime.now()
+    pub_date = datetime.now()  # 获取当前时间
+    sync_time = pub_date.strftime('%Y-%m-%d %H:%M:%S')   # 将当前时间转为 2023-11-22 12:22:18 格式
     if not channel: return False
     for i, audio_file in enumerate(audio_files, start=1):
         audio_file = audio_file.replace('/tmp','')
@@ -590,10 +629,10 @@ def podcast_add_main(book_title,author,reader,book_dir_name,audio_path,xml_path,
             title_text = get_filename(audio_file,book_title)
         else:
             title_text = org_title
-        SubElement(item, 'itunes:episodeType').text = "full"  # 完整的内容，可选trailer:预告  bonus:类似特别篇
-        SubElement(item, 'itunes:season').text = season_num  # 季编号
+        SubElement(item, 'itunes:episodeType').text = "full"     # 完整的内容，可选trailer:预告  bonus:类似特别篇
+        SubElement(item, 'itunes:season').text = season_num      # 季编号
         SubElement(item, 'itunes:episode').text = episode_num    # 集编号
-        SubElement(item, 'title').text = title_text    # 集标题
+        SubElement(item, 'title').text = title_text              # 集标题
         """
         /Media/downloads/有声书/阴阳刺青师-墨大先生-头陀渊/tmp/阴阳刺青师 第783集 大汉龙钱.m4a
         audio_path = '/Media/有声书/阴阳刺青师-墨大先生-头陀渊'
@@ -612,7 +651,7 @@ def podcast_add_main(book_title,author,reader,book_dir_name,audio_path,xml_path,
             if isinstance(pub_year, int) and len(str(pub_year)) == 4:
                 pub_date = pub_date.replace(year=int(pub_year))
         SubElement(item, 'pubDate').text = pub_date.strftime('%a, %d %b %Y %H:%M:%S GMT+8')
-        SubElement(item, 'itunes:duration').text = duration  # Replace with actual duration if available
+        SubElement(item, 'itunes:duration').text = duration  # 音频时长
         SubElement(item, 'itunes:explicit').text = 'false'  # 是否存在露骨内容
         pub_date += timedelta(minutes=1)
     modified_xml_content = minidom.parseString(ET.tostring(root, encoding='utf-8')).toprettyxml(indent='    ')
@@ -627,7 +666,7 @@ def podcast_add_main(book_title,author,reader,book_dir_name,audio_path,xml_path,
                 js_data = read_json_file(json_file_path)
                 link = js_data[book_title][author][reader].get("podcast_url", "")
                 cover_image_url = js_data[book_title][author][reader].get("cover_url", "")
-                result = update_xml_url(json_file_path, book_title, link, cover_image_url, author, audio_num, reader, album_id, sub)
+                result = update_xml_url(json_file_path, book_title, link, cover_image_url, author, audio_num, reader, sync_time, album_id, sub)
             except Exception as e:
                 logger.error(f'{plugins_name}更新 podcast.json 文件失败, 原因: {e}')
                 result = False

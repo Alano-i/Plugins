@@ -13,6 +13,7 @@ from .podcast import podcast_config,podcast_menu
 from .command import cmd_config
 from .functions import hlink,process_path
 from .xmly_download import xmly_dl_config
+from .local_to_115 import lacal_to_115_config
 
 logger = logging.getLogger(__name__)
 server = mbot_api
@@ -59,6 +60,7 @@ def config_setup(config):
     podcast_config(config)
     cmd_config(config)
     xmly_dl_config(config)
+    lacal_to_115_config(config)
     podcast_menu()
     # 分享页面链接线程
     if src_base_path_book:

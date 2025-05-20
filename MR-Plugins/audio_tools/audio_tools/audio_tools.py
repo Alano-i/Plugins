@@ -17,7 +17,9 @@ from urllib.parse import quote
 import datetime
 import logging
 import shutil
+import setuptools
 from .functions import *
+from .draw import draw_cover
 logger = logging.getLogger(__name__)
 server = mbot_api
 # plugins_name = '「有声书工具箱」'
@@ -234,7 +236,7 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
     # 将视频名称序列分成 threading_clip_num 个一组的列表
     filenames_groups = [filenames[mnx:mnx+threading_clip_num] for mnx in range(0, filenames_num, threading_clip_num)]
     all_group_num = len(filenames_groups)
-    logger.info(f"{plugins_name} 启动 {all_group_num} 个线程执行剪辑任务，每 5 秒打印一次进度")
+    logger.info(f"{plugins_name} 启动 {all_group_num} 个线程执行剪辑任务，每 10 秒打印一次进度")
     threads = []  
     for group_num, filenames_group in enumerate(filenames_groups):
         # group_num 从0开始递增
@@ -290,8 +292,32 @@ def audio_clip(input_dir, output_dir, cliped_folder, audio_start, audio_end,clip
 
     try:
         cover_image_path = os.path.join(output_dir, cliped_folder,'cover.jpg')
+        
+
+
+        # 绘制通知封面
+        cover_image_out_path = os.path.join(output_dir, cliped_folder,'notify_cover.jpg')
+
+        if not os.path.exists(cover_image_out_path):
+            draw_cover(cover_image_path,cover_image_out_path,series,authors,reader)
+            time.sleep(1)
+        else:
+            # 获取文件最后修改时间
+            last_modified_time = os.path.getmtime(cover_image_out_path)
+            current_time = time.time()
+            # 检查是否超过3天未修改
+            if (current_time - last_modified_time) > (3 * 24 * 60 * 60):
+                draw_cover(cover_image_path,cover_image_out_path,series,authors,reader)
+                time.sleep(1)
+
+        cover_image_path_h = cover_image_out_path if os.path.exists(cover_image_out_path) else cover_image_path
+
         cover_image_path_hlink = f"{dst_base_path}/{series}_cover.jpg"
-        light_link(cover_image_path,cover_image_path_hlink)
+       
+
+        light_link(cover_image_path_h,cover_image_path_hlink)
+        time.sleep(1)
+        
         if os.path.exists(cover_image_path_hlink):
             cover_image_url = f'{mbot_url}/static/podcast/audio/{series}_cover.jpg'
             # cover_image_url = f'{mbot_url}/plugins/podcast/{series}_cover.jpg'

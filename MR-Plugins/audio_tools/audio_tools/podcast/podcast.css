@@ -1,0 +1,487 @@
+:root {
+    --van-background-2: #00ff0000;
+}
+
+@font-face {
+    font-family: 'num';
+    src: url('/static/podcast/ALIBABA-Font-Bold.otf') format('truetype');
+}
+
+/* 使用 num 字体 */
+.font-num {
+    font-family: 'num';
+}
+
+/* 左对齐 */
+.text-left {
+    text-align: left;
+    font-weight: bold;
+    /* 设置字体为粗体 */
+}
+
+/* 居中对齐 */
+.text-center {
+    text-align: center;
+    font-weight: bold;
+    /* 设置字体为粗体 */
+}
+
+/* 文字下面的灰色线 */
+.line {
+    border-bottom: 1px solid #ffffff;
+    margin: 0px 16px 10px 16px;
+    opacity: 0.12;
+}
+.context-menu {
+    position: absolute;
+    background-color: rgba(32, 35, 36, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 10px;
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    box-shadow: 0px 18px 25px 0px rgba(0, 0, 0, 0.6);
+    padding: 10px 15px 18px 15px;
+    z-index: 100;
+    font-size: 14px;
+    /* color: #ffffff; */
+}
+.img-c {
+    /* border: 1px solid rgba(0, 0, 0, 0.15); */
+    box-shadow: 0px 5px 10px 0px rgba(0, 0, 0, 0.2);
+}
+.url_bg {
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 7px;
+    margin-top: 7px;
+    margin-bottom: 7px;
+    color: #fff;
+    transition: background-color 0.3s, color 0.3s, opacity 0.3s; /* 添加过渡效果 */
+}
+.url_bg:active,
+.url_bg:hover {
+    background-color: rgba(255, 255, 255, 1);
+    border-radius: 7px;
+    opacity: 0.99;
+    color: #000;
+}
+.url_bg:active .x-icon,
+.url_bg:hover .x-icon {
+    filter: invert(1);
+}
+
+.url_txt {
+    font-size: 14px;
+    padding: 0px 40px 0px 5px;
+    font-weight: normal;
+    margin-bottom: 0px;
+    margin-top: 0px;
+}
+
+.under_line {
+    background-color: rgba(255, 255, 255, 0.341);
+    height: 1px;
+    opacity: 0.2;
+    border-radius: 2px;
+    margin-bottom: 20px;
+}
+/* 设置滚动条的样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    background: #171717;
+}
+
+/* 滚动槽 */
+::-webkit-scrollbar-track {
+    /*-webkit-box-shadow: rgba(255, 0, 0, 1);*/
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0);
+}
+
+/* 滚动条滑块-窗口激活 */
+::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    /*-webkit-box-shadow:  rgba(255, 0, 0, 0);*/
+}
+
+/* 滚动条滑块-窗口失去焦点 */
+::-webkit-scrollbar-thumb:window-inactive {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#bottom-line {
+    height: 1px; /* 线的高度 */
+    background-color: rgba(255, 255, 255, 0.5); /* 使用白色，并设置透明度为50% */
+    width: 100%; /* 线的宽度 */
+}
+
+#search-bg {
+    height: 78px;
+    display: flex;
+    padding-top: 0px;
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直居中 */
+    position: sticky;
+    z-index: 1000;
+    /* background: #171717; */
+    background-color: rgb(23, 23, 23, 0.9);
+    backdrop-filter: blur(60px) saturate(200%);
+    -webkit-backdrop-filter: blur(60px) saturate(200%);
+    transition: padding-top 0.3s ease-in-out;
+}
+.search-container {
+    width: 100%;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    /* border: 1px solid rgba(0, 0, 0, 0.5); */
+    border-radius: 26px;
+    background-color: rgba(255, 255, 255, 0.07);
+    position: relative;
+}
+.search-input {
+    background: rgba(0, 0, 0, 0);
+    color: #EAEBEB;
+    flex-grow: 1;
+    caret-color: #cb55f0;
+    border: none;
+    outline: none;
+    padding: 5px 0px 7px 16px;
+    padding-left: 40px;
+    /* 调整左侧内边距以适应图标 */
+    padding-right: 10px;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.search-input::-ms-input-placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.search-input:-ms-input-placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.search-input::-webkit-input-placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.search-input::-moz-placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    opacity: 1;
+}
+
+.search-button {
+    background: linear-gradient(to right, #cd7df5, #8437c1);
+    /* padding: 8px 24px 8px 24px; */
+    font-size: 17px;
+    width: 100px;
+    height: 36px;
+    /* background-color: #9f4ddd; */
+    color: rgba(255, 255, 255, 0.95);
+    border: none;
+    cursor: pointer;
+    border-radius: 22px;
+    margin-right: 4px;
+    padding: 0px;
+    box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.3);
+    -webkit-box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.3);
+    -moz-box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.3);
+    transform: scale(1);
+    -webkit-transform: scale(1);
+    transition-duration: 0.3s;
+}
+.search-button::before {
+    content: "";
+    position: absolute;
+    border-radius: 22px;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    border: 1px solid rgba(255, 255, 255, 0.13); /* 内描边 */
+    pointer-events: none;
+}
+
+.search-button:hover {
+    box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.4);
+    -webkit-box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.4);
+    -moz-box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.4);
+    transform: scale(0.95);
+    -webkit-transform: scale(0.95);
+}
+
+.search-button:active {
+    transform: scale(0.9);
+    -webkit-transform: scale(0.9);
+    transition-duration: 0.3s;
+    box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.44);
+    -webkit-box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.44);
+    -moz-box-shadow: 0px 6px 10px 0px rgba(167, 54, 231, 0.44);
+}
+
+.search-icon {
+    position: absolute;
+    width: 18px;
+    left: 13px;
+    padding-bottom: 2px;
+    top: 50%;
+    opacity: 0.25;
+    transform: translateY(-50%);
+}
+.info_text {
+        font-size: 15px;
+}
+
+/* 适用于移动端（假设屏幕宽度小于或等于768px） */
+@media only screen and (max-width: 768px) {
+    .search-container {
+        height: 42px;
+        border-radius: 22px;
+    }
+    .search-button {
+        width: 72px;
+        height: 34px;
+        border-radius: 20px;
+    }
+    .info_text {
+        font-size: 12.5px;
+    }
+}
+/* 禁用双击放大 */
+html,
+body {
+    touch-action: manipulation;
+    -ms-content-zooming: none;
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+/*选中文字*/
+::selection {
+    background: rgba(136, 72, 196, 0.95) !important;
+    color: rgba(255, 255, 255, 0.99) !important;
+}
+
+img {
+    user-select: none;
+}
+
+:root {
+    --van-background-2: #00ff0000;
+}
+
+.van-theme-dark body {
+    color: white;
+    background-color: #171717;
+    text-align: center;
+}
+
+.van-grid-item__content {
+    padding: 0;
+}
+.van-back-top {
+    background-color: #ad5fdd;
+    /* background: linear-gradient(to right, #cd7df5, #8437c1); */
+    box-shadow: rgba(0, 0, 0, 0.55) 0px 5px 12px 0px;
+    border: 1px solid rgba(222, 239, 245, 0.14);
+}
+
+.van-grid-item__content--center {
+    align-items: center;
+    justify-content: start;
+}
+
+[v-cloak] {
+    display: none;
+}
+
+.text-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -webkit-line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+}
+
+.fade-in-up {
+    opacity: 0;
+    transform: translateY(100px);
+    animation: fade-in-up 0.35s ease-out forwards;
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 1;
+        transform: translateY(100px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.loading-container {
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+    padding-top: 7px;
+}
+
+.loading {
+    /* position: relative; */
+    width: 30px;
+    height: 30px;
+    border: 2px solid #fff;
+    border-top-color: rgba(255, 255, 255, 0.2);
+    border-right-color: rgba(255, 255, 255, 0.2);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+    border-radius: 100%;
+    /* opacity: 0; */
+    animation: circle infinite 0.75s linear;
+    /* animation: fadeIn infinite 0.05s ease-in-out 0.6s forwards; */
+
+}
+
+@keyframes circle {
+    0% {
+        transform: rotate(0);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.loading-text {
+    color: #ffffff;
+    font-size: 15px;
+    margin-left: 5px;
+    opacity: 0.5;
+
+}
+
+@keyframes fadeIn-text {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 0.5;
+    }
+}
+
+.spinner {
+    width: 80px;
+    height: 80px;
+    margin: 5px auto;
+    background-color: #B563E7;
+    border-radius: 100%;
+    -webkit-animation: scaleout 1.0s infinite ease-in-out;
+    animation: scaleout 1.0s infinite ease-in-out;
+}
+.sub-ani {
+    filter: invert(45%) sepia(80%) saturate(400%) hue-rotate(240deg) brightness(98%) contrast(100%);
+    /* filter: invert(94%) sepia(84%) saturate(402%) hue-rotate(74deg) brightness(93%) contrast(91%); */
+
+}
+
+@-webkit-keyframes scaleout {
+    0% {
+        -webkit-transform: scale(0.0)
+    }
+
+    100% {
+        -webkit-transform: scale(1.0);
+        opacity: 0;
+    }
+}
+
+@keyframes scaleout {
+    0% {
+        transform: scale(0.0);
+        -webkit-transform: scale(0.0);
+    }
+
+    100% {
+        transform: scale(1.0);
+        -webkit-transform: scale(1.0);
+        opacity: 0;
+    }
+}
+
+.box {
+    position: relative;
+    display: inline-block;
+    font-size: 0;
+    width: 100%; 
+    margin-top: 5px; 
+    padding-bottom: 100%; 
+    position: relative; 
+    border-radius: 7px; 
+    overflow: hidden;
+}
+
+.box::after {
+    content: "";
+    display: block;
+    height: 100%;
+    position: absolute;
+    border-radius: 7px; 
+    top: 0;
+    width: 100%;
+    box-shadow: inset 0px 0px 0px 1px rgb(255 255 255 / 10%);
+}
+
+.podcast_title {
+    /* display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 80px;
+    font-size: 40px; */
+    -webkit-text-fill-color: transparent;
+    color: var(--white);
+    background: linear-gradient(
+        -45deg,
+        rgb(255, 245, 102),
+        rgb(168, 255, 202),
+        rgb(255, 236, 127),
+        rgb(255, 158, 149),
+        rgb(255, 255, 255),
+        /* rgb(255, 92, 201), */
+        /* rgb(98, 121, 234), */
+        rgb(102, 255, 230)
+      )
+      0% 0% / 300% text;
+    animation: 8s ease-in-out 0s infinite normal none running flow;
+  }
+  
+  @keyframes flow {
+    0%,
+    100% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+  }
