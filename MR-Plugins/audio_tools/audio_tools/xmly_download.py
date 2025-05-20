@@ -22,6 +22,7 @@ from .functions import *
 from .podcast import podcast_add_main
 from .audio_tools import audio_clip, push_msg_to_mbot, move_to_dir, all_add_tag, add_cover
 from .draw import draw_cover
+from .get_xm_sign import get_xm_sign
 
 server = mbot_api
 session = requests.Session()
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
 def xmly_dl_config(config):
     global plugins_name,src_base_path_book, src_base_path_music,dst_base_path
-    global sub_infos_set,update_podcast_config,magic,headers,mbot_url
+    global sub_infos_set,update_podcast_config,magic,mbot_url
     mbot_url = config.get('mbot_url','')
     plugins_name = config.get('plugins_name','')
     src_base_path_book = config.get('src_base_path_book','')
@@ -48,10 +49,11 @@ def xmly_dl_config(config):
         src_base_path_book = process_path(src_base_path_book)
     if src_base_path_music:
         src_base_path_music = process_path(src_base_path_music)
-    headers = {
-        'cookie': magic,
-        'user-agent': user_agent,
-    }
+    # headers = {
+    #     'cookie': magic,
+    #     'user-agent': get_xm_sign()[1],
+    #     'Xm-Sign': get_xm_sign()[0],
+    # }
 
 def get_downloaded_list_root_only(folder_path):
     file_extensions = ['.mp3', '.mp4', '.m4a', '.m4b', '.flac']  # 支持的文件扩展名
@@ -97,6 +99,16 @@ def get_new_track(album_id,index_on=False,index_offset=0,sub_start=1):
     all_track_list = []
     new_ep_mum_list = []
     track_info = {}
+    # logger.info(f"headers为： {headers}")
+    # global xm_sign, user_agent
+    xm_sign, user_agent = get_xm_sign()
+    user_agent='MicroMessenger Client'
+    headers = {
+        'cookie': magic,
+        'user-agent': user_agent,
+        'Xm-Sign': xm_sign,
+    }
+    logger.info(f"get_new_track headers为： {headers}")
     for page_num in range(1, num_pages + 1):
         response = session.request("GET", base_url, params={"albumId": album_id, "pageNum": page_num, "pageSize": page_size}, headers=headers, timeout=30)  
         data = response.json()
