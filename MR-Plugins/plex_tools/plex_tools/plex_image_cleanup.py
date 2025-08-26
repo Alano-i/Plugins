@@ -72,6 +72,9 @@ options = [
     {"arg": "od", "key": "optimize-db",      "env": "OPTIMIZE_DB",      "type": "bool", "default": False,    "help": "Global Toggle to Run Plex's Optimize DB Operation."},
     {"arg": "tr", "key": "trace",            "env": "TRACE",            "type": "bool", "default": False,    "help": "Run with extra trace logs."},
     {"arg": "lr", "key": "log-requests",     "env": "LOG_REQUESTS",     "type": "bool", "default": False,    "help": "Run with every request logged."},
+    {"arg": "nt", "key": "notify_type",      "env": "NOTIFY_TYPE",      "type": "str",  "default": None,     "help": "通知服务类型，支持 'mbot' 或 'nh'"},
+    {"arg": "na", "key": "nh_api_url",       "env": "NH_API_URL",       "type": "str",  "default": None,     "help": "NH通知服务器的URL，例如：https://nh.xxx.com"},
+    {"arg": "ri", "key": "nh_route_id",      "env": "NH_ROUTE_ID",      "type": "str",  "default": None,     "help": "NH通知服务器的route_id，例如：route_l822"},
     {"arg": "mu", "key": "mbot-url",         "env": "MBOT_URL",         "type": "str",  "default": None,     "help": "Mbot通知服务器的URL，例如：http://10.0.0.1:1329"},
     {"arg": "ak", "key": "access-key",       "env": "ACCESS_KEY",       "type": "str",  "default": None,     "help": "Mbot的 access_key"},
     {"arg": "pu", "key": "pic-url",          "env": "PIC_URL",          "type": "str",  "default": "https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MR-Plugins/plex_tools/plex_tools/overlays/clean.jpg",     "help": "接收通知的图片封面URL"},
@@ -89,14 +92,31 @@ requests.Session.send = util.update_send(requests.Session.send, pmmargs["timeout
 plexapi.BASE_HEADERS["X-Plex-Client-Identifier"] = pmmargs.uuid
 
 ######################################### 自定义部分 #########################################
-access_key = pmmargs["access-key"]
-mbot_url = pmmargs["mbot-url"]
-pic_url = pmmargs["pic-url"]
-channel_id = pmmargs["channel-id"]
-logger.info(f"设置的Mbot URL: {mbot_url}")
-logger.info(f"设置的Mbot ACCESS_KEY : {access_key}")
-logger.info(f"设置的消息推送封面: {pic_url}")
-logger.info(f"设置的消息推送通道ID: {channel_id}")
+def get_arg(key, default=""):
+    try:
+        return pmmargs[key]
+    except KeyError:
+        return default
+notify_type = get_arg("notify_type")
+nh_api_url  = get_arg("nh_api_url")
+nh_route_id = get_arg("nh_route_id")
+access_key  = get_arg("access-key")
+mbot_url    = get_arg("mbot-url")
+pic_url     = get_arg("pic-url")
+channel_id  = get_arg("channel-id")
+
+if notify_type == 'mbot':
+    logger.info(f"设置的通知方式: Mbot插件")
+    logger.info(f"设置的 Mbot URL: {mbot_url}")
+    logger.info(f"设置的 Mbot ACCESS_KEY : {access_key}")
+    logger.info(f"设置的消息推送封面: {pic_url}")
+    logger.info(f"设置的消息推送通道ID: {channel_id}")
+
+if notify_type == 'nh':
+    logger.info(f"设置的通知方式: NH通知服务器")
+    logger.info(f"设置的 NH服务器通道API URL: {nh_api_url}")
+    logger.info(f"设置的 NH服务器通道ID : {nh_route_id}")
+
 def get_num(text):
     size,file_count = '0MB','0'
     # 匹配数字和单位
@@ -131,17 +151,23 @@ def get_mode(text):
     end_index = text.find("Mode with")
     extracted_string = text[start_index:end_index].strip()
     return extracted_string
+# 描述为：Running in Remove Mode with Empty Trash, Clean Bundles, and Optimize DB set to True
+from collections import OrderedDict
+def get_run_Operations(description: str) -> str:
+    # 固定顺序映射
+    mapping = OrderedDict([
+        ('PhotoTrancoder', '清理PhotoTranscoder目录'),
+        ('Empty Trash', '清空垃圾箱'),
+        ('Clean Bundles', '清理捆绑包'),
+        ('Optimize DB', '优化数据库'),
+    ])
+    
+    run_ops = [op for key, op in mapping.items() if key in description]
+    result = " · ".join(run_ops) if run_ops else "无操作"
+    
+    logger.info(f"执行的操作: {result}\n")
+    return result
 
-def get_run_Operations(description):
-    if 'PhotoTrancoder' in description:
-        run_Operations = '清理PhotoTranscoder目录'
-    if 'Empty Trash' in description:
-        run_Operations = f'{run_Operations} · 清空垃圾箱'
-    if 'Clean Bundles' in description:
-        run_Operations = f'{run_Operations} · 清理捆绑包'
-    if 'Optimize DB' in description:
-        run_Operations = f'{run_Operations} · 优化数据库'
-    return run_Operations
 
 def send_msg(msg_digest):
     logger.info(f"设置的Mbot URL: {mbot_url}")
@@ -164,7 +190,23 @@ def send_msg(msg_digest):
     else:
         logger.info(f"消息推送失败\n")
 
-def send_to_mbot(description,report):
+
+def send_nh_msg(msg_digest):
+    data = {
+        "route_id": nh_route_id,
+        "title": "Plex 图片优化清理完成",
+        "content": msg_digest,
+        # "push_img_url": "https://example.com/test.jpg",
+        # "push_link_url": "https://example.com"
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(nh_api_url, json=data, headers=headers)
+    if response.status_code == 200:
+        logger.info(f"已推送NH消息\n")
+    else:
+        logger.info(f"消息推送失败\n")
+
+def send_to_notify_server(description,report):
     size_bloat,file_count_bloat,size_tc,file_count_tc,clean_text = '','','','',''
     for i, rep in enumerate(report, start=0):
         if i+1<len(report):
@@ -182,9 +224,12 @@ def send_to_mbot(description,report):
     if mode == 'Remove': mode = 'Remove (删除元数据，不可恢复)'
     run_Operations = get_run_Operations(description)
     msg_digest = f"运行模式： {mode}\n清理时长： {all_time}\n\n{clean_text}\n\n{run_Operations}"
-    send_msg(msg_digest)
+    if notify_type == 'mbot':
+        send_msg(msg_digest)
+    elif notify_type == 'nh':
+        send_nh_msg(msg_digest)
 
-###############################################################################################
+######################################### 自定义部分结束 #########################################
 
 def pic_thread(attrs):
     with ProcessPoolExecutor(max_workers=1) as executor:
@@ -560,13 +605,20 @@ def run_plex_image_cleanup(attrs):
     try:
         logger.info(f"描述为：{description}\n")
         logger.info(f"内容为：{report}\n")
-        if mbot_url and access_key:
-            send_to_mbot(description,report)
-        else:
-            logger.info(f"Mbot通知服务器信息配置不完整，如有需要请配置好后重试！\n")
+        notify_config = {
+            "mbot": [mbot_url, access_key],
+            "nh": [nh_api_url, nh_route_id],
+        }
+
+        if notify_type in notify_config:
+            if all(notify_config[notify_type]):
+                send_to_notify_server(description, report)
+            else:
+                logger.info(f"{notify_type.upper()}通知服务器信息配置不完整，请配置好后重试！\n")
+
     except Exception as e:
         logger.info(f"出错了，原因：{e}\n")
-############################################################################################
+######################################### 自定义部分结束 #########################################
 
     logger.remove_main_handler()
 
