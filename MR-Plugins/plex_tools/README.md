@@ -36,17 +36,17 @@ MR插件，PLEX 工具箱，原作者是BeiMou(yewei)，感谢。在此基础上
 ### 安装方法
 首先安装以下docker，注意需要映射插件目录中 `plex_image_cleanup.py` 到容器中
 ```console
-version: "2.1"
 services:
   plex-image-cleanup:
     image: meisnate12/plex-image-cleanup
     container_name: plex-image-cleanup
+    network_mode: bridge
     environment:
-      - TZ=TIMEZONE #optional
+      - TZ=Asia/Shanghai
     volumes:
-      - /path/to/config:/config
-      - /path/to/plex:/plex
-      - /path/to/plex-image-cleanup.py:/plex_image_cleanup.py
+      - /appdata/plex-image-cleanup:/config
+      - /appdata/plex/config/Library/Application Support/Plex Media Server:/plex
+      - /appdata/plex-image-cleanup/plex_image_cleanup.py:/plex_image_cleanup.py
     restart: unless-stopped
 ```
 
@@ -69,6 +69,9 @@ CLEAN_BUNDLES=True
 OPTIMIZE_DB=True
 TRACE=True
 LOG_REQUESTS=True
+NOTIFY_TYPE=nh                 *这里按需填写通知类型，支持mbot nh
+NH_API_URL=https://nh.xxx.com/api/service/notify  *填nh的api地址
+NH_ROUTE_ID=route_xxx                             *填nh的通知通道Id
 MBOT_URL=                       这里按需填写 Mbot 的 URL
 ACCESS_KEY=                     这里按需填写 Mbot 的 ACCESS_KEY
 PIC_URL=https://raw.githubusercontent.com/Alano-i/Mbot-Plugins/main/MR-Plugins/plex_tools/plex_tools/overlays/clean.jpg
