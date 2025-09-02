@@ -194,7 +194,7 @@ def send_notify(content,update_data=True):
             # 按渠道发送（单个渠道）
             server.send_notify_by_channel(
                 channel_name=BIND_CHANNEL,
-                title="IPTV 频道更新通知" if update_data else "IPTV 频道无更新",
+                title="IPTV 频道更新" if update_data else "IPTV 频道无更新",
                 content=content if update_data else "",
                 push_img_url=PUSH_IMG_URL,      # 可选
                 push_link_url=PUSH_LINK_URL       # 可选
