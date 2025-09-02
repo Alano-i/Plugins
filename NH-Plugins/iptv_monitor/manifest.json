@@ -3,9 +3,9 @@
   "name": "IPTV频道同步",
   "description": "同步IPTV频道组播信息，并推送通知",
   "author": "Alano",
-  "logo": "",
+  "logo": "https://raw.githubusercontent.com/Alano-i/Plugins/refs/heads/main/NH-Plugins/iptv_monitor/iptv.jpg",
   "version": "0.0.1",
-  "documentation": "",
+  "documentation": "https://github.com/Alano-i/Plugins/tree/main/NH-Plugins/iptv_monitor",
   "path": "/iptv_monitor",
   "configField": [
     {
