@@ -1,0 +1,2 @@
+from .iptv import *
+main()

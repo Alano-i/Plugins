@@ -1,0 +1,98 @@
+{
+  "id": "iptv_monitor",
+  "name": "IPTV频道同步",
+  "description": "同步IPTV频道组播信息，并推送通知",
+  "author": "Alano",
+  "logo": "",
+  "version": "0.0.1",
+  "documentation": "",
+  "path": "/iptv_monitor",
+  "configField": [
+    {
+        "fieldName": "udpxy_url",
+        "fieldType": "string",
+        "label": "UDPXY的URL地址",
+        "helpText": "请输入UDPXY的URL地址，用于生成m3u文件",
+        "defaultValue": ""
+    },
+    {
+        "fieldName": "iptv_json_url",
+        "fieldType": "string",
+        "label": "IPTV频道列表的本地存放路径",
+        "helpText": "",
+        "defaultValue": ""
+    },
+    {
+        "fieldName": "m3u_path",
+        "fieldType": "string",
+        "label": "IPTV M3U文件的本地存放路径",
+        "helpText": "",
+        "defaultValue": ""
+    },
+    {
+        "fieldName": "notify_switch",
+        "fieldType": "switch",
+        "label": "是否启用通知",
+        "defaultValue": true
+    },
+    {
+      "fieldName": "bind_channel",
+      "fieldType": "enum",
+      "label": "通知推送渠道",
+      "required": false,
+      "enumValuesRef": "ChannelList",
+      "multiValue": false,
+      "conditional": {
+        "field": "notify_switch",
+        "operator": "equals",
+        "value": true
+      }
+    },
+    {
+        "fieldName": "push_img_url",
+        "fieldType": "string",
+        "label": "通知封面图片链接",
+        "required": false,
+        "helpText": "",
+        "defaultValue": "",
+        "conditional": {
+        "field": "notify_switch",
+        "operator": "equals",
+        "value": true
+      }
+    },
+    {
+        "fieldName": "push_link_url",
+        "fieldType": "string",
+        "label": "通知点击跳转链接",
+        "required": false,
+        "helpText": "",
+        "defaultValue": "",
+        "conditional": {
+        "field": "notify_switch",
+        "operator": "equals",
+        "value": true
+      }
+    },
+    {
+      "fieldName": "task_switch",
+      "fieldType": "switch",
+      "label": "定时同步任务",
+      "helpText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "cron_task_time",
+      "fieldType": "string",
+      "label": "",
+      "helpText": "定时任务的时间，格式为五位 cron 表达式",
+      "defaultValue": "0 12 * * *",
+      "required": false,
+      "conditional": {
+        "field": "task_switch",
+        "operator": "equals",
+        "value": true
+      }
+    }
+  ]
+}
