@@ -2,24 +2,10 @@
   "name": "qb_tools",
   "title": "QB 工具箱",
   "author": "Alano",
-  "description": "➊ 自动为QB种子添加标签 ➋ 接收 POST 事件，可指定 PLEX 服务器刷新局部目录 ➌ 每天凌晨 1:30 PELX 扫全库，详见帮助文档",
-  "version": "1.0",
+  "description": "➊ 自动添加标签 ➋ 修改tracker ➌ 指定 PLEX 服务器刷新局部目录 ➍ 定时扫描 PELX 媒体库。详见帮助文档",
+  "version": "1.37",
   "requirements": null,
   "configField": [
-    {
-      "fieldName": "add_tag",
-      "fieldType": "Bool",
-      "label": "开启自动添加标签 (保存设置后会自动重启)",
-      "helperText": "",
-      "defaultValue": false
-    },
-    {
-      "fieldName": "check_interval",
-      "fieldType": "String",
-      "label": "QB检测间隔（单位：秒）",
-      "helperText": "",
-      "defaultValue": "10"
-    },
     {
       "fieldName": "qb_urls",
       "fieldType": "String",
@@ -49,11 +35,85 @@
       "defaultValue": "adminadmin"
     },
     {
-      "fieldName": "update_plex_library_on",
+      "fieldName": "check_interval",
+      "fieldType": "String",
+      "label": "QB检测间隔（单位：秒）",
+      "helperText": "",
+      "defaultValue": "30"
+    },
+    {
+      "fieldName": "delete_task",
       "fieldType": "Bool",
-      "label": "开启自动在每天凌晨 1:30 扫全库",
+      "label": "自动删种",
       "helperText": "",
       "defaultValue": false
+    },
+    {
+      "fieldName": "save_path",
+      "fieldType": "String",
+      "label": "需要自动删种任务的下载文件夹，末尾带/，一行一个",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "delete_local",
+      "fieldType": "Bool",
+      "label": "自动删除本地文件",
+      "helperText": "",
+      "defaultValue": false
+    },
+
+    {
+      "fieldName": "delete_hard",
+      "fieldType": "Bool",
+      "label": "自动删除硬链接文件",
+      "helperText": "自动删除硬链接文件需要同时开启自动删除本地文件才会生效",
+      "defaultValue": false
+    },
+
+
+    {
+      "fieldName": "hardlink_paths",
+      "fieldType": "String",
+      "label": "下载文件夹对应的硬链接目录，末尾不带/，一行一个",
+      "helperText": "",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "del_day",
+      "fieldType": "String",
+      "label": "自动删除几天前的种子任务，默认7天",
+      "helperText": "",
+      "defaultValue": "7"
+    },
+    {
+      "fieldName": "add_tag",
+      "fieldType": "Bool",
+      "label": "开启自动添加标签 (保存设置后会自动重启)",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "auto_edit_tracker",
+      "fieldType": "Bool",
+      "label": "开启自动修改兽站 tracker (保存设置后会自动重启)",
+      "helperText": "",
+      "defaultValue": false
+    },
+
+    {
+      "fieldName": "update_plex_library_on",
+      "fieldType": "Bool",
+      "label": "每天凌晨 01:30 扫描 PLEX 媒体库",
+      "helperText": "",
+      "defaultValue": false
+    },
+    {
+      "fieldName": "library_set",
+      "fieldType": "String",
+      "label": "需扫描的媒体库名称（默认全库：ALL）,英文逗号','间隔",
+      "helperText": "",
+      "defaultValue": "ALL"
     },
     {
       "fieldName": "random_set",
