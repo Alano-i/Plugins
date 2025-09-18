@@ -3,10 +3,10 @@
   "name": "IPTV频道同步",
   "description": "同步IPTV频道组播信息，并推送通知",
   "author": "Alano",
-  "logo": "https://img.walkcs.com/iptv.jpg",
-  "thumbnailurl": "https://img.walkcs.com/nh/iptv.png",
+  "logo": "/data/plugins/iptv_monitor/logo.jpg",
+  "thumbnailurl": "/data/plugins/iptv_monitor/logo_thum.png",
   "version": "0.0.1",
-  "documentation": "https://doc.walkcs.com",
+  "documentation": "",
   "path": "/iptv_monitor",
   "configField": [
     {
