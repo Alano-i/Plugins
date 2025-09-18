@@ -1,7 +1,7 @@
 from mbot.core.plugins import plugin, PluginCommandContext, PluginCommandResponse,PluginMeta
 from mbot.openapi import mbot_api
 from mbot.core.params import ArgSchema, ArgType
-from .qb_tools import add_tag_m,edit_tracker_m, delete_task_m
+from .qb_tools import add_tag_m,edit_tracker_m, delete_task_m, delete_old_dirs
 import logging
 
 server = mbot_api
@@ -47,7 +47,7 @@ def edit_tracker_echo(ctx: PluginCommandContext,
         logger.info(f'{plugins_name}未启用修改tracker，任务停止')
     return PluginCommandResponse(True, f'手动修改tracker任务完成')
 
-@plugin.command(name='del_ta', title='手动删种', desc='删种，本地文件，硬链接文件', icon='PublishedWithChanges',run_in_background=True)
+@plugin.command(name='del_ta', title='手动删种', desc='删种，本地文件，硬链接文件', icon='DeleteForever',run_in_background=True)
 def del_ta_echo(ctx: PluginCommandContext,
                 save_path: ArgSchema(ArgType.String, '删除指定下载文件夹的种子，一行一个，末尾带/', '/Media/downloads/', default_value='', required=True),
                 delete_local_config: ArgSchema(ArgType.Enum, '🗂️ 删除本地文件，默认关闭', '', enum_values=lambda: add_tag_config_list, default_value='off', multi_value=False, required=False),
@@ -64,5 +64,19 @@ def del_ta_echo(ctx: PluginCommandContext,
         del_day = 7
 
     delete_task_m(save_path,delete_local,delete_hard,hardlink_paths,del_day)
+
+    return PluginCommandResponse(True, f'手动运行删种任务完成')
+
+@plugin.command(name='del_tf', title='删文件夹', desc='删除创建日期超过指定天数的本地文件夹', icon='DeleteSweep',run_in_background=True)
+def del_tf_echo(ctx: PluginCommandContext,
+                paths: ArgSchema(ArgType.String, '删除文件夹下的子文件夹，只删一级，末尾不带/,支持多个目录，一行一个', '/Media', default_value='', required=True),
+                days: ArgSchema(ArgType.String, '删除多少天之前创建的文件夹，默认7天', '', default_value='7', required=True)):
+    paths=paths.splitlines()
+    try:
+        days = int(days)
+    except ValueError:
+        days = 7
+
+    delete_old_dirs(paths,days)
 
     return PluginCommandResponse(True, f'手动运行删种任务完成')

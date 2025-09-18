@@ -2,8 +2,8 @@
   "name": "qb_tools",
   "title": "QB 工具箱",
   "author": "Alano",
-  "description": "➊ 自动添加标签 ➋ 修改tracker ➌ 指定 PLEX 服务器刷新局部目录 ➍ 定时扫描 PELX 媒体库。详见帮助文档",
-  "version": "1.37",
+  "description": "➊自动添加标签 ➋修改tracker ➌指定 PLEX 服务器刷新局部目录 ➍定时扫描 PELX 媒体库。➎自动删种 ➏删旧文件夹。详见帮助文档",
+  "version": "1.38",
   "requirements": null,
   "configField": [
     {

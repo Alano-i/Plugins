@@ -12,6 +12,7 @@ from typing import Dict, Any
 import logging
 import shutil
 import subprocess
+from .remove_empty import remove
 
 import threading
 import sched
@@ -134,6 +135,8 @@ def replace_tracker(tracker,old_tracker,new_tracker,auto_edit_tracker):
     return new_urls
 
 
+
+
 def is_sub_path(torrent_path, target_path):
     torrent_path = os.path.abspath(torrent_path)
     target_path = os.path.abspath(target_path)
@@ -148,65 +151,91 @@ def format_time_delta(seconds):
     formated_time=f"{days}天{hours}小时{minutes}分{secs}秒"
     return formated_time.replace('0天','').replace('0小时','').replace('0分','').replace('0秒','')
 
+def delete_old_dirs(paths,days):
+    """删除 path 目录下创建日期超过 days 天的一级子目录"""
+    now = time.time()
+    cutoff = now - days * 86400  # 转换为秒
+    for path in paths:
+        if not os.path.isdir(path):
+            continue  # 跳过不存在或不是目录的路径
+        for entry in os.scandir(path):
+            if entry.is_dir(follow_symlinks=True):  #一个指向目录的符号链接会被认为是目录。
+                ctime = os.stat(entry.path).st_ctime                
+                if ctime < cutoff:
+                    time_str = format_time_delta(now - ctime)
+                    try:
+                        shutil.rmtree(entry.path)
+                        logger.info(f"{plugins_name}已删除目录: {entry.path}，创建时间超过{days}天 ({time_str})")
+                    except Exception as e:
+                        logger.info(f"{plugins_name}删除目录 {entry.path} 出错: {e}")
+
+
 def delete_with_hardlinks(file_path, search_paths):
-    """删除文件及其在指定目录下的硬链接"""
+    """删除文件及其在指定目录下的硬链接，只返回需要检查删除的目录"""
+    dirs_to_check = set()
     try:
         inode = os.stat(file_path).st_ino
         for sp in search_paths:
             if not os.path.exists(sp):
                 continue
             try:
-                # 查找硬链接文件
                 result = subprocess.check_output(['find', sp, '-xdev', '-inum', str(inode)], text=True)
                 paths = result.strip().split('\n')
                 for p in paths:
                     if os.path.exists(p):
-                        # 删除 sp 下一级目录
-                        relative_path = os.path.relpath(p, sp)  # 计算相对路径
-                        first_level_dir = relative_path.split(os.sep)[0]  # 第一级目录
+                        # 计算第一级目录
+                        relative_path = os.path.relpath(p, sp)
+                        first_level_dir = relative_path.split(os.sep)[0]
                         dir_to_delete = os.path.join(sp, first_level_dir)
-                        if os.path.exists(dir_to_delete):
-                            try:
-                                shutil.rmtree(dir_to_delete)
-                                logger.info(f"{plugins_name}已删除硬链接目录: {dir_to_delete}")
-                                return True # 找到一个就够
-                            except Exception as e:
-                                logger.info(f"{plugins_name}删除硬链接目录 {dir_to_delete} 出错: {e}")
-                            
-                return False
+
+                        # 删除硬链接文件
+                        try:
+                            os.remove(p)   ###########
+                            logger.info(f"{plugins_name}已删除硬链接: {p}")
+                        except Exception as e:
+                            logger.info(f"{plugins_name}删除硬链接 {p} 出错: {e}")
+
+                        dirs_to_check.add(dir_to_delete)
             except subprocess.CalledProcessError:
                 # find 没找到结果时会报错，忽略即可
                 pass
     except Exception as e:
         logger.info(f"{plugins_name}删除硬链接失败: {file_path}, 错误: {e}")
-        return False
+
+    return dirs_to_check
 
 
 def delete_main(qb):
-    # ============ 删除 7 天前完成的任务 ============
-    # save_path = ['/Media/downloads/短剧/', '']     # qb下载目录
-    # hardlink_paths = ['/Volumes/影音视界-1/短剧']      # 需要查找硬链接的目录
     logger.info(f"{plugins_name}开始删除完成时间超过「{del_day}」天的种子，下载路径: {save_path}，硬链接路径：{hardlink_paths}，删除本地文件：{delete_local}，删除硬链接：{delete_hard}")
     now = time.time()
     del_deadline = del_day * 24 * 60 * 60
     completed_torrents = qb.torrents.info(status_filter='completed')
+
     for torrent in completed_torrents:
         try:
-            # 判断保存路径是否在目标列表
             if any(is_sub_path(torrent.save_path, path) for path in save_path if path):
                 if torrent.completion_on:
                     delta = now - torrent.completion_on
                     if delta > del_deadline:
                         time_str = format_time_delta(delta)
-                        logger.info(f"{plugins_name}即将删除种子: {torrent.name}, 保存路径: {torrent.save_path}, 完成时间超过{del_day}天 ({time_str})")
-                        
+                        logger.info(f"{plugins_name}即将删除种子: {torrent.name}, 保存路径: {torrent.save_path}，完成时间超过{del_day}天 ({time_str})")
+
+                        # 收集所有需要检查删除的目录
+                        dirs_to_check = set()
+
                         # 先删除种子相关文件及硬链接
                         files = qb.torrents_files(torrent.hash)
                         for f in files:
                             file_path = os.path.join(torrent.save_path, f.name)
                             if os.path.exists(file_path) and delete_hard and delete_local:
-                                if delete_with_hardlinks(file_path, hardlink_paths):
-                                    break
+                                deleted_dirs = delete_with_hardlinks(file_path, hardlink_paths)
+                                dirs_to_check.update(deleted_dirs)
+
+                        # 文件处理完毕后，统一删除没有媒体文件的目录
+                        if dirs_to_check:
+                            logger.info(f"{plugins_name}检查目录: {dirs_to_check}中是否有媒体文件，如果没有将其删除")
+                            remove(list(dirs_to_check))
+                            
 
                         # 最后删除 qbittorrent 任务
                         qb.torrents_delete(delete_files=delete_local, torrent_hashes=torrent.hash)
@@ -216,6 +245,8 @@ def delete_main(qb):
                             logger.info(f"{plugins_name}已删除下载任务，未删除本地文件: {torrent.name}, 保存路径: {torrent.save_path}\n")
         except Exception as e:
             logger.info(f"{plugins_name}处理种子 {torrent.name} 出错: {e}")
+
+    logger.info(f"{plugins_name}删除下载路径: {save_path} 的种子完成")
 
 
 def qb_tools(qb_url, qb_port, username, password, add_tag, add_tag_m, progress_path, add_tag_m_name,edit_tracker,auto_edit_tracker,del_task_falg):
