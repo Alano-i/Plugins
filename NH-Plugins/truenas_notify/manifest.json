@@ -1,0 +1,60 @@
+{
+  "id": "truenas_notify",
+  "name": "TrueNAS 通知",
+  "description": "获取TrueNAS通知",
+  "author": "Alano",
+  "logo": "/data/plugins/truenas_notify/logo.jpg",
+  "thumbnailurl": "/data/plugins/truenas_notify/logo_thum.png",
+  "version": "0.0.1",
+  "documentation": "",
+  "path": "/truenas_notify",
+  "configField": [
+    {
+      "fieldName": "truenas_server",
+      "fieldType": "String",
+      "label": "TrueNAS 服务器 IP 地址或域名",
+      "helpText": "示例：wss://10.10.10.1:443，注意端口号是https的端口",
+      "defaultValue": "wss://10.10.10.1:443"
+    },
+    {
+      "fieldName": "api_key",
+      "fieldType": "String",
+      "label": "TrueNAS 服务器 API KEY",
+      "helpText": "通过 “TrueNAS WEB管理页右上角，点击用户头像 - 我的API密钥” 设置",
+      "defaultValue": ""
+    },
+    {
+        "fieldName": "notify_switch",
+        "fieldType": "switch",
+        "label": "是否启用通知",
+        "defaultValue": true
+    },
+    {
+      "fieldName": "bind_channel",
+      "fieldType": "enum",
+      "label": "通知推送渠道",
+      "required": false,
+      "enumValuesRef": "ChannelList",
+      "multiValue": false,
+      "conditional": {
+        "field": "notify_switch",
+        "operator": "equals",
+        "value": true
+      }
+    },
+
+    {
+        "fieldName": "push_link_url",
+        "fieldType": "string",
+        "label": "通知点击跳转链接",
+        "required": false,
+        "helpText": "",
+        "defaultValue": "",
+        "conditional": {
+        "field": "notify_switch",
+        "operator": "equals",
+        "value": true
+      }
+    }
+  ]
+}

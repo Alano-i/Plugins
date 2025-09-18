@@ -1,0 +1,78 @@
+{
+  "id": "daily_news",
+  "name": "每天60秒读懂世界",
+  "description": "获取每日新闻（可选【每日新闻】或【影视资讯】）和天气，封面跟随当天天气情况，实时变化。",
+  "author": "Alano",
+  "logo": "/data/plugins/daily_news/logo.jpg",
+  "thumbnailurl": "/data/plugins/daily_news/logo_thum.jpg",
+  "version": "0.0.1",
+  "documentation": "",
+  "path": "/daily_news",
+  "configField": [
+    {
+      "fieldName": "city",
+      "fieldType": "String",
+      "label": "设置城市，用于查询天气，例: 北京",
+      "helpText": "",
+      "defaultValue": "北京"
+    },
+    {
+      "fieldName": "api_host",
+      "fieldType": "String",
+      "label": "和风天气 api_host",
+      "helpText": "参考 https://console.qweather.com/setting?lang=zh",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "private_key",
+      "fieldType": "String",
+      "label": "和风天气 private_key",
+      "helpText": "参考 https://dev.qweather.com/docs/configuration/authentication/",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "kid",
+      "fieldType": "String",
+      "label": "和风天气项目凭据Id",
+      "helpText": "参考 https://dev.qweather.com/docs/configuration/authentication/",
+      "defaultValue": ""
+    },
+    {
+      "fieldName": "sub",
+      "fieldType": "String",
+      "label": "和风天气凭据的项目Id",
+      "helpText": "参考 https://dev.qweather.com/docs/configuration/authentication/",
+      "defaultValue": ""
+    },
+    {
+        "fieldName": "news_type",
+        "fieldType": "multi_select",
+        "label": "选择每日新闻类型（可多选）",
+        "options": [
+            {"value":"daily","label":"热点新闻","type":""},
+            {"value":"entertainment","label":"热点影视快讯","type":""}
+        ],
+        "defaultValue": ["daily", "entertainment"]
+    },
+
+    {
+        "fieldName": "notify_switch",
+        "fieldType": "switch",
+        "label": "是否启用通知",
+        "defaultValue": true
+    },
+    {
+      "fieldName": "bind_channel",
+      "fieldType": "enum",
+      "label": "通知推送渠道",
+      "required": false,
+      "enumValuesRef": "ChannelList",
+      "multiValue": false,
+      "conditional": {
+        "field": "notify_switch",
+        "operator": "equals",
+        "value": true
+      }
+    }
+  ]
+}

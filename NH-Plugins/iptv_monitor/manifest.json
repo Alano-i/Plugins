@@ -3,9 +3,10 @@
   "name": "IPTV频道同步",
   "description": "同步IPTV频道组播信息，并推送通知",
   "author": "Alano",
-  "logo": "https://raw.githubusercontent.com/Alano-i/Plugins/refs/heads/main/NH-Plugins/iptv_monitor/iptv.jpg",
+  "logo": "https://img.walkcs.com/iptv.jpg",
+  "thumbnailurl": "https://img.walkcs.com/nh/iptv.png",
   "version": "0.0.1",
-  "documentation": "https://github.com/Alano-i/Plugins/tree/main/NH-Plugins/iptv_monitor",
+  "documentation": "https://doc.walkcs.com",
   "path": "/iptv_monitor",
   "configField": [
     {
@@ -29,6 +30,43 @@
         "helpText": "",
         "defaultValue": ""
     },
+
+    {
+        "fieldName": "FTP_SERVER",
+        "fieldType": "string",
+        "label": "FTP服务器地址",
+        "helpText": "",
+        "defaultValue": ""
+    },
+    {
+        "fieldName": "FTP_PORT",
+        "fieldType": "string",
+        "label": "FTP服务器端口",
+        "helpText": "",
+        "defaultValue": ""
+    },
+    {
+        "fieldName": "FTP_USERNAME",
+        "fieldType": "string",
+        "label": "FTP服务器用户名",
+        "helpText": "",
+        "defaultValue": ""
+    },
+    {
+        "fieldName": "FTP_PASSWORD",
+        "fieldType": "string",
+        "label": "FTP服务器密码",
+        "helpText": "",
+        "defaultValue": ""
+    },
+    {
+        "fieldName": "FTP_DIR",
+        "fieldType": "string",
+        "label": "需要替换的m3u文件所在的FTP服务器目录，/img/iptv",
+        "helpText": "",
+        "defaultValue": ""
+    },
+
     {
         "fieldName": "notify_switch",
         "fieldType": "switch",

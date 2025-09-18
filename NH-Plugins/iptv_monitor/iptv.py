@@ -1,3 +1,10 @@
+from notifyhub.controller.schedule import register_cron_job
+from notifyhub.plugins.common import after_setup
+from notifyhub.controller.server import server
+from notifyhub.plugins.utils import (
+    get_plugin_data,
+    get_plugin_config,
+)
 import re
 import json
 import requests
@@ -6,17 +13,10 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 
-from notifyhub.plugins.utils import (
-    get_plugin_data,
-    get_plugin_config,
-)
-from notifyhub.controller.server import server
-from notifyhub.plugins.common import after_setup
-from notifyhub.controller.schedule import register_cron_job
 
 plugin_id = "iptv_monitor"
 plugin_name = "IPTV频道同步"
-task_falg=False
+task_falg = False
 
 # 获取原始存储数据（含名称等元信息）
 data = get_plugin_data(plugin_id)  # 存在时返回字典，不存在返回 None
@@ -25,7 +25,7 @@ data = get_plugin_data(plugin_id)  # 存在时返回字典，不存在返回 Non
 config = get_plugin_config(plugin_id)  # 返回 dict，不存在时返回空字典 {}
 
 # logger.info(f"「{plugin_name}」原始存储数据（含名称等元信息）: {data}")
-logger.info(f"「{plugin_name}」配置字典: {config}")
+# logger.info(f"「{plugin_name}」配置字典: {config}")
 
 URL = "https://epg.51zmt.top:8001/sctvmulticast.html"
 HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -33,12 +33,13 @@ HEADERS = {"User-Agent": "Mozilla/5.0"}
 UDPXY_URL = f"{config.get('udpxy_url', 'http://10.0.0.254:6868')}".rstrip('/')
 IPTV_JSON_PATH = f"{config.get('iptv_json_url', '/data/iptv').rstrip('/')}/iptv.json"
 M3U_PATH = f"{config.get('m3u_path', '/data/iptv').rstrip('/')}/iptv.m3u"
+M3U_PATH2 = f"{config.get('m3u_path', '/data/iptv').rstrip('/')}/iptv-png.m3u"
 NOTIFY_SWITCH = config.get('notify_switch', True)
 TASK_SWITCH = config.get('task_switch', True)
 BIND_CHANNEL = config.get('bind_channel')
-PUSH_LINK_URL = config.get('push_link_url','')
-PUSH_IMG_URL = config.get('push_img_url','')
-CRON_TASK_TIME = config.get('cron_task_time','')
+PUSH_LINK_URL = config.get('push_link_url', '')
+PUSH_IMG_URL = config.get('push_img_url', '')
+CRON_TASK_TIME = config.get('cron_task_time', '')
 
 # logger.info(f"「{plugin_name}」UDPXY_URL: {UDPXY_URL}")
 # logger.info(f"「{plugin_name}」IPTV_JSON_PATH: {IPTV_JSON_PATH}")
@@ -50,8 +51,78 @@ CRON_TASK_TIME = config.get('cron_task_time','')
 # logger.info(f"「{plugin_name}」CRON_TASK_TIME: {CRON_TASK_TIME}")
 
 
+from ftplib import FTP
+
+
+FTP_SERVER = config.get('FTP_SERVER', '')
+FTP_PORT = config.get('FTP_PORT', '')
+FTP_USERNAME = config.get('FTP_USERNAME', '')
+FTP_PASSWORD = config.get('FTP_PASSWORD', '')
+FTP_DIR = config.get('FTP_DIR', '')
+
+
+def update_ftp_file(local_file=M3U_PATH2):
+    """
+    使用已知 FTP 配置，将本地文件上传覆盖到 FTP 指定路径
+    """
+    try:
+        # 连接 FTP
+        ftp = FTP()
+        ftp.connect(FTP_SERVER, int(FTP_PORT))
+        ftp.login(FTP_USERNAME, FTP_PASSWORD)
+        print(f"已连接 FTP: {FTP_SERVER}:{FTP_PORT}")
+
+        # 切换到目标目录
+        ftp.cwd(FTP_DIR)  # FTP_DIR 应该是 '/img/iptv'
+        print(f"切换到目录: {FTP_DIR}")
+
+        # 上传文件
+        with open(local_file, 'rb') as f:
+            ftp.storbinary('STOR iptv-png.m3u', f)
+        logger.info(f"「{plugin_name}」文件{local_file} 已上传到FTP服务器成功！")
+
+        ftp.quit()
+    except Exception as e:
+        logger.info(f"「{plugin_name}」上传失败: {e}")
+
+
+def replace_ip(multicast_mapping):
+    # 读取原始M3U文件
+    input_file = M3U_PATH2
+    try:
+        with open(input_file, 'r', encoding='utf-8') as f:
+            content = f.readlines()
+        
+        # 替换组播地址
+        updated_content = []
+        for line in content:
+            # 只处理以http://开头的行（包含组播地址的行）
+            if line.startswith('http://'):
+                # 查找并替换所有匹配的组播地址
+                for old_addr, new_addr in multicast_mapping.items():
+                    if old_addr in line:
+                        line = line.replace(old_addr, new_addr)
+                        break  # 找到匹配的就停止替换，处理下一行
+            updated_content.append(line)
+        
+        # 保存更新后的内容
+        with open(input_file, 'w', encoding='utf-8') as f:
+            f.writelines(updated_content)
+        
+        logger.info(f"「{plugin_name}」组播地址变更已更新到 {input_file}")
+        update_ftp_file(M3U_PATH2)
+        return True
+        
+    except FileNotFoundError:
+        logger.error(f"「{plugin_name}」错误：未找到文件 {input_file}")
+        return False
+    except Exception as e:
+        logger.error(f"「{plugin_name}」处理文件时发生错误：{str(e)}")
+        return False
+
 def normalize_text(s: str) -> str:
     return " ".join((s or "").replace("\xa0", " ").split())
+
 
 def extract_multicast(s: str) -> str:
     """提取并标准化 组播地址 -> ip:port"""
@@ -61,10 +132,12 @@ def extract_multicast(s: str) -> str:
         return f"{m.group(1)}:{m.group(2)}"
     return s
 
+
 def fetch_doc(url=URL, verify=False, timeout=15):
     r = requests.get(url, headers=HEADERS, verify=verify, timeout=timeout)
     r.raise_for_status()
     return html.fromstring(r.content)
+
 
 def parse_table(doc):
     wanted = {"频道名称", "组播地址", "回放天数", "频道ID", "清晰度/帧率/编码", "回放地址"}
@@ -72,7 +145,8 @@ def parse_table(doc):
     target, header_map = None, {}
 
     for t in tables:
-        headers = [normalize_text(e.text_content()) for e in t.xpath(".//tr[1]/*")]
+        headers = [normalize_text(e.text_content())
+                   for e in t.xpath(".//tr[1]/*")]
         if headers and len(set(headers) & wanted) >= 4:
             target = t
             header_map = {h: i for i, h in enumerate(headers)}
@@ -97,15 +171,16 @@ def parse_table(doc):
 
     i_title = idx("频道名称", 0)
     i_multi = idx("组播地址", 1)
-    i_days  = idx("回放天数", None)
-    i_id    = idx("频道ID", 2)
+    i_days = idx("回放天数", None)
+    i_id = idx("频道ID", 2)
     i_quality = idx("清晰度/帧率/编码", None)
-    i_play  = idx("回放地址", 3)
+    i_play = idx("回放地址", 3)
 
     iptv = []
     for tr in target.xpath(".//tr[position()>1][td]"):
         tds = tr.xpath("./td")
-        get = lambda i: normalize_text(tds[i].text_content()) if i is not None and i < len(tds) else ""
+        def get(i): return normalize_text(
+            tds[i].text_content()) if i is not None and i < len(tds) else ""
 
         title = get(i_title)
         multicast = extract_multicast(get(i_multi))
@@ -128,21 +203,25 @@ def parse_table(doc):
 
     return iptv
 
+
 def generate_m3u(iptv_list, base_url=f"{UDPXY_URL}/rtp/"):
     lines = ["#EXTM3U"]
     for idx, ch in enumerate(iptv_list, start=1):
         title = ch['title']
         addr = ch['multicast_address']
         # tvg-id 用 idx 占位，你也可以改成 channel_ID
-        lines.append(f'#EXTINF:-1 tvg-id="{idx}" tvg-name="{title}" tvg-logo="" group-title="",{title}')
+        lines.append(
+            f'#EXTINF:-1 tvg-id="{idx}" tvg-name="{title}" tvg-logo="" group-title="",{title}')
         lines.append(f"{base_url}{addr}")
     return "\n".join(lines)
+
 
 def fetch_iptv(url=URL):
     doc = fetch_doc(url)
     return parse_table(doc)
 
-def compare_iptv(old_list, new_list):
+
+def compare_iptv0(old_list, new_list):
     """对比两个 IPTV 列表，返回差异信息"""
     results = []
     def key(ch): return ch.get("channel_ID") or ch.get("title")
@@ -177,7 +256,7 @@ def compare_iptv(old_list, new_list):
                 if old_val != new_val:
                     title = new_map[k]['title']
                     updates_by_channel.setdefault(title, []).append(
-                        f"{field_name_map[field]}： '{old_val}' → '{new_val}'"
+                        f"{field_name_map[field]}：'{old_val}' → '{new_val}'"
                     )
 
     # 合并输出
@@ -188,7 +267,60 @@ def compare_iptv(old_list, new_list):
 
     return results
 
-def send_notify(content,update_data=True):
+def compare_iptv(old_list, new_list):
+    """对比两个 IPTV 列表，返回差异信息，同时生成组播地址变化映射"""
+    results = []
+    multicast_mapping = {}  # 用于记录组播地址变更
+
+    def key(ch): return ch.get("channel_ID") or ch.get("title")
+
+    old_map = {key(ch): ch for ch in old_list}
+    new_map = {key(ch): ch for ch in new_list}
+
+    field_name_map = {
+        "title": "频道名称",
+        "multicast_address": "组播地址",
+        "playback_days": "回放天数",
+        "channel_ID": "频道ID",
+        "quality_info": "清晰度/帧率/编码",
+        "playback_address": "回放地址"
+    }
+
+    # 新增、删除单独输出
+    for k in new_map:
+        if k not in old_map:
+            results.append(f"🆕 新增频道: {new_map[k]['title']}")
+    for k in old_map:
+        if k not in new_map:
+            results.append(f"❌ 删除频道: {old_map[k]['title']}")
+
+    # 更新项按频道分组
+    updates_by_channel = {}
+    for k in new_map:
+        if k in old_map:
+            for field in field_name_map.keys():
+                old_val = old_map[k].get(field, "")
+                new_val = new_map[k].get(field, "")
+                if old_val != new_val:
+                    title = new_map[k]['title']
+                    updates_by_channel.setdefault(title, []).append(
+                        f"{field_name_map[field]}：'{old_val}' → '{new_val}'"
+                    )
+                    # 如果是组播地址变化，加入映射
+                    if field == "multicast_address":
+                        multicast_mapping[old_val] = new_val
+
+    # 合并输出
+    for title, changes in updates_by_channel.items():
+        results.append(f"🔄 {title}")
+        results.extend(changes)
+        results.append("")  # 空行分隔
+
+    return results, multicast_mapping
+
+
+
+def send_notify(content, update_data=True):
     if NOTIFY_SWITCH:
         try:
             # 按渠道发送（单个渠道）
@@ -215,18 +347,20 @@ def send_notify(content,update_data=True):
         logger.info(f"「{plugin_name}」通知开关未开启，跳过发送通知")
 
 # if __name__ == "__main__":
+
+
 def main():
     if task_falg:
         logger.info(f"「{plugin_name}」定时任务开始执行...")
     else:
         logger.info(f"「{plugin_name}」应用启动运行一次查询...")
-    update_iptv=True
+    update_iptv = True
     iptv = fetch_iptv()
     # 对比旧数据
     if os.path.exists(IPTV_JSON_PATH):
         with open(IPTV_JSON_PATH, "r", encoding="utf-8") as f:
             old_iptv = json.load(f)
-        diffs = compare_iptv(old_iptv, iptv)
+        diffs, multicast_mapping= compare_iptv(old_iptv, iptv)
         if diffs:
             logger.info(f"「{plugin_name}」📢 发现更新：")
             diff_text = "\n".join(diffs)
@@ -234,9 +368,12 @@ def main():
             send_notify(diff_text.strip())
         else:
             logger.info(f"「{plugin_name}」✅ 没有发现频道更新")
-            update_iptv=False
-            send_notify("",update_data=False)
-            
+            update_iptv = False
+            # send_notify("", update_data=False)
+        if multicast_mapping:
+            logger.info(f"「{plugin_name}」准备替换新的组播地址映射关系如下：{multicast_mapping}")
+            replace_ip(multicast_mapping)
+
     else:
         logger.info(f"「{plugin_name}」首次运行，生成本地 IPTV 数据")
 
@@ -250,11 +387,13 @@ def main():
         m3u_content = generate_m3u(iptv)
         with open(M3U_PATH, "w", encoding="utf-8") as f:
             f.write(m3u_content)
-        logger.info(f"「{plugin_name}」✅ iptv.m3u 已生成")
+        logger.info(f"「{plugin_name}」✅最新完整版 iptv.m3u 已生成")
     else:
         logger.info(f"「{plugin_name}」无需更新 iptv.m3u 文件")
 
 # 在 after_setup 中注册定时任务（同步）
+
+
 @after_setup(plugin_id=plugin_id, desc="查询IPTV更新")
 def setup_cron_jobs():
     if TASK_SWITCH:
@@ -262,8 +401,8 @@ def setup_cron_jobs():
         # 注册定时任务，支持 cron 表达式
         if CRON_TASK_TIME:
             global task_falg
-            task_falg=True
-            register_cron_job(CRON_TASK_TIME, "IPTV频道同步任务", main, random_delay_seconds=10)
+            task_falg = True
+            register_cron_job(CRON_TASK_TIME, "IPTV频道同步任务",main, random_delay_seconds=10)
         else:
             logger.warning(f"「{plugin_name}」未配置 CRON_TASK_TIME，跳过注册定时任务")
     else:
