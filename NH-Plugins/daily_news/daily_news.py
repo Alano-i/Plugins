@@ -586,8 +586,20 @@ def main():
 
 @after_setup(plugin_id=plugin_id, desc="查询每日新闻")
 def setup_cron_jobs():
-    register_cron_job("0 8-18,23 * * *", "查询每日新闻", main, random_delay_seconds=10)
+    register_cron_job("0 8-18,23 * * *", "查询每日新闻", task, random_delay_seconds=10)
     # register_cron_job("55 * * * *", "查询每日新闻2", auto_run, random_delay_seconds=10)
+
+
+def task():
+    if datetime.now().time().hour in [8, 23]:
+        server.set_cache('is_get_news', 'daily_news', False)
+        server.set_cache('is_get_news', 'entertainment', False)
+    if datetime.now().time().hour != 23:
+        logger.info(f'{plugin_name}定时任务启动，开始获取每日新闻和天气')
+        if main():
+            logger.info(f'{plugin_name}定时任务获取每日新闻和天气完成！')
+
+
 
 daily_news_router = APIRouter(prefix="/daily_news", tags=["daily_news"])
 
