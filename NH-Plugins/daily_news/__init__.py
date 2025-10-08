@@ -1,5 +1,3 @@
-from .daily_news import *
-
-# main()
-# # main()
+from .daily_news import main
+#main()
 

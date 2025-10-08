@@ -1,6 +1,3 @@
-import os
-from fastapi.responses import FileResponse
-from fastapi import APIRouter
 from notifyhub.controller.schedule import register_cron_job
 from notifyhub.plugins.common import after_setup
 from notifyhub.controller.server import server
@@ -15,14 +12,11 @@ import json
 import websocket
 import threading
 import ast
-
-from typing import Dict, Any
 import sched
 import ssl
 
 import logging
 logger = logging.getLogger(__name__)
-
 
 plugin_id = "truenas_notify"
 plugin_name = "TrueNAS 通知"
@@ -216,6 +210,35 @@ def progress_volumestatus_text(alert_type, text):
 
     else:
         return f"存储池【{pool_name}】状态：{state}"
+    
+def progress_rsync_success_text(alert_type, text):
+    if '"PULL"' in text:
+        task_type='拉取'
+    elif '"PUSH"' in text:
+        task_type='推送'
+    else:
+        task_type=''
+    # 提取路径
+    path_match = re.search(r'for\s+"([^"]+)"', text)
+    path = path_match.group(1) if path_match else None
+
+    if task_type and path:
+        text = f'状态：成功✅\n类型：{task_type}\n路径：{path}'
+    return text
+def progress_rsync_failed_text(alert_type, text):
+    if '"PULL"' in text:
+        task_type='拉取'
+    elif '"PUSH"' in text:
+        task_type='推送'
+    else:
+        task_type=''
+    # 提取路径
+    path_match = re.search(r'for\s+"([^"]+)"', text)
+    path = path_match.group(1) if path_match else None
+
+    if task_type and path:
+        text = f'状态：❌失败\n类型：{task_type}\n路径：{path}'
+    return text
 
 
 def progress_space_text(alert_type, text):
@@ -271,6 +294,8 @@ def progress_text(alert_type, alert_text):
         'HasUpdate': progress_sys_update_text,
         'PoolUpgraded': progress_pool_update_text,
         'VolumeStatus': progress_volumestatus_text,
+        'RsyncSuccess': progress_rsync_success_text,
+        'RsyncFailed': progress_rsync_failed_text,
     }
     logger.error(f'alert_text处理前：{alert_text}')
     if alert_type in handlers_type:
@@ -370,6 +395,14 @@ def progress_alert_text(alert):
             'title': 'TrueNAS 系统有更新',
             'pic': 'sys_update.png',
         },
+        'RsyncSuccess': {
+            'title': 'Rsync 备份成功',
+            'pic': 'rsync.png',
+        },
+        'RsyncFailed': {
+            'title': 'Rsync 备份失败',
+            'pic': 'rsync.png',
+        },
     }
     new_alert = alert_content
     new_alert_type = new_alert.get('alert_type', '')
@@ -379,7 +412,7 @@ def progress_alert_text(alert):
     new_alert_text = new_alert.get('alert_text', '')
     new_alert_text = progress_text(new_alert_type, new_alert_text)
 
-    msg_digest = f"{new_alert_text}\n{new_alert.get('alert_time','')}"
+    msg_digest = f"{new_alert_text}\n时间：{new_alert.get('alert_time','')}"
     logger.info(f'{plugins_name}获取到的系统新通知如下:\n{msg_title}\n{msg_digest}')
     push_msg(msg_title, msg_digest, pic_url)
 
@@ -412,7 +445,7 @@ def on_message(ws, message):
         heartbeat_result = json_data
         # 接收心跳返回结果
         # if datetime.datetime.now().minute in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:
-        if datetime.datetime.now().minute % 5 == 0:
+        if datetime.datetime.now().minute % 15 == 0:
             logger.info(f'{plugins_name}心跳: {heartbeat_result}')
             time.sleep(60)
     elif json_data['msg'] == 'result' and json_data['result'] == True:
@@ -508,27 +541,4 @@ def setup_cron_jobs():
     register_cron_job('*/1 * * * *', "TrueNAS 通知", task, random_delay_seconds=10)
 
 
-truenas_notify_router = APIRouter(prefix="/truenas_notify", tags=["truenas_notify"])
 
-
-@truenas_notify_router.get("/cover/{filename}")
-async def cover(filename: str):
-    # 图片在当前插件目录下的 cover 目录中
-    file_path = os.path.join(plugins_path, 'cover', filename)
-    logger.info(f"「{plugin_name}」收到请求图片: {file_path}")
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        # 自动根据后缀推断类型
-        ext = os.path.splitext(filename)[-1].lower()
-        media_type = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".gif": "image/gif",
-        }.get(ext, "application/octet-stream")
-        # return FileResponse(file_path, media_type=media_type, filename=filename)  # filename 参数用于下载时的默认文件名，浏览器下载图片
-        response = FileResponse(file_path, media_type=media_type)   # 浏览器直接显示图片
-        # 设置缓存头，比如缓存 7 天
-        response.headers["Cache-Control"] = "public, max-age=604800"
-        return response
-    else:
-        return {"error": "Image not found"}

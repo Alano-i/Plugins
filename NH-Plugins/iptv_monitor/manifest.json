@@ -17,60 +17,76 @@
         "defaultValue": ""
     },
     {
-        "fieldName": "iptv_json_url",
-        "fieldType": "string",
-        "label": "IPTV频道列表的本地存放路径",
-        "helpText": "",
-        "defaultValue": ""
+        "fieldName": "ftp_switch",
+        "fieldType": "switch",
+        "label": "将最新的M3U文件更新到FTP",
+        "defaultValue": false
     },
-    {
-        "fieldName": "m3u_path",
-        "fieldType": "string",
-        "label": "IPTV M3U文件的本地存放路径",
-        "helpText": "",
-        "defaultValue": ""
-    },
-
     {
         "fieldName": "FTP_SERVER",
         "fieldType": "string",
         "label": "FTP服务器地址",
         "helpText": "",
-        "defaultValue": ""
+        "defaultValue": "",
+        "conditional": {
+          "field": "ftp_switch",
+          "operator": "equals",
+          "value": true
+        }
     },
     {
         "fieldName": "FTP_PORT",
         "fieldType": "string",
         "label": "FTP服务器端口",
         "helpText": "",
-        "defaultValue": ""
+        "defaultValue": "",
+        "conditional": {
+          "field": "ftp_switch",
+          "operator": "equals",
+          "value": true
+        }
     },
     {
         "fieldName": "FTP_USERNAME",
         "fieldType": "string",
         "label": "FTP服务器用户名",
         "helpText": "",
-        "defaultValue": ""
+        "defaultValue": "",
+        "conditional": {
+          "field": "ftp_switch",
+          "operator": "equals",
+          "value": true
+        }
     },
     {
         "fieldName": "FTP_PASSWORD",
         "fieldType": "string",
         "label": "FTP服务器密码",
         "helpText": "",
-        "defaultValue": ""
+        "defaultValue": "",
+        "conditional": {
+          "field": "ftp_switch",
+          "operator": "equals",
+          "value": true
+        }
     },
     {
         "fieldName": "FTP_DIR",
         "fieldType": "string",
         "label": "需要替换的m3u文件所在的FTP服务器目录，/img/iptv",
         "helpText": "",
-        "defaultValue": ""
+        "defaultValue": "",
+        "conditional": {
+          "field": "ftp_switch",
+          "operator": "equals",
+          "value": true
+        }
     },
 
     {
         "fieldName": "notify_switch",
         "fieldType": "switch",
-        "label": "是否启用通知",
+        "label": "启用通知",
         "defaultValue": true
     },
     {
@@ -94,9 +110,9 @@
         "helpText": "",
         "defaultValue": "",
         "conditional": {
-        "field": "notify_switch",
-        "operator": "equals",
-        "value": true
+          "field": "notify_switch",
+          "operator": "equals",
+          "value": true
       }
     },
     {
