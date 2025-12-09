@@ -64,6 +64,27 @@
             "label": "nullbr网站的 apikey",
             "helpText": "nullbr网站的 apikey,到这里获取 https://nullbr.online/manage",
             "defaultValue": ""
+        },
+        {
+            "fieldName": "media302_url",
+            "fieldType": "string",
+            "label": "media302服务地址",
+            "helpText": "media302后端服务的基础URL，例如：https://your-media302.domain",
+            "defaultValue": ""
+        },
+        {
+            "fieldName": "media302_token",
+            "fieldType": "string",
+            "label": "media302 Token",
+            "helpText": "调用media302保存分享接口所需的token",
+            "defaultValue": ""
+        },
+        {
+            "fieldName": "folder",
+            "fieldType": "string",
+            "label": "115转存目录",
+            "helpText": "保存115分享的目标目录，默认“转存监控”",
+            "defaultValue": "转存监控"
         }
     ],
     "helpTextField": [],

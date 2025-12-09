@@ -123,6 +123,21 @@ class wxNullbrConfig:
     def nullbr_apikey(self) -> Optional[str]:
         """获取nullbr apikey"""
         return self._get_config_value("nullbr_apikey", "")
+
+    @property
+    def media302_url(self) -> Optional[str]:
+        """获取media302服务地址"""
+        return self._get_config_value("media302_url", "")
+
+    @property
+    def media302_token(self) -> Optional[str]:
+        """获取media302服务Token"""
+        return self._get_config_value("media302_token", "")
+
+    @property
+    def folder(self) -> Optional[str]:
+        """获取115转存目录"""
+        return self._get_config_value("folder", "转存监控")
     
     def validate_config(self) -> Dict[str, bool]:
         """

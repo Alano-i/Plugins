@@ -2,6 +2,7 @@ import datetime
 import threading
 import httpx
 import logging
+import re
 
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
@@ -17,11 +18,14 @@ from notifyhub.common.response import json_500
 from .utils import config
 from .api.tmdbapi import tmdb
 from .api.nullbr import nullbr
+from .api.media302_api import media302
 
 logger = logging.getLogger(__name__)
 
 token_cache = Cache(maxsize=1)
 search_cache = Cache(maxsize=1, ttl=180)
+resource_cache = Cache(maxsize=1, ttl=300)
+SHARE_LINK_PATTERN = r'(https://(?:115\.com|115cdn\.com)/s/[^#\s]+)'
 
 # FastAPI路由器
 wx_nullbr_router = APIRouter(prefix="/wx-nullbr", tags=["wx-nullbr"])
@@ -315,27 +319,36 @@ class QywxMessageProcessor:
             message = self._parse_xml_message(decrypted_msg.decode('utf-8'))
             content = (message.content or "").strip()
             user_cache = search_cache.get(message.from_user)
+            user_resource_cache = resource_cache.get(message.from_user)
             is_pick_digit = content.isdigit() and 1 <= int(content) <= 8
+            share_match = re.search(SHARE_LINK_PATTERN, content)
 
-            if is_pick_digit and user_cache:
+            if share_match:
+                job = {
+                    'type': 'save_share',
+                    'share_url': share_match.group(1)
+                }
+                self._process_chat_message_async(message, job)
+                reply_content = ''
+            elif is_pick_digit:
                 index = int(content) - 1
-                if 0 <= index < len(user_cache):
+                if user_resource_cache and 0 <= index < len(user_resource_cache):
+                    job = {
+                        'type': 'save_pick',
+                        'index': index
+                    }
+                elif user_cache and 0 <= index < len(user_cache):
                     job = {
                         'type': 'pick_index',
                         'index': index
                     }
-                    self._process_chat_message_async(message, job)
-                    reply_content=''
-                    # reply_content = "正在获取115资源，请稍候..." # 不展示等待异步等待提示
                 else:
-                    # 越界则按关键词搜索处理
                     job = {
                         'type': 'tmdb_search',
                         'keyword': content
                     }
-                    self._process_chat_message_async(message, job)
-                    reply_content=''
-                    # reply_content = "正在搜索中，请稍候..."   # 不展示等待异步等待提示
+                self._process_chat_message_async(message, job)
+                reply_content = ''
             else:
                 # 中文或任意非1-8数字/文本，均作为关键词搜索
                 job = {
@@ -343,8 +356,7 @@ class QywxMessageProcessor:
                     'keyword': content
                 }
                 self._process_chat_message_async(message, job)
-                reply_content=''
-                # reply_content = "正在搜索中，请稍候..."        # 不展示等待异步等待提示
+                reply_content = ''
             
             if not reply_content: return
             # 创建回复XML
@@ -393,6 +405,10 @@ class QywxChatThread(threading.Thread):
                 self._handle_tmdb_search()
             elif job_type == 'pick_index':
                 self._handle_pick_index()
+            elif job_type == 'save_pick':
+                self._handle_save_pick()
+            elif job_type == 'save_share':
+                self._handle_save_share()
             else:
                 logger.warning(f"未知任务类型: {job_type}")
             
@@ -407,11 +423,22 @@ class QywxChatThread(threading.Thread):
             return ""
         return text if len(text) <= limit else text[: limit - 1] + "…"
 
+    def _extract_share_link(self, text: str) -> Optional[str]:
+        if not text:
+            return None
+        match = re.search(SHARE_LINK_PATTERN, text)
+        return match.group(1) if match else None
+
     def _handle_tmdb_search(self):
         keyword = (self.job.get('keyword') or '').strip()
         if not keyword:
             self.message_sender.send_text_message("请输入要搜索的影片名称", self.message.from_user)
             return
+        # 重置资源缓存，避免数字选择误选旧资源
+        try:
+            resource_cache.delete(self.message.from_user)
+        except Exception:
+            resource_cache.set(self.message.from_user, None)
         # 1) 调用TMDB搜索
         results = tmdb.search_by_keyword(keyword) or []
         if not results:
@@ -470,6 +497,7 @@ class QywxChatThread(threading.Thread):
         if not resources:
             self.message_sender.send_text_message(f"未找到与【{title}】相关的115资源", self.message.from_user)
             return
+        resource_cache.set(self.message.from_user, resources)
         # 2) 整理文本回复
         lines: List[str] = [f"【{title}】115资源："]
         for i, r in enumerate(resources, start=1):
@@ -488,10 +516,91 @@ class QywxChatThread(threading.Thread):
                 line += f" · {resolution}"
             if quality:
                 line += f" · {quality}"
-            line += f"\n✅ {share_link}"
+            line += f"\n🍿 {share_link}"
             lines.append(line)
+        lines.append("回复数字直接为该资源执行115转存")
         text = "\n\n".join(lines[:50])  # 控制长度
         self.message_sender.send_text_message(text, self.message.from_user)
+
+    def _handle_save_pick(self):
+        circled_nums = {
+            1: "1️⃣", 2: "2️⃣", 3: "3️⃣", 4: "4️⃣", 5: "5️⃣",
+            6: "6️⃣", 7: "7️⃣", 8: "8️⃣", 9: "9️⃣", 10: "🔟"
+        }
+        if self.job.get('index') is None:
+            self.message_sender.send_text_message("资源选择无效，请重新选择", self.message.from_user)
+            return
+        index = int(self.job.get('index'))
+        cached = resource_cache.get(self.message.from_user) or []
+        if not cached or index < 0 or index >= len(cached):
+            self.message_sender.send_text_message("资源选择无效或已过期，请重新搜索", self.message.from_user)
+            return
+        chosen = cached[index]
+        r_title = f"{chosen.get('title')}"
+        if chosen.get('season_list'):
+            season_info = ",".join([s for s in chosen.get('season_list') if s])
+            r_title = f"{r_title} ({season_info})"
+        circled = circled_nums.get(index + 1, str(index + 1))
+        title_hint = f"{circled} {r_title}"
+        self._save_and_reply(chosen.get('share_link'), title_hint)
+
+    def _handle_save_share(self):
+        share_url = self.job.get('share_url') or self._extract_share_link(self.message.content or "")
+        if not share_url:
+            self.message_sender.send_text_message("未检测到有效的115分享链接，请重新输入", self.message.from_user)
+            return
+        self._save_and_reply(share_url)
+
+    def _save_and_reply(self, share_url: Optional[str], title_hint: Optional[str] = None):
+        if not share_url:
+            self.message_sender.send_text_message("未检测到有效的115分享链接，请重新输入", self.message.from_user)
+            return
+        result = media302.save_share(share_url)
+        text = self._format_result_message(result, title_hint)
+        self.message_sender.send_text_message(text, self.message.from_user)
+
+    def _format_result_message(self, result: Dict[str, Any], title_hint: Optional[str]) -> str:
+        # 成功场景
+        success_msgs = ('success', '文件已接收，无需重复接收！')
+        msg_value = result.get('msg')
+        code = result.get('code')
+        is_success = (
+            msg_value in success_msgs
+            or result.get('success') is True
+            or code == 0
+        )
+        def _clean_path(s: str) -> str:
+            if not s:
+                return ""
+            # 常见返回前缀“✅ ”去除
+            s = str(s).strip()
+            if s.startswith("✅"):
+                s = s.lstrip("✅").strip()
+            return s
+
+        if is_success:
+            # 处理 msg 中的路径字符串
+            path_str = ""
+            if isinstance(msg_value, str) and msg_value:
+                # msg 可能是路径或包含多行，取首行
+                path_str = msg_value.splitlines()[0].strip()
+                path_str = _clean_path(path_str)
+            elif isinstance(result.get('data'), str):
+                path_str = _clean_path(result['data'])
+
+            lines = ["转存结果：✅ 成功"]
+            if title_hint:
+                lines.append(f"资源：{title_hint}")
+            if path_str:
+                lines.append(f"路径：{path_str}")
+            return "\n".join(lines)
+
+        # 失败场景
+        error_msg = result.get('message') or msg_value or "未知错误"
+        lines = [f"转存结果：❌ 失败\n原因：{error_msg}"]
+        if title_hint:
+            lines.append(f"资源：{title_hint}")
+        return "\n".join(lines)
 
 
 class QywxCallbackHandler:
