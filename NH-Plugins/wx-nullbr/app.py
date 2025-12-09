@@ -588,16 +588,19 @@ class QywxChatThread(threading.Thread):
             elif isinstance(result.get('data'), str):
                 path_str = _clean_path(result['data'])
 
-            lines = ["转存结果：✅ 成功"]
+            lines = ["✅ 转存并整理成功"] if path_str != "文件已接收，无需重复接收！" else ["✅ 文件已转存，❌ 整理失败"]
             if title_hint:
-                lines.append(f"资源：{title_hint}")
+                lines.append(f"\n资源：{title_hint}")
             if path_str:
-                lines.append(f"路径：{path_str}")
+                if path_str != "文件已接收，无需重复接收！":
+                    lines.append(f"路径：{path_str}")
+                else:
+                    lines.append(f"路径：整理失败，请手动整理！")
             return "\n".join(lines)
 
         # 失败场景
         error_msg = result.get('message') or msg_value or "未知错误"
-        lines = [f"转存结果：❌ 失败\n原因：{error_msg}"]
+        lines = [f"❌ 转存失败\n\n原因：{error_msg}"]
         if title_hint:
             lines.append(f"资源：{title_hint}")
         return "\n".join(lines)
