@@ -68,15 +68,15 @@
         {
             "fieldName": "media302_url",
             "fieldType": "string",
-            "label": "media302服务地址",
-            "helpText": "media302后端服务的基础URL，例如：https://your-media302.domain",
+            "label": "Media302 服务地址",
+            "helpText": "Media302 服务的基础UR，不带/strm，例如：https://media302.domain.com",
             "defaultValue": ""
         },
         {
             "fieldName": "media302_token",
             "fieldType": "string",
-            "label": "media302 Token",
-            "helpText": "调用media302保存分享接口所需的token",
+            "label": "Media302 Token",
+            "helpText": "调用 Media302 保存分享接口所需的 token",
             "defaultValue": ""
         },
         {

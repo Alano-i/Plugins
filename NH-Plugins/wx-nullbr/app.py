@@ -518,7 +518,7 @@ class QywxChatThread(threading.Thread):
                 line += f" · {quality}"
             line += f"\n🍿 {share_link}"
             lines.append(line)
-        lines.append("回复数字直接为该资源执行115转存")
+        lines.append("回复数字转存到 115 并生成 strm")
         text = "\n\n".join(lines[:50])  # 控制长度
         self.message_sender.send_text_message(text, self.message.from_user)
 
