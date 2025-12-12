@@ -323,7 +323,14 @@ class QywxMessageProcessor:
             is_pick_digit = content.isdigit() and 1 <= int(content) <= 8
             share_match = re.search(SHARE_LINK_PATTERN, content)
 
-            if share_match:
+            if content.lower() == 'zl':
+                # 处理重新整理命令
+                job = {
+                    'type': 're_organize'
+                }
+                self._process_chat_message_async(message, job)
+                reply_content = ''
+            elif share_match:
                 job = {
                     'type': 'save_share',
                     'share_url': share_match.group(1)
@@ -409,6 +416,8 @@ class QywxChatThread(threading.Thread):
                 self._handle_save_pick()
             elif job_type == 'save_share':
                 self._handle_save_share()
+            elif job_type == 're_organize':
+                self._handle_re_organize()
             else:
                 logger.warning(f"未知任务类型: {job_type}")
             
@@ -550,6 +559,30 @@ class QywxChatThread(threading.Thread):
             self.message_sender.send_text_message("未检测到有效的115分享链接，请重新输入", self.message.from_user)
             return
         self._save_and_reply(share_url)
+    
+    def _handle_re_organize(self):
+        """处理重新整理115文件"""
+        result = media302.re_organize()
+        logger.info(f"重新整理结果: {result}")
+        
+        # 格式化返回消息
+        # 成功: {'code': 0, 'msg': 'success', 'data': None}
+        # 失败: {'success': False, 'message': '错误信息'}
+        code = result.get('code')
+        msg_value = result.get('msg')
+        is_success = (
+            code == 0
+            or msg_value == 'success'
+            or result.get('success') is True
+        )
+        
+        if is_success:
+            text = "✅ 整理任务启动成功"
+        else:
+            error_msg = result.get('message') or msg_value or "未知错误"
+            text = f"❌ 整理任务启动失败\n\n原因：{error_msg}"
+        
+        self.message_sender.send_text_message(text, self.message.from_user)
 
     def _save_and_reply(self, share_url: Optional[str], title_hint: Optional[str] = None):
         if not share_url:
@@ -563,6 +596,7 @@ class QywxChatThread(threading.Thread):
         # 成功场景
         success_msgs = ('success', '文件已接收，无需重复接收！')
         msg_value = result.get('msg')
+        logger.info(f"转存结果: {result}")
         code = result.get('code')
         is_success = (
             msg_value in success_msgs
@@ -582,9 +616,22 @@ class QywxChatThread(threading.Thread):
             # 处理 msg 中的路径字符串
             path_str = ""
             if isinstance(msg_value, str) and msg_value:
-                # msg 可能是路径或包含多行，取首行
-                path_str = msg_value.splitlines()[0].strip()
-                path_str = _clean_path(path_str)
+                # msg 可能是路径或包含多行
+                lines_list = msg_value.splitlines()
+                # 过滤掉空行
+                file_paths = [_clean_path(line) for line in lines_list if line.strip()]
+                
+                if len(file_paths) == 1:
+                    # 只有一个文件，直接显示路径
+                    path_str = file_paths[0]
+                elif len(file_paths) > 1:
+                    # 多个文件，按文件名字母顺序排序
+                    import os
+                    sorted_paths = sorted(file_paths, key=lambda p: os.path.basename(p).lower())
+                    # 显示第一个路径 + 文件总数
+                    path_str = f"{sorted_paths[0]} 等\n♻️ 共 {len(sorted_paths)} 个文件"
+                else:
+                    path_str = ""
             elif isinstance(result.get('data'), str):
                 path_str = _clean_path(result['data'])
 
@@ -598,7 +645,7 @@ class QywxChatThread(threading.Thread):
                     lines.append(f"📂 {path_str}")
                 else:
                     # lines.append(f"路径：整理失败，请手动整理！")
-                    lines.append(f"📂 整理失败，请手动整理！")
+                    lines.append(f"📂 整理失败，回复 [zl] 手动整理")
             return "\n".join(lines)
 
         # 失败场景

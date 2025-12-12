@@ -135,6 +135,11 @@ class wxNullbrConfig:
         return self._get_config_value("media302_token", "")
 
     @property
+    def media302_name(self) -> Optional[str]:
+        """获取media302目录转移设置中设置的名字"""
+        return self._get_config_value("media302_name", "自动整理并转移到媒体库文件夹")
+
+    @property
     def folder(self) -> Optional[str]:
         """获取115转存目录"""
         return self._get_config_value("folder", "转存监控")

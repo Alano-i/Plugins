@@ -80,6 +80,13 @@
             "defaultValue": ""
         },
         {
+            "fieldName": "media302_name",
+            "fieldType": "string",
+            "label": "目录转移设置中设置的名字",
+            "helpText": "",
+            "defaultValue": "自动整理并转移到媒体库文件夹"
+        },
+        {
             "fieldName": "folder",
             "fieldType": "string",
             "label": "115转存目录",
