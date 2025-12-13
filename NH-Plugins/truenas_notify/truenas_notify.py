@@ -12,7 +12,6 @@ import json
 import websocket
 import threading
 import ast
-import sched
 import ssl
 
 import logging
@@ -417,22 +416,53 @@ def progress_alert_text(alert):
     push_msg(msg_title, msg_digest, pic_url)
 
 
+# Connection state management
+CONNECTION_STATE_DISCONNECTED = 0
+CONNECTION_STATE_CONNECTING = 1
+CONNECTION_STATE_CONNECTED = 2
+
+connection_state = CONNECTION_STATE_DISCONNECTED
+connection_lock = threading.Lock()
+reconnect_attempts = 0
+last_reconnect_time = 0
+heartbeat_thread = None
+heartbeat_stop_event = threading.Event()
+
+# Exponential backoff configuration
+MIN_RETRY_DELAY = 5  # seconds
+MAX_RETRY_DELAY = 60  # seconds
+RETRY_BACKOFF_FACTOR = 2
+
+
+def get_retry_delay():
+    """Calculate retry delay with exponential backoff"""
+    global reconnect_attempts
+    delay = min(MIN_RETRY_DELAY * (RETRY_BACKOFF_FACTOR ** reconnect_attempts), MAX_RETRY_DELAY)
+    return delay
+
+
 def on_open(ws):
+    global connection_state, reconnect_attempts
     # 发送连接请求到服务器
     connect_message = {
         "msg": "connect",
         "version": "1",
         "support": ["1"]
     }
-    ws.send(json.dumps(connect_message))
+    try:
+        ws.send(json.dumps(connect_message))
+        with connection_lock:
+            connection_state = CONNECTION_STATE_CONNECTING
+    except Exception as e:
+        logger.error(f'{plugins_name} 发送连接消息失败：{e}')
 
 
 def on_message(ws, message):
-    global session_id
+    global session_id, connection_state, reconnect_attempts
     json_data = json.loads(message)
     if json_data['msg'] == 'connected':
         session_id = json_data['session']
-        # logger.info(f'{plugins_name}连接 websocket 成功')
+        logger.info(f'{plugins_name}连接 WebSocket 成功，session: {session_id}')
         # 通过api_key进行身份验证
         auth_message = {
             "id": session_id,
@@ -444,12 +474,11 @@ def on_message(ws, message):
     elif json_data['msg'] == 'result' and json_data['result'] == 'pong':
         heartbeat_result = json_data
         # 接收心跳返回结果
-        # if datetime.datetime.now().minute in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]:
         if datetime.datetime.now().minute % 15 == 0:
             logger.info(f'{plugins_name}心跳: {heartbeat_result}')
             time.sleep(60)
     elif json_data['msg'] == 'result' and json_data['result'] == True:
-        # logger.info(f'{plugins_name}websocket 身份认证成功')
+        logger.info(f'{plugins_name}WebSocket 身份认证成功')
         # 订阅报警事件
         subscribe_message = {
             "msg": "sub",
@@ -457,39 +486,70 @@ def on_message(ws, message):
             "name": "alert.list"
         }
         ws.send(json.dumps(subscribe_message))
+        # 标记为已连接，重置重试计数器
+        with connection_lock:
+            connection_state = CONNECTION_STATE_CONNECTED
+            reconnect_attempts = 0
+        # 启动心跳线程
+        start_heartbeat()
     # 接收报警信息
     elif json_data['msg'] == 'added' and json_data['collection'] == 'alert.list':
         alert = json_data['fields']
         # 处理报警信息
         progress_alert_text(alert)
 
+
 def on_error(ws, error):
-    logger.error(f'{plugins_name} 连接 WebSocket 出错了：{error} 关闭后重新连接')
-    time.sleep(60)
-    try:
-        ws.close()
-        # ws.run_forever()
-        start_get_truenas_alert()
-    except Exception as e:
-        logger.info(f"{plugins_name} 重连 WebSocket 失败，原因：{e}")
+    global connection_state
+    logger.error(f'{plugins_name} WebSocket 错误：{error}')
+    with connection_lock:
+        connection_state = CONNECTION_STATE_DISCONNECTED
 
 
 def on_close(ws, close_status_code, close_msg):
+    global connection_state
     logger.info(
-        f"{plugins_name}关闭 Websocket 连接，close_status_code:{close_status_code}, close_msg:{close_msg}")
+        f"{plugins_name}关闭 WebSocket 连接，close_status_code:{close_status_code}, close_msg:{close_msg}")
+    with connection_lock:
+        connection_state = CONNECTION_STATE_DISCONNECTED
+    # 停止心跳
+    stop_heartbeat()
 
 
 def start_get_truenas_alert():
-    global ws
+    global ws, reconnect_attempts, last_reconnect_time, connection_state
+    
+    with connection_lock:
+        # 防止多个线程同时尝试重连
+        if connection_state == CONNECTION_STATE_CONNECTING:
+            logger.info(f"{plugins_name} 已有连接正在尝试中，跳过本次重连")
+            return
+        
+        connection_state = CONNECTION_STATE_CONNECTING
+        reconnect_attempts += 1
+    
+    # 计算重试延迟
+    current_time = time.time()
+    time_since_last_reconnect = current_time - last_reconnect_time
+    retry_delay = get_retry_delay()
+    
+    if time_since_last_reconnect < retry_delay:
+        wait_time = retry_delay - time_since_last_reconnect
+        logger.info(f"{plugins_name} 等待 {wait_time:.1f} 秒后重连（第 {reconnect_attempts} 次尝试）")
+        time.sleep(wait_time)
+    
+    last_reconnect_time = time.time()
+    
+    # 清理旧连接
     try:
-        if ws and ws.sock:
+        if ws and hasattr(ws, 'sock') and ws.sock:
             ws.close()
-            logger.info("get_truenas_alert 线程正在运行，终止当前线程重新启动。")
+            logger.info(f"{plugins_name} 已关闭旧的 WebSocket 连接")
     except Exception as e:
-        logger.warning(
-            f"{plugins_name} get_truenas_alert 线程没有运行，等待定时任务，将重新启动新线程。原因：{e}")
+        logger.debug(f"{plugins_name} 清理旧连接时出错（可忽略）：{e}")
+    
     # 启动新线程
-    thread = threading.Thread(target=get_truenas_alert)
+    thread = threading.Thread(target=get_truenas_alert, daemon=True)
     thread.start()
 
 
@@ -497,40 +557,94 @@ def get_truenas_alert():
     global ws
     try:
         websocket_url = f"{truenas_server}/websocket"
+        logger.info(f"{plugins_name} 正在连接到 {websocket_url}")
         ws = websocket.WebSocketApp(websocket_url,
                                     on_open=on_open,
                                     on_message=on_message,
                                     on_error=on_error,
                                     on_close=on_close)
-        # ws.run_forever()
-        ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})  # 忽略证书验证
+        # 不使用 websocket 库的自动 ping/pong，因为 TrueNAS 使用 JSON-RPC 的 core.ping
+        # 我们的自定义心跳线程会处理心跳
+        ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
     except Exception as e:
-        logger.error(f'{plugins_name} 启动 WebSocket 异常，原因：{e}')
+        logger.error(f'{plugins_name} WebSocket 连接异常：{e}')
+        with connection_lock:
+            connection_state = CONNECTION_STATE_DISCONNECTED
+        # 尝试重连
         start_get_truenas_alert()
 
 
-# sched模块实现每隔 50 秒执行一次心跳，原来的1分钟执行一次的cron不受影响，自动计算每隔 50 秒下一次执行时间
-scheduler = sched.scheduler(time.time, time.sleep)
+def start_heartbeat():
+    """启动心跳线程"""
+    global heartbeat_thread, heartbeat_stop_event
+    
+    # 停止旧的心跳线程
+    stop_heartbeat()
+    
+    # 创建新的心跳线程
+    heartbeat_stop_event.clear()
+    heartbeat_thread = threading.Thread(target=send_heartbeat_loop, daemon=True)
+    heartbeat_thread.start()
+    logger.info(f"{plugins_name} 心跳线程已启动")
 
 
-def send_heartbeat():
-    ping_message = {
-        "id": 'heartbeat-ping-pong',
-        "msg": "method",
-        "method": "core.ping"
-    }
-    try:
-        ws.send(json.dumps(ping_message))
-    except Exception as e:
-        logger.error(f'{plugins_name}心跳异常，原因: {e}')
-        start_get_truenas_alert()
-    scheduler.enter(50, 1, send_heartbeat)
+def stop_heartbeat():
+    """停止心跳线程"""
+    global heartbeat_stop_event
+    if heartbeat_stop_event:
+        heartbeat_stop_event.set()
+
+
+def send_heartbeat_loop():
+    """心跳循环，每 50 秒发送一次"""
+    global ws, connection_state
+    
+    while not heartbeat_stop_event.is_set():
+        # 等待 50 秒或直到收到停止信号
+        if heartbeat_stop_event.wait(50):
+            break
+        
+        # 检查连接状态
+        with connection_lock:
+            if connection_state != CONNECTION_STATE_CONNECTED:
+                logger.debug(f"{plugins_name} 连接未就绪，跳过心跳")
+                continue
+        
+        # 发送心跳
+        ping_message = {
+            "id": 'heartbeat-ping-pong',
+            "msg": "method",
+            "method": "core.ping"
+        }
+        try:
+            if ws and hasattr(ws, 'sock') and ws.sock:
+                ws.send(json.dumps(ping_message))
+            else:
+                logger.warning(f'{plugins_name} WebSocket 未连接，跳过心跳')
+        except Exception as e:
+            logger.error(f'{plugins_name} 心跳发送失败：{e}')
+            # 心跳失败，触发重连
+            with connection_lock:
+                connection_state = CONNECTION_STATE_DISCONNECTED
+            start_get_truenas_alert()
+            break
+    
+    logger.info(f"{plugins_name} 心跳线程已停止")
 
 
 def task():
-    get_truenas_alert()
-    scheduler.enter(0, 1, send_heartbeat)
-    scheduler.run()
+    """定时任务入口点，确保 WebSocket 连接始终运行"""
+    global connection_state
+    
+    with connection_lock:
+        current_state = connection_state
+    
+    # 如果未连接，启动连接
+    if current_state == CONNECTION_STATE_DISCONNECTED:
+        logger.info(f"{plugins_name} 定时任务检测到连接断开，启动连接")
+        start_get_truenas_alert()
+    else:
+        logger.debug(f"{plugins_name} 定时任务检测，连接状态正常")
 
 
 # 在 after_setup 中注册定时任务（同步）
